@@ -30,6 +30,7 @@ export const helpCommand: Command = {
                 '`/daily` : Điểm danh nhận 500 xu mỗi ngày, chuỗi liên tục tối đa 1.000 xu',
                 '`/sodu` : Xem ví và thống kê thắng thua',
                 '`/chuyentien nguoi:<@ai> soxu:<xu>` : Chuyển xu cho bạn bè',
+                '`/lichsu` : Lịch sử biến động số dư (chỉ mình bạn thấy)',
                 '`/top` : Bảng xếp hạng đại gia',
               ].join('\n'),
             },

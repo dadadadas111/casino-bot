@@ -98,6 +98,29 @@ describe('settleGame', () => {
   });
 });
 
+describe('getHistory', () => {
+  it('returns newest first with a correct running balance', () => {
+    const day1 = new Date('2026-08-09T10:00:00+07:00');
+    economy.claimDaily('u1', day1); // +500 -> 1500
+    economy.debit('u1', 200, 'bet', 'slots'); // -200 -> 1300
+    economy.settleGame('u1', 200, 400, 'slots'); // +400 -> 1700
+
+    const { entries, total } = economy.getHistory('u1', 3);
+    expect(total).toBe(4); // welcome + daily + bet + payout
+    expect(entries).toHaveLength(3);
+    expect(entries[0]).toMatchObject({ type: 'payout', amount: 400, balanceAfter: 1700 });
+    expect(entries[1]).toMatchObject({ type: 'bet', amount: -200, balanceAfter: 1300 });
+    expect(entries[2]).toMatchObject({ type: 'daily', amount: 500, balanceAfter: 1500 });
+  });
+
+  it('logs admin_set as a delta so the walk stays consistent', () => {
+    economy.setBalance('u1', 4000); // from 1000 -> delta +3000
+    const { entries } = economy.getHistory('u1', 2);
+    expect(entries[0]).toMatchObject({ type: 'admin_set', amount: 3000, balanceAfter: 4000 });
+    expect(entries[1]).toMatchObject({ type: 'welcome', amount: 1000, balanceAfter: 1000 });
+  });
+});
+
 describe('topByBalance', () => {
   it('ranks users by balance', () => {
     economy.ensureUser('rich');

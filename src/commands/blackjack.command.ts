@@ -30,6 +30,8 @@ const GAME_TIMEOUT_MS = 120_000;
 
 interface BlackjackSession {
   userId: string;
+  username: string;
+  avatarUrl: string;
   bet: number; // per-hand bet; doubled games settle with bet * 2
   doubled: boolean;
   deck: Card[];
@@ -54,12 +56,13 @@ function outcomeText(outcome: BlackjackOutcome, payout: number, totalBet: number
   }
 }
 
-function playingEmbed(session: BlackjackSession, username: string): EmbedBuilder {
+function playingEmbed(session: BlackjackSession): EmbedBuilder {
   const totalBet = session.doubled ? session.bet * 2 : session.bet;
   return new EmbedBuilder()
     .setColor(COLORS.playing)
     .setTitle('🃏 Blackjack')
-    .setDescription(`Người chơi: **${username}** | Tiền cược: **${formatCoins(totalBet)}**`)
+    .setThumbnail(session.avatarUrl)
+    .setDescription(`Người chơi: **${session.username}** | Tiền cược: **${formatCoins(totalBet)}**`)
     .addFields(
       {
         name: `Bài của bạn (${handValue(session.player)} điểm)`,
@@ -77,7 +80,6 @@ function playingEmbed(session: BlackjackSession, username: string): EmbedBuilder
 
 function finalEmbed(
   session: BlackjackSession,
-  username: string,
   outcome: BlackjackOutcome,
   payout: number,
 ): EmbedBuilder {
@@ -87,6 +89,7 @@ function finalEmbed(
   return new EmbedBuilder()
     .setColor(color)
     .setTitle('🃏 Blackjack: Kết quả')
+    .setThumbnail(session.avatarUrl)
     .setDescription(outcomeText(outcome, payout, totalBet))
     .addFields(
       {
@@ -105,7 +108,7 @@ function finalEmbed(
         inline: false,
       },
     )
-    .setFooter({ text: `Người chơi: ${username}` });
+    .setFooter({ text: `Người chơi: ${session.username}` });
 }
 
 function buttons(session: BlackjackSession): ActionRowBuilder<ButtonBuilder>[] {
@@ -143,22 +146,21 @@ function endSession(session: BlackjackSession): void {
 }
 
 /** Settle and return the final embed (caller decides how to render it). */
-function settle(session: BlackjackSession, username: string, outcome: BlackjackOutcome): EmbedBuilder {
+function settle(session: BlackjackSession, outcome: BlackjackOutcome): EmbedBuilder {
   const totalBet = session.doubled ? session.bet * 2 : session.bet;
   const payout = blackjackPayout(outcome, totalBet);
   economy.settleGame(session.userId, totalBet, payout, 'blackjack');
   endSession(session);
-  return finalEmbed(session, username, outcome, payout);
+  return finalEmbed(session, outcome, payout);
 }
 
 async function autoStandOnTimeout(userId: string): Promise<void> {
   const session = sessions.get(userId);
   if (!session) return;
-  const username = 'Người chơi';
   dealerPlay(session.deck, session.dealer);
   const outcome = isBust(session.player) ? 'lose' : compareHands(session.player, session.dealer);
-  const embed = settle(session, username, outcome).setFooter({
-    text: 'Hết giờ, tự động dừng sau 2 phút',
+  const embed = settle(session, outcome).setFooter({
+    text: `Người chơi: ${session.username} | Hết giờ, tự động dừng sau 2 phút`,
   });
   try {
     await session.message?.edit({ embeds: [embed], components: [] });
@@ -201,6 +203,8 @@ export const blackjackCommand: Command = {
     const deck = createShuffledDeck();
     const session: BlackjackSession = {
       userId,
+      username: interaction.user.displayName,
+      avatarUrl: interaction.user.displayAvatarURL(),
       bet,
       doubled: false,
       deck,
@@ -211,17 +215,15 @@ export const blackjackCommand: Command = {
     };
     sessions.set(userId, session);
 
-    const username = interaction.user.displayName;
-
     // Natural blackjack resolves immediately.
     if (isBlackjack(session.player)) {
       const outcome: BlackjackOutcome = isBlackjack(session.dealer) ? 'push' : 'blackjack';
-      const embed = settle(session, username, outcome);
+      const embed = settle(session, outcome);
       await interaction.reply({ embeds: [embed] });
       return;
     }
 
-    await interaction.reply({ embeds: [playingEmbed(session, username)], components: buttons(session) });
+    await interaction.reply({ embeds: [playingEmbed(session)], components: buttons(session) });
     session.message = await interaction.fetchReply();
   },
 };
@@ -247,23 +249,21 @@ export const blackjackComponents: ComponentHandler = {
       return;
     }
 
-    const username = interaction.user.displayName;
-
     if (action === 'hit') {
       session.player.push(session.deck.pop()!);
       if (isBust(session.player)) {
-        const embed = settle(session, username, 'lose');
+        const embed = settle(session, 'lose');
         await interaction.update({ embeds: [embed], components: [] });
         return;
       }
       if (handValue(session.player) === 21) {
         dealerPlay(session.deck, session.dealer);
-        const embed = settle(session, username, compareHands(session.player, session.dealer));
+        const embed = settle(session, compareHands(session.player, session.dealer));
         await interaction.update({ embeds: [embed], components: [] });
         return;
       }
       await interaction.update({
-        embeds: [playingEmbed(session, username)],
+        embeds: [playingEmbed(session)],
         components: buttons(session),
       });
       return;
@@ -287,19 +287,19 @@ export const blackjackComponents: ComponentHandler = {
       session.doubled = true;
       session.player.push(session.deck.pop()!);
       if (isBust(session.player)) {
-        const embed = settle(session, username, 'lose');
+        const embed = settle(session, 'lose');
         await interaction.update({ embeds: [embed], components: [] });
         return;
       }
       dealerPlay(session.deck, session.dealer);
-      const embed = settle(session, username, compareHands(session.player, session.dealer));
+      const embed = settle(session, compareHands(session.player, session.dealer));
       await interaction.update({ embeds: [embed], components: [] });
       return;
     }
 
     if (action === 'stand') {
       dealerPlay(session.deck, session.dealer);
-      const embed = settle(session, username, compareHands(session.player, session.dealer));
+      const embed = settle(session, compareHands(session.player, session.dealer));
       await interaction.update({ embeds: [embed], components: [] });
     }
   },

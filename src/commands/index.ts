@@ -7,6 +7,7 @@ import { slotsCommand } from './slots.command.js';
 import { soduCommand } from './sodu.command.js';
 import { dailyCommand } from './daily.command.js';
 import { chuyentienCommand } from './chuyentien.command.js';
+import { lichsuCommand } from './lichsu.command.js';
 import { topCommand } from './top.command.js';
 import { helpCommand } from './help.command.js';
 import { adminCommand } from './admin.command.js';
@@ -20,6 +21,7 @@ const all: Command[] = [
   soduCommand,
   dailyCommand,
   chuyentienCommand,
+  lichsuCommand,
   topCommand,
   helpCommand,
   adminCommand,

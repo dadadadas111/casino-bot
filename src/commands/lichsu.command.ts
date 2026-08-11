@@ -1,0 +1,88 @@
+import {
+  EmbedBuilder,
+  MessageFlags,
+  SlashCommandBuilder,
+  type ChatInputCommandInteraction,
+} from 'discord.js';
+import { economy } from '../context.js';
+import type { HistoryEntry } from '../services/economy.service.js';
+import { COLORS, formatCoins } from '../embeds/format.js';
+import type { Command } from './types.js';
+
+const GAME_LABELS: Record<string, string> = {
+  blackjack: 'Blackjack',
+  blackjack_double: 'Blackjack (gấp đôi)',
+  taixiu: 'Tài xỉu',
+  baucua: 'Bầu cua',
+  coinflip: 'Tung xu',
+  slots: 'Xèng',
+};
+
+function describe(entry: HistoryEntry): string {
+  const game = GAME_LABELS[entry.meta ?? ''] ?? entry.meta ?? '';
+  switch (entry.type) {
+    case 'welcome':
+      return '🎁 Quà tân thủ';
+    case 'daily':
+      return '📅 Điểm danh';
+    case 'bet':
+      return `🎲 Cược ${game}`;
+    case 'payout':
+      return `🏆 Trả thưởng ${game}`;
+    case 'transfer_out':
+      return `💸 Chuyển cho <@${entry.meta}>`;
+    case 'transfer_in':
+      return `💰 Nhận từ <@${entry.meta}>`;
+    case 'admin_add':
+      return '🛠️ Admin cộng';
+    case 'admin_sub':
+      return '🛠️ Admin trừ';
+    case 'admin_set':
+      return '🛠️ Admin đặt số dư';
+    default:
+      return entry.type;
+  }
+}
+
+function formatLine(entry: HistoryEntry): string {
+  const sign = entry.amount >= 0 ? '+' : '';
+  const unix = Math.floor(Date.parse(`${entry.createdAt.replace(' ', 'T')}Z`) / 1000);
+  return `${describe(entry)}: **${sign}${entry.amount.toLocaleString('vi-VN')}** → ${entry.balanceAfter.toLocaleString('vi-VN')} · <t:${unix}:R>`;
+}
+
+export const lichsuCommand: Command = {
+  data: new SlashCommandBuilder()
+    .setName('lichsu')
+    .setDescription('Xem lịch sử biến động số dư của bạn (chỉ mình bạn thấy)')
+    .addIntegerOption((o) =>
+      o
+        .setName('soluong')
+        .setDescription('Số giao dịch muốn xem (mặc định 10)')
+        .setRequired(false)
+        .setMinValue(5)
+        .setMaxValue(20),
+    ),
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const limit = interaction.options.getInteger('soluong') ?? 10;
+    const { entries, total } = economy.getHistory(interaction.user.id, limit);
+
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.info)
+      .setTitle('📜 Lịch sử giao dịch')
+      .setDescription(
+        [
+          `Số dư hiện tại: **${formatCoins(economy.getBalance(interaction.user.id))}**`,
+          '',
+          ...entries.map(formatLine),
+        ].join('\n'),
+      )
+      .setFooter({
+        text:
+          total > entries.length
+            ? `${entries.length} giao dịch gần nhất trong tổng ${total} · /lichsu soluong:20 để xem nhiều hơn`
+            : `Toàn bộ ${total} giao dịch`,
+      });
+
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+  },
+};

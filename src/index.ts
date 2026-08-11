@@ -5,24 +5,28 @@ import { routeComponent } from './interactions/registry.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-client.once(Events.ClientReady, (c) => {
-  console.log(`[bot] Logged in as ${c.user.tag} (${commands.size} commands loaded)`);
-});
-
-// Register slash commands the moment the bot is invited to a guild, so no
-// manual deploy-commands run is needed after an admin accepts the invite.
-client.on(Events.GuildCreate, async (guild) => {
+async function registerGuildCommands(guildId: string, guildName: string): Promise<void> {
   try {
     const rest = new REST().setToken(env.DISCORD_TOKEN);
     const body = [...commands.values()].map((cmd) => cmd.data.toJSON());
-    await rest.put(Routes.applicationGuildCommands(guild.client.application.id, guild.id), {
-      body,
-    });
-    console.log(`[bot] Registered ${body.length} commands to guild ${guild.name} (${guild.id})`);
+    await rest.put(Routes.applicationGuildCommands(client.application!.id, guildId), { body });
+    console.log(`[bot] Registered ${body.length} commands to guild ${guildName} (${guildId})`);
   } catch (error) {
-    console.error('[bot] Failed to register commands on guild join:', error);
+    console.error(`[bot] Failed to register commands to guild ${guildName}:`, error);
+  }
+}
+
+client.once(Events.ClientReady, async (c) => {
+  console.log(`[bot] Logged in as ${c.user.tag} (${commands.size} commands loaded)`);
+  // Re-register on every boot so command changes ship with each deploy.
+  for (const guild of c.guilds.cache.values()) {
+    await registerGuildCommands(guild.id, guild.name);
   }
 });
+
+// Register the moment the bot is invited, so no manual deploy-commands run
+// is needed after an admin accepts the invite.
+client.on(Events.GuildCreate, (guild) => void registerGuildCommands(guild.id, guild.name));
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {

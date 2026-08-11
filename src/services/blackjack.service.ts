@@ -61,15 +61,24 @@ export function dealerPlay(deck: Card[], dealer: Card[]): void {
   }
 }
 
+// Emoji presentation (U+FE0F) renders hearts/diamonds red and spades/clubs
+// black on every platform; inline code would disable emoji, so no backticks.
+const SUIT_EMOJI: Record<Suit, string> = {
+  '♠': '♠️',
+  '♥': '♥️',
+  '♦': '♦️',
+  '♣': '♣️',
+};
+
 export function formatCard(card: Card): string {
-  return `${card.rank}${card.suit}`;
+  return `${card.rank}${SUIT_EMOJI[card.suit]}`;
 }
 
 export function formatHand(hand: Card[], hideSecond = false): string {
   if (hideSecond && hand.length >= 2) {
-    return `\`${formatCard(hand[0])}\` \`🂠\``;
+    return `${formatCard(hand[0])}  🎴`;
   }
-  return hand.map((c) => `\`${formatCard(c)}\``).join(' ');
+  return hand.map((c) => formatCard(c)).join('  ');
 }
 
 export type BlackjackOutcome = 'blackjack' | 'win' | 'push' | 'lose';

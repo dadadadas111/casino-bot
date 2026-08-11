@@ -22,6 +22,14 @@ export interface DailyResult {
   alreadyClaimed: boolean;
 }
 
+export interface HistoryEntry {
+  amount: number;
+  type: string;
+  meta: string | null;
+  createdAt: string; // UTC "YYYY-MM-DD HH:MM:SS" from SQLite datetime('now')
+  balanceAfter: number;
+}
+
 /** Calendar day in Vietnam timezone, e.g. "2026-08-09". */
 export function vnDay(now: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
@@ -96,8 +104,10 @@ export class EconomyService {
   setBalance(userId: string, amount: number): void {
     if (!Number.isInteger(amount) || amount < 0) return;
     this.ensureUser(userId);
+    const old = this.getBalance(userId);
     this.db.prepare('UPDATE users SET balance = ? WHERE user_id = ?').run(amount, userId);
-    this.logTx(userId, amount, 'admin_set', null);
+    // Log the delta, not the absolute value, so history can walk balances back.
+    this.logTx(userId, amount - old, 'admin_set', null);
   }
 
   /** Returns false if the sender has insufficient balance. */
@@ -169,6 +179,43 @@ export class EconomyService {
         .run(net > 0 ? net : 0, net < 0 ? -net : 0, userId);
     });
     run();
+  }
+
+  /**
+   * Latest transactions, newest first, each annotated with the balance right
+   * after it. Every balance change writes exactly one delta row, so walking
+   * backwards from the current balance reconstructs the running balance.
+   */
+  getHistory(userId: string, limit: number): { entries: HistoryEntry[]; total: number } {
+    this.ensureUser(userId);
+    const total = (
+      this.db.prepare('SELECT COUNT(*) AS n FROM transactions WHERE user_id = ?').get(userId) as {
+        n: number;
+      }
+    ).n;
+    const rows = this.db
+      .prepare(
+        'SELECT amount, type, meta, created_at FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT ?',
+      )
+      .all(userId, limit) as Array<{
+      amount: number;
+      type: string;
+      meta: string | null;
+      created_at: string;
+    }>;
+    let balance = this.getBalance(userId);
+    const entries: HistoryEntry[] = rows.map((row) => {
+      const entry: HistoryEntry = {
+        amount: row.amount,
+        type: row.type,
+        meta: row.meta,
+        createdAt: row.created_at,
+        balanceAfter: balance,
+      };
+      balance -= row.amount;
+      return entry;
+    });
+    return { entries, total };
   }
 
   topByBalance(limit: number): Array<{ userId: string; balance: number }> {
