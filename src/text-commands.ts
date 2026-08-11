@@ -16,33 +16,46 @@ import {
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
 import { parseTextCommand } from './services/prefix.service.js';
+import { extractBetAndChoice, parseBetToken } from './services/bet-parse.js';
 import { COLORS, formatCoins, sleep } from './embeds/format.js';
+
+// Remember each user's last stake so `!tx tai` (no amount) repeats it.
+const lastBets = new Map<string, number>();
 
 const TAIXIU_CHOICES: Record<string, 'tai' | 'xiu'> = {
   tai: 'tai',
   tài: 'tai',
+  t: 'tai',
   xiu: 'xiu',
   xỉu: 'xiu',
+  x: 'xiu',
 };
 
 const COINFLIP_CHOICES: Record<string, 'ngua' | 'sap'> = {
   ngua: 'ngua',
   ngửa: 'ngua',
+  n: 'ngua',
   sap: 'sap',
   sấp: 'sap',
+  s: 'sap',
 };
 
 const BAUCUA_CHOICES: Record<string, BauCuaSymbol> = {
   bau: 'bau',
   bầu: 'bau',
+  b: 'bau',
   cua: 'cua',
+  c: 'cua',
   tom: 'tom',
   tôm: 'tom',
+  t: 'tom',
   ca: 'ca',
   cá: 'ca',
   ga: 'ga',
   gà: 'ga',
+  g: 'ga',
   nai: 'nai',
+  n: 'nai',
 };
 
 // Commands that exist only as slash commands (buttons/ephemeral involved).
@@ -57,13 +70,30 @@ const SLASH_ONLY = new Set([
   'setprefix',
 ]);
 
-function parseBet(raw: string | undefined): number | null {
-  const bet = Number(raw);
-  return Number.isInteger(bet) && bet >= 10 ? bet : null;
+/**
+ * Resolve the stake from parsed args: explicit token, else the user's last
+ * stake. Returns null (and hints) when nothing usable is available.
+ */
+async function resolveBet(
+  message: Message,
+  bet: number | null,
+  usage: string,
+): Promise<number | null> {
+  const resolved = bet ?? lastBets.get(message.author.id) ?? null;
+  if (resolved === null || !Number.isInteger(resolved) || resolved < 10) {
+    await message.reply(
+      `Cú pháp: ${usage}\nMẹo: \`1k\` = 1.000, \`1k5\` = 1.500, \`all\` = tất tay, \`half\` = nửa số dư. Bỏ trống tiền cược thì dùng lại mức lần trước.`,
+    );
+    return null;
+  }
+  return resolved;
 }
 
 async function debitOrComplain(message: Message, bet: number, game: string): Promise<boolean> {
-  if (economy.debit(message.author.id, bet, 'bet', game)) return true;
+  if (economy.debit(message.author.id, bet, 'bet', game)) {
+    lastBets.set(message.author.id, bet);
+    return true;
+  }
   await message.reply(
     `Không đủ xu! Số dư của bạn: ${formatCoins(economy.getBalance(message.author.id))}. Dùng \`/daily\` hoặc \`/lamviec\` để kiếm xu.`,
   );
@@ -155,11 +185,14 @@ export async function handleTextCommand(message: Message): Promise<void> {
           .setTitle('⚡ Lệnh nhắn nhanh')
           .setDescription(
             [
-              `\`${prefix}tx <cược> <tai|xiu>\` : Tài xỉu`,
+              `\`${prefix}tx <cược> <tai|xiu>\` : Tài xỉu (viết tắt cửa: t, x)`,
               `\`${prefix}bc <cược> <bau|cua|tom|ca|ga|nai>\` : Bầu cua`,
-              `\`${prefix}cf <cược> <ngua|sap>\` : Tung đồng xu`,
-              `\`${prefix}slots <cược>\` : Máy xèng`,
+              `\`${prefix}cf <cược> <ngua|sap>\` : Tung đồng xu (viết tắt: n, s)`,
+              `\`${prefix}sl <cược>\` : Máy xèng`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
+              '',
+              '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
+              `💡 Bỏ trống tiền cược thì lặp lại mức trước: \`${prefix}tx tai\`, \`${prefix}sl\`. Thứ tự tham số tùy ý.`,
               '',
               'Các trò có nút bấm (blackjack, kèo, triệu phú) dùng lệnh slash: `/help`',
             ].join('\n'),
@@ -179,18 +212,18 @@ export async function handleTextCommand(message: Message): Promise<void> {
     return;
   }
 
-  const bet = parseBet(args[0]);
-  if (bet === null) {
-    await message.reply(`Cú pháp: \`${prefix}${name} <cược từ 10 xu>\``);
-    return;
-  }
+  const balance = economy.getBalance(userId);
 
   if (name === 'tx' || name === 'taixiu') {
-    const choice = TAIXIU_CHOICES[args[1]?.toLowerCase() ?? ''];
+    const { bet: rawBet, choice } = extractBetAndChoice(args, TAIXIU_CHOICES, balance);
     if (!choice) {
-      await message.reply(`Chọn cửa đi: \`${prefix}${name} ${bet} tai\` hoặc \`${prefix}${name} ${bet} xiu\``);
+      await message.reply(
+        `Chọn cửa đi: \`${prefix}${name} 100 tai\` hoặc \`${prefix}${name} 100 xiu\` (viết tắt: t, x)`,
+      );
       return;
     }
+    const bet = await resolveBet(message, rawBet, `\`${prefix}${name} <cược> <tai|xiu>\``);
+    if (bet === null) return;
     if (!(await debitOrComplain(message, bet, 'taixiu'))) return;
     const sent = await message.reply('🎲 Đang lắc...');
     await sleep(1200);
@@ -213,11 +246,13 @@ export async function handleTextCommand(message: Message): Promise<void> {
   }
 
   if (name === 'bc' || name === 'baucua') {
-    const choice = BAUCUA_CHOICES[args[1]?.toLowerCase() ?? ''];
+    const { bet: rawBet, choice } = extractBetAndChoice(args, BAUCUA_CHOICES, balance);
     if (!choice) {
-      await message.reply(`Chọn linh vật đi: \`${prefix}${name} ${bet} <bau|cua|tom|ca|ga|nai>\``);
+      await message.reply(`Chọn linh vật đi: \`${prefix}${name} 100 <bau|cua|tom|ca|ga|nai>\``);
       return;
     }
+    const bet = await resolveBet(message, rawBet, `\`${prefix}${name} <cược> <linh vật>\``);
+    if (bet === null) return;
     if (!(await debitOrComplain(message, bet, 'baucua'))) return;
     const sent = await message.reply('🎲 Đang lắc...');
     await sleep(1200);
@@ -240,11 +275,15 @@ export async function handleTextCommand(message: Message): Promise<void> {
   }
 
   if (name === 'cf' || name === 'coinflip') {
-    const choice = COINFLIP_CHOICES[args[1]?.toLowerCase() ?? ''];
+    const { bet: rawBet, choice } = extractBetAndChoice(args, COINFLIP_CHOICES, balance);
     if (!choice) {
-      await message.reply(`Chọn mặt đi: \`${prefix}${name} ${bet} ngua\` hoặc \`${prefix}${name} ${bet} sap\``);
+      await message.reply(
+        `Chọn mặt đi: \`${prefix}${name} 100 ngua\` hoặc \`${prefix}${name} 100 sap\` (viết tắt: n, s)`,
+      );
       return;
     }
+    const bet = await resolveBet(message, rawBet, `\`${prefix}${name} <cược> <ngua|sap>\``);
+    if (bet === null) return;
     if (!(await debitOrComplain(message, bet, 'coinflip'))) return;
     const sent = await message.reply('🪙 Đồng xu đang xoay...');
     await sleep(1000);
@@ -264,6 +303,9 @@ export async function handleTextCommand(message: Message): Promise<void> {
   }
 
   // slots
+  const rawBet = args[0] ? parseBetToken(args[0], balance) : null;
+  const bet = await resolveBet(message, rawBet, `\`${prefix}${name} <cược>\``);
+  if (bet === null) return;
   if (!(await debitOrComplain(message, bet, 'slots'))) return;
   const sent = await message.reply('🎰 | ❓ ❓ ❓ |');
   await sleep(1200);
