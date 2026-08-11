@@ -106,6 +106,41 @@ describe('work', () => {
   });
 });
 
+describe('resetCooldown', () => {
+  const t0 = new Date('2026-08-11T10:00:00+07:00');
+
+  it('daily reset allows immediate re-claim and continues the streak', () => {
+    economy.claimDaily('u1', t0); // streak 1
+    economy.resetCooldown('u1', 'daily', t0);
+    const again = economy.claimDaily('u1', t0);
+    expect(again).toMatchObject({ ok: true, streak: 2 });
+  });
+
+  it('work reset clears the hourly cooldown', () => {
+    economy.work('u1', t0);
+    expect(economy.work('u1', t0).ok).toBe(false);
+    economy.resetCooldown('u1', 'work', t0);
+    expect(economy.work('u1', t0).ok).toBe(true);
+  });
+
+  it('trieuphu reset allows another quiz today', () => {
+    economy.markQuizPlayed('u1', t0);
+    expect(economy.canPlayQuiz('u1', t0)).toBe(false);
+    economy.resetCooldown('u1', 'trieuphu', t0);
+    expect(economy.canPlayQuiz('u1', t0)).toBe(true);
+  });
+
+  it('all resets everything at once', () => {
+    economy.claimDaily('u1', t0);
+    economy.work('u1', t0);
+    economy.markQuizPlayed('u1', t0);
+    economy.resetCooldown('u1', 'all', t0);
+    expect(economy.claimDaily('u1', t0).ok).toBe(true);
+    expect(economy.work('u1', t0).ok).toBe(true);
+    expect(economy.canPlayQuiz('u1', t0)).toBe(true);
+  });
+});
+
 describe('settleGame', () => {
   it('credits payouts and tracks win/loss stats', () => {
     economy.debit('u1', 100, 'bet', 'test');

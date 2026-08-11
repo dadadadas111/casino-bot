@@ -40,6 +40,26 @@ export const adminCommand: Command = {
         .addIntegerOption((o) =>
           o.setName('soxu').setDescription('Số dư mới').setRequired(true).setMinValue(0),
         ),
+    )
+    .addSubcommand((sc) =>
+      sc
+        .setName('resetcd')
+        .setDescription('Reset cooldown cho người chơi (kể cả chính bạn)')
+        .addUserOption((o) =>
+          o.setName('nguoi').setDescription('Người được reset').setRequired(true),
+        )
+        .addStringOption((o) =>
+          o
+            .setName('loai')
+            .setDescription('Loại cooldown muốn reset')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Tất cả', value: 'all' },
+              { name: 'Điểm danh (/daily)', value: 'daily' },
+              { name: 'Làm việc (/lamviec)', value: 'work' },
+              { name: 'Triệu phú (/trieuphu)', value: 'trieuphu' },
+            ),
+        ),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     // customIds and default permissions are client-forgeable; always re-check.
@@ -53,6 +73,33 @@ export const adminCommand: Command = {
 
     const sub = interaction.options.getSubcommand();
     const target = interaction.options.getUser('nguoi', true);
+
+    if (sub === 'resetcd') {
+      const kind = interaction.options.getString('loai', true) as
+        | 'daily'
+        | 'work'
+        | 'trieuphu'
+        | 'all';
+      economy.resetCooldown(target.id, kind);
+      const kindLabel =
+        kind === 'all'
+          ? 'tất cả cooldown'
+          : kind === 'daily'
+            ? 'cooldown điểm danh (giữ nguyên chuỗi)'
+            : kind === 'work'
+              ? 'cooldown làm việc'
+              : 'cooldown Triệu phú';
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.info)
+            .setDescription(`🛠️ Đã reset ${kindLabel} cho **${target.displayName}**.`),
+        ],
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
     const amount = interaction.options.getInteger('soxu', true);
 
     let action: string;

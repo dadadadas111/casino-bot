@@ -166,6 +166,25 @@ export class EconomyService {
     return { ok: true, amount, streak, alreadyClaimed: false };
   }
 
+  /**
+   * Admin tool: clear a user's long cooldowns. Resetting daily sets
+   * last_daily to yesterday so an immediate re-claim CONTINUES the streak
+   * instead of restarting it.
+   */
+  resetCooldown(userId: string, kind: 'daily' | 'work' | 'trieuphu' | 'all', now: Date = new Date()): void {
+    this.ensureUser(userId);
+    const yesterday = vnDay(new Date(now.getTime() - 24 * 60 * 60 * 1000));
+    if (kind === 'daily' || kind === 'all') {
+      this.db.prepare('UPDATE users SET last_daily = ? WHERE user_id = ?').run(yesterday, userId);
+    }
+    if (kind === 'work' || kind === 'all') {
+      this.db.prepare('UPDATE users SET last_work = NULL WHERE user_id = ?').run(userId);
+    }
+    if (kind === 'trieuphu' || kind === 'all') {
+      this.db.prepare('UPDATE users SET last_trieuphu = NULL WHERE user_id = ?').run(userId);
+    }
+  }
+
   /** One quiz game per Vietnam-timezone calendar day. */
   canPlayQuiz(userId: string, now: Date = new Date()): boolean {
     this.ensureUser(userId);
