@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
   daily_streak INTEGER NOT NULL DEFAULT 0,
   last_daily TEXT,
   last_work TEXT,
+  last_trieuphu TEXT,
   total_won INTEGER NOT NULL DEFAULT 0,
   total_lost INTEGER NOT NULL DEFAULT 0,
   games_played INTEGER NOT NULL DEFAULT 0,
@@ -44,10 +45,14 @@ export function createDb(dbPath: string): Db {
 
 /** Additive migrations for databases created before a column existed. */
 function migrate(db: Db): void {
-  const hasLastWork = db
-    .prepare("SELECT COUNT(*) AS n FROM pragma_table_info('users') WHERE name = 'last_work'")
-    .get() as { n: number };
-  if (!hasLastWork.n) {
-    db.exec('ALTER TABLE users ADD COLUMN last_work TEXT');
-  }
+  const ensureColumn = (name: string): void => {
+    const exists = db
+      .prepare("SELECT COUNT(*) AS n FROM pragma_table_info('users') WHERE name = ?")
+      .get(name) as { n: number };
+    if (!exists.n) {
+      db.exec(`ALTER TABLE users ADD COLUMN ${name} TEXT`);
+    }
+  };
+  ensureColumn('last_work');
+  ensureColumn('last_trieuphu');
 }

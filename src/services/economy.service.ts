@@ -166,6 +166,22 @@ export class EconomyService {
     return { ok: true, amount, streak, alreadyClaimed: false };
   }
 
+  /** One quiz game per Vietnam-timezone calendar day. */
+  canPlayQuiz(userId: string, now: Date = new Date()): boolean {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT last_trieuphu FROM users WHERE user_id = ?').get(userId) as {
+      last_trieuphu: string | null;
+    };
+    return row.last_trieuphu !== vnDay(now);
+  }
+
+  markQuizPlayed(userId: string, now: Date = new Date()): void {
+    this.ensureUser(userId);
+    this.db
+      .prepare('UPDATE users SET last_trieuphu = ? WHERE user_id = ?')
+      .run(vnDay(now), userId);
+  }
+
   /** Earn a random wage once per hour; the cooldown is persisted in the DB. */
   work(userId: string, now: Date = new Date()): WorkResult {
     this.ensureUser(userId);

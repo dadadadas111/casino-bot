@@ -11,8 +11,6 @@ const entry = (overrides: Partial<HistoryEntry>): HistoryEntry => ({
   ...overrides,
 });
 
-const stripAnsi = (s: string): string => s.replace(/\[[0-9;]*m/g, '');
-
 describe('formatWhen', () => {
   it('converts UTC storage time to Vietnam time', () => {
     expect(formatWhen('2026-08-11 07:30:00')).toBe('14:30 11/08');
@@ -23,40 +21,45 @@ describe('formatWhen', () => {
 describe('typeLabel', () => {
   it('names games and transaction types', () => {
     expect(typeLabel(entry({ type: 'bet', meta: 'taixiu' }))).toBe('Cược Tài xỉu');
-    expect(typeLabel(entry({ type: 'payout', meta: 'blackjack' }))).toBe('Thưởng Blackjack');
+    expect(typeLabel(entry({ type: 'payout', meta: 'trieuphu' }))).toBe('Thưởng Triệu phú');
     expect(typeLabel(entry({ type: 'refund', meta: 'keo' }))).toBe('Hoàn cược');
-    expect(typeLabel(entry({ type: 'daily', meta: null }))).toBe('Điểm danh');
+    expect(typeLabel(entry({ type: 'work', meta: null }))).toBe('Làm việc');
+    expect(typeLabel(entry({ type: 'transfer_out', meta: '123' }))).toBe('Chuyển cho <@123>');
     expect(typeLabel(entry({ type: 'unknown_type', meta: null }))).toBe('unknown_type');
   });
 });
 
 describe('historyTable', () => {
-  it('aligns every row to the same width once colors are stripped', () => {
-    const rows = [
+  it('groups entries under one header per Vietnam-timezone day', () => {
+    const lines = historyTable([
+      entry({ createdAt: '2026-08-11 08:00:00' }), // 15:00 11/08 VN
+      entry({ createdAt: '2026-08-11 02:00:00' }), // 09:00 11/08 VN
+      entry({ createdAt: '2026-08-10 08:00:00' }), // 15:00 10/08 VN
+    ]).split('\n');
+    expect(lines.filter((l) => l.startsWith('📅'))).toEqual(['📅 **11/08**', '📅 **10/08**']);
+    expect(lines).toHaveLength(5);
+  });
+
+  it('starts a new day when VN midnight is crossed even on the same UTC day', () => {
+    const lines = historyTable([
+      entry({ createdAt: '2026-08-11 18:30:00' }), // 01:30 12/08 VN
+      entry({ createdAt: '2026-08-11 08:00:00' }), // 15:00 11/08 VN
+    ]).split('\n');
+    expect(lines.filter((l) => l.startsWith('📅'))).toEqual(['📅 **12/08**', '📅 **11/08**']);
+  });
+
+  it('marks positive amounts green and negative red with emoji squares', () => {
+    const output = historyTable([
       entry({ amount: -100, balanceAfter: 900 }),
-      entry({ amount: 25_000, type: 'payout', meta: 'slots', balanceAfter: 25_900 }),
-      entry({ amount: 500, type: 'daily', meta: null, balanceAfter: 1_400 }),
-      entry({ amount: 1_000, type: 'welcome', meta: null, balanceAfter: 1_000 }),
-    ];
-    const lines = historyTable(rows).split('\n').slice(1, -1).map(stripAnsi);
-    const widths = new Set(lines.map((l) => l.length));
-    expect(widths.size).toBe(1);
-  });
-
-  it('colors positive amounts green and negative red', () => {
-    const table = historyTable([
-      entry({ amount: -100 }),
-      entry({ amount: 200, type: 'payout' }),
+      entry({ amount: 200, type: 'payout', balanceAfter: 1_100 }),
     ]);
-    expect(table).toContain('[31m    -100[0m');
-    expect(table).toContain('[32m    +200[0m');
+    expect(output).toContain('🟥 **-100** → 900');
+    expect(output).toContain('🟩 **+200** → 1.100');
   });
 
-  it('clips over-long labels instead of breaking alignment', () => {
-    const long = entry({ type: 'some_extremely_long_unknown_type' });
-    const [, row] = historyTable([long]).split('\n').slice(1, -1).map(stripAnsi);
-    expect(row).toContain('…');
-    const normal = stripAnsi(historyTable([entry({})]).split('\n')[2]);
-    expect(row.length).toBe(normal.length);
+  it('shows only the time on entry lines, not the full date', () => {
+    const [, line] = historyTable([entry({ createdAt: '2026-08-11 07:30:00' })]).split('\n');
+    expect(line).toContain('· 14:30');
+    expect(line).not.toContain('11/08');
   });
 });

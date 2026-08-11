@@ -23,6 +23,7 @@ export const helpCommand: Command = {
                 '`/coinflip cuoc:<xu> chon:<ngửa|sấp>` : Tung đồng xu 50/50',
                 '`/slots cuoc:<xu>` : Máy xèng, 7️⃣7️⃣7️⃣ ăn x100',
                 '`/keo nguoi:<@ai> cuoc:<xu>` : Solo 1v1 tung đồng xu, ai thắng ăn cả',
+                '`/trieuphu` : Ai Là Triệu Phú, 15 câu hỏi, tối đa 15.000 xu, 1 lần/ngày',
                 'Viết tắt: `/bj` `/tx` `/bc` `/cf`',
               ].join('\n'),
             },

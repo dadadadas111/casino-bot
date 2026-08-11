@@ -1,21 +1,11 @@
 import type { HistoryEntry } from '../services/economy.service.js';
 
 /**
- * Renders history as an ANSI code block: the only Discord construct that gives
- * both true monospace column alignment and red/green amounts. Inside a code
- * block emoji, mentions and dynamic timestamps do not render, so labels are
- * plain text and times are fixed Vietnam-timezone strings.
+ * Mobile-first history rendering. ANSI tables looked great on desktop but
+ * phones neither render ANSI colors nor fit wide monospace rows, so: emoji
+ * squares carry the +/- color, entries are grouped under per-day headers to
+ * keep every line short, and plain markdown lets mentions render again.
  */
-
-const WHEN_W = 11;
-const LABEL_W = 16;
-const AMOUNT_W = 8;
-const BAL_W = 9;
-
-const GREEN = '[32m';
-const RED = '[31m';
-const BOLD = '[1m';
-const RESET = '[0m';
 
 const GAME_LABELS: Record<string, string> = {
   blackjack: 'Blackjack',
@@ -25,6 +15,7 @@ const GAME_LABELS: Record<string, string> = {
   coinflip: 'Tung xu',
   slots: 'Xèng',
   keo: 'Kèo 1v1',
+  trieuphu: 'Triệu phú',
 };
 
 export function typeLabel(entry: HistoryEntry): string {
@@ -43,9 +34,9 @@ export function typeLabel(entry: HistoryEntry): string {
     case 'refund':
       return 'Hoàn cược';
     case 'transfer_out':
-      return 'Chuyển xu đi';
+      return entry.meta ? `Chuyển cho <@${entry.meta}>` : 'Chuyển xu đi';
     case 'transfer_in':
-      return 'Nhận chuyển xu';
+      return entry.meta ? `Nhận từ <@${entry.meta}>` : 'Nhận chuyển xu';
     case 'admin_add':
       return 'Admin cộng';
     case 'admin_sub':
@@ -57,7 +48,6 @@ export function typeLabel(entry: HistoryEntry): string {
   }
 }
 
-// en-GB gives "14:30" and "11/08"; vi-VN would render the date as "11-08".
 const timeFmt = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Asia/Ho_Chi_Minh',
   hour: '2-digit',
@@ -70,28 +60,31 @@ const dateFmt = new Intl.DateTimeFormat('en-GB', {
   month: '2-digit',
 });
 
+function parseUtc(createdAt: string): Date {
+  return new Date(`${createdAt.replace(' ', 'T')}Z`);
+}
+
 /** SQLite UTC "YYYY-MM-DD HH:MM:SS" -> "HH:mm dd/MM" in Vietnam time. */
 export function formatWhen(createdAt: string): string {
-  const date = new Date(`${createdAt.replace(' ', 'T')}Z`);
+  const date = parseUtc(createdAt);
   return `${timeFmt.format(date)} ${dateFmt.format(date)}`;
 }
 
-function clip(text: string, width: number): string {
-  return text.length > width ? `${text.slice(0, width - 1)}…` : text.padEnd(width);
-}
-
 export function historyTable(entries: HistoryEntry[]): string {
-  const header =
-    BOLD +
-    `${'Thời gian'.padEnd(WHEN_W)}  ${'Giao dịch'.padEnd(LABEL_W)} ${'+/-'.padStart(AMOUNT_W)} ${'Số dư'.padStart(BAL_W)}` +
-    RESET;
-  const rows = entries.map((entry) => {
-    const when = formatWhen(entry.createdAt).padEnd(WHEN_W);
-    const label = clip(typeLabel(entry), LABEL_W);
-    const amountText = `${entry.amount >= 0 ? '+' : ''}${entry.amount.toLocaleString('vi-VN')}`;
-    const amount = (entry.amount >= 0 ? GREEN : RED) + amountText.padStart(AMOUNT_W) + RESET;
-    const balance = entry.balanceAfter.toLocaleString('vi-VN').padStart(BAL_W);
-    return `${when}  ${label} ${amount} ${balance}`;
-  });
-  return ['```ansi', header, ...rows, '```'].join('\n');
+  const lines: string[] = [];
+  let currentDay = '';
+  for (const entry of entries) {
+    const date = parseUtc(entry.createdAt);
+    const day = dateFmt.format(date);
+    if (day !== currentDay) {
+      currentDay = day;
+      lines.push(`📅 **${day}**`);
+    }
+    const square = entry.amount >= 0 ? '🟩' : '🟥';
+    const sign = entry.amount >= 0 ? '+' : '';
+    lines.push(
+      `${square} **${sign}${entry.amount.toLocaleString('vi-VN')}** → ${entry.balanceAfter.toLocaleString('vi-VN')} · ${typeLabel(entry)} · ${timeFmt.format(date)}`,
+    );
+  }
+  return lines.join('\n');
 }

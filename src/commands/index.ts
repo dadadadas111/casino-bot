@@ -5,6 +5,7 @@ import { baucuaCommand } from './baucua.command.js';
 import { coinflipCommand } from './coinflip.command.js';
 import { slotsCommand } from './slots.command.js';
 import { keoCommand } from './keo.command.js';
+import { trieuphuCommand } from './trieuphu.command.js';
 import { soduCommand } from './sodu.command.js';
 import { dailyCommand } from './daily.command.js';
 import { lamviecCommand } from './lamviec.command.js';
@@ -33,6 +34,7 @@ const all: Command[] = [
   coinflipCommand,
   slotsCommand,
   keoCommand,
+  trieuphuCommand,
   soduCommand,
   dailyCommand,
   lamviecCommand,
