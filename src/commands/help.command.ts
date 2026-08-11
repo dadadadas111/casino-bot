@@ -1,4 +1,6 @@
 import { EmbedBuilder, MessageFlags, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
+import { env } from '../config/env.js';
+import { prefixes } from '../context.js';
 import { COLORS } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -7,6 +9,18 @@ export const helpCommand: Command = {
     .setName('help')
     .setDescription('Hướng dẫn chơi và danh sách lệnh'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const prefixField =
+      env.ENABLE_PREFIX_COMMANDS === 'true' && interaction.inGuild()
+        ? [
+            {
+              name: '⚡ Lệnh nhắn nhanh',
+              value: (() => {
+                const p = prefixes.get(interaction.guildId);
+                return `Prefix hiện tại: \`${p}\` (đổi bằng \`/setprefix\`)\n\`${p}tx 100 tai\` · \`${p}bc 100 cua\` · \`${p}cf 100 ngua\` · \`${p}slots 50\` · \`${p}sodu\` · \`${p}daily\` · \`${p}work\` · \`${p}top\``;
+              })(),
+            },
+          ]
+        : [];
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
@@ -43,6 +57,7 @@ export const helpCommand: Command = {
                 '`/top` : Bảng xếp hạng đại gia',
               ].join('\n'),
             },
+            ...prefixField,
           )
           .setFooter({ text: 'Xu chỉ để giải trí, không có giá trị thật. Chơi vui thôi nhé!' }),
       ],

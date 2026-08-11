@@ -7,6 +7,10 @@ const envSchema = z.object({
   DB_PATH: z.string().default('./data/casino.db'),
   // Optional: enables AI-generated trieuphu questions; falls back to the static bank.
   DEEPSEEK_API_KEY: z.string().optional(),
+  // 'true' enables message prefix commands. REQUIRES the Message Content
+  // privileged intent to be toggled on in the Developer Portal first,
+  // otherwise the bot fails to log in with "Used disallowed intents".
+  ENABLE_PREFIX_COMMANDS: z.string().default('false'),
 });
 
 const parsed = envSchema.safeParse(process.env);

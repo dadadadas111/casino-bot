@@ -35,6 +35,11 @@ CREATE TABLE IF NOT EXISTS quiz_history (
   question TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS guild_prefixes (
+  guild_id TEXT PRIMARY KEY,
+  prefix TEXT NOT NULL
+);
 `;
 
 export function createDb(dbPath: string): Db {

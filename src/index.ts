@@ -3,6 +3,11 @@ import { env } from './config/env.js';
 import { commands } from './commands/index.js';
 import { routeComponent } from './interactions/registry.js';
 import { tryUse } from './services/cooldown.service.js';
+import { handleTextCommand } from './text-commands.js';
+
+// Message prefix commands need the privileged MessageContent intent (portal
+// toggle required), so they sit behind an env flag to avoid login crashes.
+const prefixCommandsEnabled = env.ENABLE_PREFIX_COMMANDS === 'true';
 
 // Per-user spam control. Aliases share their command's cooldown key, so /bj
 // and /blackjack count against the same window. /lamviec and /daily manage
@@ -28,7 +33,19 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   top: { key: 'top', ms: 10_000 },
 };
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({
+  intents: prefixCommandsEnabled
+    ? [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+    : [GatewayIntentBits.Guilds],
+});
+
+if (prefixCommandsEnabled) {
+  client.on(Events.MessageCreate, (message) => {
+    void handleTextCommand(message).catch((error) =>
+      console.error('[text] Command error:', error),
+    );
+  });
+}
 
 async function registerGuildCommands(guildId: string, guildName: string): Promise<void> {
   try {
