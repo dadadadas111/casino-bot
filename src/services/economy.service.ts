@@ -22,6 +22,16 @@ export interface DailyResult {
   alreadyClaimed: boolean;
 }
 
+export const WORK_COOLDOWN_MS = 60 * 60 * 1000;
+export const WORK_MIN = 100;
+export const WORK_MAX = 300;
+
+export interface WorkResult {
+  ok: boolean;
+  amount: number;
+  retryAt: Date;
+}
+
 export interface HistoryEntry {
   amount: number;
   type: string;
@@ -154,6 +164,27 @@ export class EconomyService {
       .run(amount, today, streak, userId);
     this.logTx(userId, amount, 'daily', `streak:${streak}`);
     return { ok: true, amount, streak, alreadyClaimed: false };
+  }
+
+  /** Earn a random wage once per hour; the cooldown is persisted in the DB. */
+  work(userId: string, now: Date = new Date()): WorkResult {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT last_work FROM users WHERE user_id = ?').get(userId) as {
+      last_work: string | null;
+    };
+    if (row.last_work) {
+      const readyAt = new Date(Date.parse(row.last_work) + WORK_COOLDOWN_MS);
+      if (readyAt.getTime() > now.getTime()) {
+        return { ok: false, amount: 0, retryAt: readyAt };
+      }
+    }
+    const steps = (WORK_MAX - WORK_MIN) / 10 + 1;
+    const amount = WORK_MIN + 10 * Math.floor(Math.random() * steps);
+    this.db
+      .prepare('UPDATE users SET balance = balance + ?, last_work = ? WHERE user_id = ?')
+      .run(amount, now.toISOString(), userId);
+    this.logTx(userId, amount, 'work', null);
+    return { ok: true, amount, retryAt: new Date(now.getTime() + WORK_COOLDOWN_MS) };
   }
 
   /**

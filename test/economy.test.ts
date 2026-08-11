@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../src/db/database';
-import { EconomyService, STARTING_BALANCE, vnDay } from '../src/services/economy.service';
+import {
+  EconomyService,
+  STARTING_BALANCE,
+  WORK_COOLDOWN_MS,
+  WORK_MAX,
+  WORK_MIN,
+  vnDay,
+} from '../src/services/economy.service';
 
 let db: Db;
 let economy: EconomyService;
@@ -68,6 +75,34 @@ describe('claimDaily', () => {
     economy.claimDaily('u1', day2);
     const afterGap = economy.claimDaily('u1', day4);
     expect(afterGap).toMatchObject({ ok: true, amount: 500, streak: 1 });
+  });
+});
+
+describe('work', () => {
+  const t0 = new Date('2026-08-11T10:00:00Z');
+
+  it('pays a wage within range and starts the hourly cooldown', () => {
+    const result = economy.work('u1', t0);
+    expect(result.ok).toBe(true);
+    expect(result.amount).toBeGreaterThanOrEqual(WORK_MIN);
+    expect(result.amount).toBeLessThanOrEqual(WORK_MAX);
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + result.amount);
+    expect(result.retryAt.getTime()).toBe(t0.getTime() + WORK_COOLDOWN_MS);
+  });
+
+  it('blocks a second shift inside the hour and allows one after', () => {
+    economy.work('u1', t0);
+    const blocked = economy.work('u1', new Date(t0.getTime() + 30 * 60 * 1000));
+    expect(blocked.ok).toBe(false);
+    expect(blocked.retryAt.getTime()).toBe(t0.getTime() + WORK_COOLDOWN_MS);
+    const later = economy.work('u1', new Date(t0.getTime() + WORK_COOLDOWN_MS + 1000));
+    expect(later.ok).toBe(true);
+  });
+
+  it('shows up in history as a work transaction', () => {
+    economy.work('u1', t0);
+    const { entries } = economy.getHistory('u1', 1);
+    expect(entries[0].type).toBe('work');
   });
 });
 

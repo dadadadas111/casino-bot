@@ -7,6 +7,7 @@ import { slotsCommand } from './slots.command.js';
 import { keoCommand } from './keo.command.js';
 import { soduCommand } from './sodu.command.js';
 import { dailyCommand } from './daily.command.js';
+import { lamviecCommand } from './lamviec.command.js';
 import { chuyentienCommand } from './chuyentien.command.js';
 import { lichsuCommand } from './lichsu.command.js';
 import { topCommand } from './top.command.js';
@@ -34,6 +35,7 @@ const all: Command[] = [
   keoCommand,
   soduCommand,
   dailyCommand,
+  lamviecCommand,
   chuyentienCommand,
   lichsuCommand,
   topCommand,
@@ -44,6 +46,7 @@ const all: Command[] = [
   alias(taixiuCommand, 'tx'),
   alias(baucuaCommand, 'bc'),
   alias(coinflipCommand, 'cf'),
+  alias(lamviecCommand, 'work'),
 ];
 
 export const commands = new Map<string, Command>(all.map((c) => [c.data.name, c]));

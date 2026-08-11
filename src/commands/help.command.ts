@@ -35,6 +35,7 @@ export const helpCommand: Command = {
               name: '💰 Tiền tệ',
               value: [
                 '`/daily` : Điểm danh nhận 500 xu mỗi ngày, chuỗi liên tục tối đa 1.000 xu',
+                '`/lamviec` (hoặc `/work`) : Làm việc kiếm 100-300 xu, mỗi giờ một lần',
                 '`/sodu` : Xem ví và thống kê thắng thua',
                 '`/chuyentien nguoi:<@ai> soxu:<xu>` : Chuyển xu cho bạn bè',
                 '`/lichsu [nguoi]` : Lịch sử biến động số dư, xem của mình hoặc người khác',

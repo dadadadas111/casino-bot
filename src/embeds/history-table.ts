@@ -34,6 +34,8 @@ export function typeLabel(entry: HistoryEntry): string {
       return 'Quà tân thủ';
     case 'daily':
       return 'Điểm danh';
+    case 'work':
+      return 'Làm việc';
     case 'bet':
       return `Cược ${game}`.trim();
     case 'payout':

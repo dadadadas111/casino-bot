@@ -2,6 +2,31 @@ import { Client, Events, GatewayIntentBits, MessageFlags, REST, Routes } from 'd
 import { env } from './config/env.js';
 import { commands } from './commands/index.js';
 import { routeComponent } from './interactions/registry.js';
+import { tryUse } from './services/cooldown.service.js';
+
+// Per-user spam control. Aliases share their command's cooldown key, so /bj
+// and /blackjack count against the same window. /lamviec and /daily manage
+// their own long cooldowns in the database.
+const GAME_CD = { key: 'game', ms: 5_000 };
+const TUONGTAC_CD = { key: 'tuongtac', ms: 15_000 };
+const COOLDOWNS: Record<string, { key: string; ms: number }> = {
+  blackjack: GAME_CD,
+  bj: GAME_CD,
+  taixiu: GAME_CD,
+  tx: GAME_CD,
+  baucua: GAME_CD,
+  bc: GAME_CD,
+  coinflip: GAME_CD,
+  cf: GAME_CD,
+  slots: GAME_CD,
+  keo: { key: 'keo', ms: 30_000 },
+  om: TUONGTAC_CD,
+  hon: TUONGTAC_CD,
+  danh: TUONGTAC_CD,
+  choc: TUONGTAC_CD,
+  xoadau: TUONGTAC_CD,
+  top: { key: 'top', ms: 10_000 },
+};
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -33,6 +58,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (interaction.isChatInputCommand()) {
       const command = commands.get(interaction.commandName);
       if (!command) return;
+      const cooldown = COOLDOWNS[interaction.commandName];
+      if (cooldown) {
+        const remaining = tryUse(interaction.user.id, cooldown.key, cooldown.ms);
+        if (remaining > 0) {
+          await interaction.reply({
+            content: `⏳ Từ từ thôi! Thử lại sau ${Math.ceil(remaining / 1000)} giây nữa.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+      }
       await command.execute(interaction);
     } else if (interaction.isButton()) {
       await routeComponent(interaction);

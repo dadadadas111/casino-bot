@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   balance INTEGER NOT NULL DEFAULT 0,
   daily_streak INTEGER NOT NULL DEFAULT 0,
   last_daily TEXT,
+  last_work TEXT,
   total_won INTEGER NOT NULL DEFAULT 0,
   total_lost INTEGER NOT NULL DEFAULT 0,
   games_played INTEGER NOT NULL DEFAULT 0,
@@ -37,5 +38,16 @@ export function createDb(dbPath: string): Db {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.exec(SCHEMA);
+  migrate(db);
   return db;
+}
+
+/** Additive migrations for databases created before a column existed. */
+function migrate(db: Db): void {
+  const hasLastWork = db
+    .prepare("SELECT COUNT(*) AS n FROM pragma_table_info('users') WHERE name = 'last_work'")
+    .get() as { n: number };
+  if (!hasLastWork.n) {
+    db.exec('ALTER TABLE users ADD COLUMN last_work TEXT');
+  }
 }
