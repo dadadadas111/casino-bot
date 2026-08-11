@@ -18,36 +18,54 @@ const GAME_LABELS: Record<string, string> = {
   slots: 'Xèng',
 };
 
+const TYPE_ICONS: Record<string, string> = {
+  welcome: '🎁',
+  daily: '📅',
+  bet: '🎲',
+  payout: '🏆',
+  transfer_out: '💸',
+  transfer_in: '💰',
+  admin_add: '🛠️',
+  admin_sub: '🛠️',
+  admin_set: '🛠️',
+};
+
 function describe(entry: HistoryEntry): string {
   const game = GAME_LABELS[entry.meta ?? ''] ?? entry.meta ?? '';
   switch (entry.type) {
     case 'welcome':
-      return '🎁 Quà tân thủ';
+      return 'Quà tân thủ';
     case 'daily':
-      return '📅 Điểm danh';
+      return 'Điểm danh';
     case 'bet':
-      return `🎲 Cược ${game}`;
+      return `Cược ${game}`;
     case 'payout':
-      return `🏆 Trả thưởng ${game}`;
+      return `Thưởng ${game}`;
     case 'transfer_out':
-      return `💸 Chuyển cho <@${entry.meta}>`;
+      return `Chuyển cho <@${entry.meta}>`;
     case 'transfer_in':
-      return `💰 Nhận từ <@${entry.meta}>`;
+      return `Nhận từ <@${entry.meta}>`;
     case 'admin_add':
-      return '🛠️ Admin cộng';
+      return 'Admin cộng';
     case 'admin_sub':
-      return '🛠️ Admin trừ';
+      return 'Admin trừ';
     case 'admin_set':
-      return '🛠️ Admin đặt số dư';
+      return 'Admin đặt số dư';
     default:
       return entry.type;
   }
 }
 
+/**
+ * Keep every line rhythmically identical so the list reads as columns:
+ * icon, signed amount, resulting balance first (short, near-equal width),
+ * then the variable-length label, then the timestamp at the end.
+ */
 function formatLine(entry: HistoryEntry): string {
   const sign = entry.amount >= 0 ? '+' : '';
   const unix = Math.floor(Date.parse(`${entry.createdAt.replace(' ', 'T')}Z`) / 1000);
-  return `${describe(entry)}: **${sign}${entry.amount.toLocaleString('vi-VN')}** → ${entry.balanceAfter.toLocaleString('vi-VN')} · <t:${unix}:R>`;
+  const icon = TYPE_ICONS[entry.type] ?? '💱';
+  return `${icon} **${sign}${entry.amount.toLocaleString('vi-VN')}** → ${entry.balanceAfter.toLocaleString('vi-VN')} · ${describe(entry)} · <t:${unix}:R>`;
 }
 
 export const lichsuCommand: Command = {
