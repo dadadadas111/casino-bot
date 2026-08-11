@@ -1,0 +1,112 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createDb, type Db } from '../src/db/database';
+import { EconomyService, STARTING_BALANCE, vnDay } from '../src/services/economy.service';
+
+let db: Db;
+let economy: EconomyService;
+
+beforeEach(() => {
+  db = createDb(':memory:');
+  economy = new EconomyService(db);
+});
+
+describe('balances', () => {
+  it('gives new users the starting balance', () => {
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE);
+  });
+
+  it('debits atomically and rejects insufficient balance', () => {
+    expect(economy.debit('u1', 400, 'bet')).toBe(true);
+    expect(economy.getBalance('u1')).toBe(600);
+    expect(economy.debit('u1', 601, 'bet')).toBe(false);
+    expect(economy.getBalance('u1')).toBe(600);
+  });
+
+  it('rejects non-positive and fractional amounts', () => {
+    expect(economy.debit('u1', 0, 'bet')).toBe(false);
+    expect(economy.debit('u1', -5, 'bet')).toBe(false);
+    expect(economy.debit('u1', 1.5, 'bet')).toBe(false);
+  });
+
+  it('transfers between users', () => {
+    expect(economy.transfer('u1', 'u2', 300)).toBe(true);
+    expect(economy.getBalance('u1')).toBe(700);
+    expect(economy.getBalance('u2')).toBe(1300);
+    expect(economy.transfer('u1', 'u2', 100_000)).toBe(false);
+    expect(economy.getBalance('u1')).toBe(700);
+  });
+});
+
+describe('claimDaily', () => {
+  const day1 = new Date('2026-08-09T10:00:00+07:00');
+  const day1Later = new Date('2026-08-09T23:00:00+07:00');
+  const day2 = new Date('2026-08-10T08:00:00+07:00');
+  const day4 = new Date('2026-08-12T08:00:00+07:00');
+
+  it('uses Vietnam timezone day boundaries', () => {
+    // 00:30 VN time is still the previous day in UTC
+    expect(vnDay(new Date('2026-08-09T00:30:00+07:00'))).toBe('2026-08-09');
+    expect(vnDay(new Date('2026-08-08T23:30:00+07:00'))).toBe('2026-08-08');
+  });
+
+  it('pays the base amount on first claim and blocks a second claim the same day', () => {
+    const first = economy.claimDaily('u1', day1);
+    expect(first).toMatchObject({ ok: true, amount: 500, streak: 1 });
+    const again = economy.claimDaily('u1', day1Later);
+    expect(again).toMatchObject({ ok: false, alreadyClaimed: true });
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 500);
+  });
+
+  it('grows the streak on consecutive days', () => {
+    economy.claimDaily('u1', day1);
+    const second = economy.claimDaily('u1', day2);
+    expect(second).toMatchObject({ ok: true, amount: 600, streak: 2 });
+  });
+
+  it('resets the streak after a missed day', () => {
+    economy.claimDaily('u1', day1);
+    economy.claimDaily('u1', day2);
+    const afterGap = economy.claimDaily('u1', day4);
+    expect(afterGap).toMatchObject({ ok: true, amount: 500, streak: 1 });
+  });
+});
+
+describe('settleGame', () => {
+  it('credits payouts and tracks win/loss stats', () => {
+    economy.debit('u1', 100, 'bet', 'test');
+    economy.settleGame('u1', 100, 200, 'test'); // net +100
+    let profile = economy.getProfile('u1');
+    expect(profile.balance).toBe(STARTING_BALANCE + 100);
+    expect(profile.totalWon).toBe(100);
+    expect(profile.gamesPlayed).toBe(1);
+
+    economy.debit('u1', 100, 'bet', 'test');
+    economy.settleGame('u1', 100, 0, 'test'); // net -100
+    profile = economy.getProfile('u1');
+    expect(profile.balance).toBe(STARTING_BALANCE);
+    expect(profile.totalLost).toBe(100);
+    expect(profile.gamesPlayed).toBe(2);
+  });
+
+  it('treats a push as neutral', () => {
+    economy.debit('u1', 100, 'bet', 'test');
+    economy.settleGame('u1', 100, 100, 'test');
+    const profile = economy.getProfile('u1');
+    expect(profile.balance).toBe(STARTING_BALANCE);
+    expect(profile.totalWon).toBe(0);
+    expect(profile.totalLost).toBe(0);
+  });
+});
+
+describe('topByBalance', () => {
+  it('ranks users by balance', () => {
+    economy.ensureUser('rich');
+    economy.credit('rich', 5000, 'admin_add');
+    economy.ensureUser('poor');
+    economy.debit('poor', 900, 'bet');
+    const top = economy.topByBalance(10);
+    expect(top[0]).toMatchObject({ userId: 'rich', balance: 6000 });
+    expect(top.at(-1)).toMatchObject({ userId: 'poor', balance: 100 });
+    expect(economy.getProfile('rich').rank).toBe(1);
+  });
+});

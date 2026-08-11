@@ -1,0 +1,81 @@
+import {
+  EmbedBuilder,
+  MessageFlags,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  type ChatInputCommandInteraction,
+} from 'discord.js';
+import { economy } from '../context.js';
+import { COLORS, formatCoins } from '../embeds/format.js';
+import type { Command } from './types.js';
+
+export const adminCommand: Command = {
+  data: new SlashCommandBuilder()
+    .setName('casino-admin')
+    .setDescription('Quản lý xu (chỉ dành cho admin)')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+    .addSubcommand((sc) =>
+      sc
+        .setName('cong')
+        .setDescription('Cộng xu cho người chơi')
+        .addUserOption((o) => o.setName('nguoi').setDescription('Người nhận').setRequired(true))
+        .addIntegerOption((o) =>
+          o.setName('soxu').setDescription('Số xu').setRequired(true).setMinValue(1),
+        ),
+    )
+    .addSubcommand((sc) =>
+      sc
+        .setName('tru')
+        .setDescription('Trừ xu của người chơi')
+        .addUserOption((o) => o.setName('nguoi').setDescription('Người bị trừ').setRequired(true))
+        .addIntegerOption((o) =>
+          o.setName('soxu').setDescription('Số xu').setRequired(true).setMinValue(1),
+        ),
+    )
+    .addSubcommand((sc) =>
+      sc
+        .setName('dat')
+        .setDescription('Đặt số dư của người chơi về một mức cụ thể')
+        .addUserOption((o) => o.setName('nguoi').setDescription('Người chơi').setRequired(true))
+        .addIntegerOption((o) =>
+          o.setName('soxu').setDescription('Số dư mới').setRequired(true).setMinValue(0),
+        ),
+    ),
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    // customIds and default permissions are client-forgeable; always re-check.
+    if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
+      await interaction.reply({
+        content: 'Lệnh này chỉ dành cho admin.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    const sub = interaction.options.getSubcommand();
+    const target = interaction.options.getUser('nguoi', true);
+    const amount = interaction.options.getInteger('soxu', true);
+
+    let action: string;
+    if (sub === 'cong') {
+      economy.credit(target.id, amount, 'admin_add');
+      action = `Đã cộng **${formatCoins(amount)}** cho`;
+    } else if (sub === 'tru') {
+      economy.debit(target.id, amount, 'admin_sub');
+      action = `Đã trừ **${formatCoins(amount)}** của`;
+    } else {
+      economy.setBalance(target.id, amount);
+      action = `Đã đặt số dư **${formatCoins(amount)}** cho`;
+    }
+
+    await interaction.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(COLORS.info)
+          .setDescription(
+            `🛠️ ${action} **${target.displayName}**. Số dư hiện tại: ${formatCoins(economy.getBalance(target.id))}`,
+          ),
+      ],
+      flags: MessageFlags.Ephemeral,
+    });
+  },
+};

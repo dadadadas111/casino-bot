@@ -1,0 +1,12 @@
+# Production stack for the VPS (/opt/casino-bot). The image is pulled from
+# GHCR; `IMAGE_TAG=<sha>` pins a specific build for rollbacks.
+services:
+  bot:
+    image: ghcr.io/dadadadas111/casino-bot:${IMAGE_TAG:-latest}
+    container_name: casino-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /app/data/casino.db
+    volumes:
+      - ./data:/app/data

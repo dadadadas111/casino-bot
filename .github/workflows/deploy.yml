@@ -1,0 +1,77 @@
+name: Deploy
+
+# Validate, build+push the image to GHCR, then redeploy the VPS stack.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  # ---- Quality gate ----
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.5.2 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # ---- Build + push the image to GHCR ----
+  build-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/casino-bot
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---- Redeploy the VPS: the deploy key is locked to /opt/casino-bot/deploy.sh ----
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH redeploy
+        # The runner->VPS route can flake, so retry.
+        run: |
+          install -m 600 /dev/stdin "$HOME/deploy_key" <<< "${{ secrets.VPS_SSH_KEY }}"
+          for attempt in 1 2 3 4 5; do
+            if ssh -i "$HOME/deploy_key" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+              "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" deploy; then
+              exit 0
+            fi
+            echo "::warning::SSH deploy attempt $attempt failed; retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::SSH deploy failed after 5 attempts"
+          exit 1

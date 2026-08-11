@@ -1,0 +1,29 @@
+{
+  "name": "casino-bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord casino bot: blackjack, tai xiu, bau cua, coinflip, slots with a coin economy",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "build": "tsc",
+    "start": "node --env-file-if-exists=.env dist/index.js",
+    "deploy-commands": "tsx --env-file-if-exists=.env src/deploy-commands.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "discord.js": "^14.16.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}
