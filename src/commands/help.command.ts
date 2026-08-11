@@ -27,6 +27,11 @@ export const helpCommand: Command = {
               ].join('\n'),
             },
             {
+              name: '🎭 Tương tác vui',
+              value:
+                '`/om` `/hon` `/danh` `/choc` `/xoadau` `nguoi:<@ai>` : Thể hiện cảm xúc kèm GIF',
+            },
+            {
               name: '💰 Tiền tệ',
               value: [
                 '`/daily` : Điểm danh nhận 500 xu mỗi ngày, chuỗi liên tục tối đa 1.000 xu',

@@ -11,10 +11,14 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/baucua cuoc:<xu> chon:<linh vật>` | Bầu cua tôm cá, mỗi mặt trúng ăn 1:1 |
 | `/coinflip cuoc:<xu> chon:<ngửa\|sấp>` | Tung đồng xu 50/50 |
 | `/slots cuoc:<xu>` | Máy xèng, 7️⃣7️⃣7️⃣ ăn x100, 2 hình giống nhau hoàn tiền |
+| `/keo nguoi cuoc` | Solo 1v1 tung đồng xu qua nút bấm, escrow tiền cược, ai thắng ăn cả |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/sodu [nguoi]` | Xem ví, hạng, thống kê thắng thua |
+| `/lichsu [soluong] [nguoi]` | Bảng lịch sử giao dịch ANSI thẳng cột, +/- có màu, ephemeral |
 | `/chuyentien nguoi soxu` | Chuyển xu cho người khác |
 | `/top` | Bảng xếp hạng 10 người giàu nhất |
+| `/om` `/hon` `/danh` `/choc` `/xoadau` | Tương tác vui kèm GIF anime (nekos.best, fail-open) |
+| `/bj` `/tx` `/bc` `/cf` | Viết tắt của blackjack, taixiu, baucua, coinflip |
 | `/help` | Hướng dẫn trong Discord |
 | `/casino-admin cong\|tru\|dat` | Quản lý xu (chỉ admin) |
 

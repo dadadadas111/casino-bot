@@ -14,7 +14,6 @@ const BAL_W = 9;
 
 const GREEN = '[32m';
 const RED = '[31m';
-const GRAY = '[30m';
 const BOLD = '[1m';
 const RESET = '[0m';
 
@@ -85,7 +84,7 @@ export function historyTable(entries: HistoryEntry[]): string {
     `${'Thời gian'.padEnd(WHEN_W)}  ${'Giao dịch'.padEnd(LABEL_W)} ${'+/-'.padStart(AMOUNT_W)} ${'Số dư'.padStart(BAL_W)}` +
     RESET;
   const rows = entries.map((entry) => {
-    const when = GRAY + formatWhen(entry.createdAt).padEnd(WHEN_W) + RESET;
+    const when = formatWhen(entry.createdAt).padEnd(WHEN_W);
     const label = clip(typeLabel(entry), LABEL_W);
     const amountText = `${entry.amount >= 0 ? '+' : ''}${entry.amount.toLocaleString('vi-VN')}`;
     const amount = (entry.amount >= 0 ? GREEN : RED) + amountText.padStart(AMOUNT_W) + RESET;

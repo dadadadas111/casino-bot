@@ -12,6 +12,7 @@ import { lichsuCommand } from './lichsu.command.js';
 import { topCommand } from './top.command.js';
 import { helpCommand } from './help.command.js';
 import { adminCommand } from './admin.command.js';
+import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
 function alias(command: Command, name: string): Command {
@@ -38,6 +39,7 @@ const all: Command[] = [
   topCommand,
   helpCommand,
   adminCommand,
+  ...tuongtacCommands,
   alias(blackjackCommand, 'bj'),
   alias(taixiuCommand, 'tx'),
   alias(baucuaCommand, 'bc'),
