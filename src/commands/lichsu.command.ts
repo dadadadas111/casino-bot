@@ -16,6 +16,7 @@ const GAME_LABELS: Record<string, string> = {
   baucua: 'Bầu cua',
   coinflip: 'Tung xu',
   slots: 'Xèng',
+  keo: 'Kèo 1v1',
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -28,6 +29,7 @@ const TYPE_ICONS: Record<string, string> = {
   admin_add: '🛠️',
   admin_sub: '🛠️',
   admin_set: '🛠️',
+  refund: '↩️',
 };
 
 function describe(entry: HistoryEntry): string {
@@ -51,6 +53,8 @@ function describe(entry: HistoryEntry): string {
       return 'Admin trừ';
     case 'admin_set':
       return 'Admin đặt số dư';
+    case 'refund':
+      return `Hoàn cược ${game}`;
     default:
       return entry.type;
   }
@@ -71,7 +75,7 @@ function formatLine(entry: HistoryEntry): string {
 export const lichsuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('lichsu')
-    .setDescription('Xem lịch sử biến động số dư của bạn (chỉ mình bạn thấy)')
+    .setDescription('Xem lịch sử biến động số dư (chỉ mình bạn thấy kết quả)')
     .addIntegerOption((o) =>
       o
         .setName('soluong')
@@ -79,17 +83,28 @@ export const lichsuCommand: Command = {
         .setRequired(false)
         .setMinValue(5)
         .setMaxValue(20),
+    )
+    .addUserOption((o) =>
+      o.setName('nguoi').setDescription('Xem lịch sử của người khác').setRequired(false),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const limit = interaction.options.getInteger('soluong') ?? 10;
-    const { entries, total } = economy.getHistory(interaction.user.id, limit);
+    const target = interaction.options.getUser('nguoi') ?? interaction.user;
+    if (target.bot) {
+      await interaction.reply({
+        content: 'Bot không có ví đâu!',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const { entries, total } = economy.getHistory(target.id, limit);
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.info)
-      .setTitle('📜 Lịch sử giao dịch')
+      .setTitle(`📜 Lịch sử giao dịch của ${target.displayName}`)
       .setDescription(
         [
-          `Số dư hiện tại: **${formatCoins(economy.getBalance(interaction.user.id))}**`,
+          `Số dư hiện tại: **${formatCoins(economy.getBalance(target.id))}**`,
           '',
           ...entries.map(formatLine),
         ].join('\n'),

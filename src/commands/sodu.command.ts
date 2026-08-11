@@ -1,4 +1,9 @@
-import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
+import {
+  EmbedBuilder,
+  MessageFlags,
+  SlashCommandBuilder,
+  type ChatInputCommandInteraction,
+} from 'discord.js';
 import { economy } from '../context.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -10,6 +15,10 @@ export const soduCommand: Command = {
     .addUserOption((o) => o.setName('nguoi').setDescription('Người muốn xem').setRequired(false)),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const target = interaction.options.getUser('nguoi') ?? interaction.user;
+    if (target.bot) {
+      await interaction.reply({ content: 'Bot không có ví đâu!', flags: MessageFlags.Ephemeral });
+      return;
+    }
     const profile = economy.getProfile(target.id);
     const net = profile.totalWon - profile.totalLost;
     const netText = net >= 0 ? `+${formatCoins(net)}` : `-${formatCoins(-net)}`;

@@ -22,6 +22,8 @@ export const helpCommand: Command = {
                 '`/baucua cuoc:<xu> chon:<linh vật>` : Bầu cua tôm cá, mỗi mặt trúng ăn 1:1',
                 '`/coinflip cuoc:<xu> chon:<ngửa|sấp>` : Tung đồng xu 50/50',
                 '`/slots cuoc:<xu>` : Máy xèng, 7️⃣7️⃣7️⃣ ăn x100',
+                '`/keo nguoi:<@ai> cuoc:<xu>` : Solo 1v1 tung đồng xu, ai thắng ăn cả',
+                'Viết tắt: `/bj` `/tx` `/bc` `/cf`',
               ].join('\n'),
             },
             {
@@ -30,7 +32,7 @@ export const helpCommand: Command = {
                 '`/daily` : Điểm danh nhận 500 xu mỗi ngày, chuỗi liên tục tối đa 1.000 xu',
                 '`/sodu` : Xem ví và thống kê thắng thua',
                 '`/chuyentien nguoi:<@ai> soxu:<xu>` : Chuyển xu cho bạn bè',
-                '`/lichsu` : Lịch sử biến động số dư (chỉ mình bạn thấy)',
+                '`/lichsu [nguoi]` : Lịch sử biến động số dư, xem của mình hoặc người khác',
                 '`/top` : Bảng xếp hạng đại gia',
               ].join('\n'),
             },

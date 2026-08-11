@@ -1,9 +1,11 @@
 import type { ButtonInteraction } from 'discord.js';
 import { CUSTOM_ID_ROOT, type ComponentHandler } from './ids.js';
 import { blackjackComponents } from '../commands/blackjack.command.js';
+import { keoComponents } from '../commands/keo.command.js';
 
 const handlers: Record<string, ComponentHandler> = {
   bj: blackjackComponents,
+  keo: keoComponents,
 };
 
 export async function routeComponent(interaction: ButtonInteraction): Promise<void> {
