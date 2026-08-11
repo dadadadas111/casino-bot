@@ -9,7 +9,8 @@ import {
   type ChatInputCommandInteraction,
   type Message,
 } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, quizHistory } from '../context.js';
+import { env } from '../config/env.js';
 import {
   type GameQuestion,
   LADDER,
@@ -17,8 +18,10 @@ import {
   buildGameQuestions,
   safeAmount,
   stopPrize,
+  toGameQuestions,
   wrongPrize,
 } from '../services/trieuphu.service.js';
+import { generateQuizQuestions } from '../services/quiz-ai.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -38,6 +41,27 @@ interface QuizSession {
 }
 
 const sessions = new Map<string, QuizSession>();
+// Users whose question set is still being generated (blocks double-start).
+const pending = new Set<string>();
+
+/**
+ * Fresh questions from DeepSeek when configured, avoiding recently asked
+ * ones; the static bank is the fallback so the game always starts.
+ */
+async function prepareQuestions(): Promise<GameQuestion[]> {
+  if (env.DEEPSEEK_API_KEY) {
+    const recent = quizHistory.recent(40);
+    const generated = await generateQuizQuestions(env.DEEPSEEK_API_KEY, recent);
+    if (generated) {
+      const recentSet = new Set(recent);
+      if (generated.every((q) => !recentSet.has(q.question))) {
+        return toGameQuestions(generated);
+      }
+      console.warn('[trieuphu] AI returned repeated questions, using the bank');
+    }
+  }
+  return buildGameQuestions();
+}
 
 function questionEmbed(session: QuizSession): EmbedBuilder {
   const q = session.questions[session.index];
@@ -148,7 +172,7 @@ export const trieuphuCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
 
-    if (sessions.has(userId)) {
+    if (sessions.has(userId) || pending.has(userId)) {
       await interaction.reply({
         content: 'Bạn đang trong ghế nóng rồi, chơi nốt ván hiện tại đã!',
         flags: MessageFlags.Ephemeral,
@@ -163,22 +187,44 @@ export const trieuphuCommand: Command = {
       return;
     }
 
-    economy.markQuizPlayed(userId);
-    const session: QuizSession = {
-      userId,
-      username: interaction.user.displayName,
-      questions: buildGameQuestions(),
-      index: 0,
-      fiftyUsed: false,
-      removed: [],
-      message: null,
-      timeout: setTimeout(() => undefined, 0),
-    };
-    sessions.set(userId, session);
-    armTimer(session);
+    pending.add(userId);
+    try {
+      economy.markQuizPlayed(userId);
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.playing)
+            .setTitle('💰 Ai Là Triệu Phú')
+            .setDescription(
+              `🎬 **${interaction.user.displayName}** bước vào ghế nóng!\nĐang soạn bộ câu hỏi riêng cho ván này, chờ vài giây...`,
+            ),
+        ],
+      });
 
-    await interaction.reply({ embeds: [questionEmbed(session)], components: buttons(session) });
-    session.message = await interaction.fetchReply();
+      const questions = await prepareQuestions();
+      quizHistory.record(questions.map((q) => q.question));
+
+      const session: QuizSession = {
+        userId,
+        username: interaction.user.displayName,
+        questions,
+        index: 0,
+        fiftyUsed: false,
+        removed: [],
+        message: null,
+        timeout: setTimeout(() => undefined, 0),
+      };
+      sessions.set(userId, session);
+      armTimer(session);
+
+      await interaction.editReply({
+        embeds: [questionEmbed(session)],
+        components: buttons(session),
+      });
+      session.message = await interaction.fetchReply();
+    } finally {
+      pending.delete(userId);
+    }
   },
 };
 

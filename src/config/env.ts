@@ -5,6 +5,8 @@ const envSchema = z.object({
   DISCORD_CLIENT_ID: z.string().optional(),
   DISCORD_GUILD_ID: z.string().optional(),
   DB_PATH: z.string().default('./data/casino.db'),
+  // Optional: enables AI-generated trieuphu questions; falls back to the static bank.
+  DEEPSEEK_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

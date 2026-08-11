@@ -26,14 +26,11 @@ function sampleTier(tier: QuizTier, count: number): QuizQuestion[] {
   return shuffled(QUESTIONS.filter((q) => q.tier === tier)).slice(0, count);
 }
 
-/** 15 questions: 5 easy, 5 medium, 5 hard, with per-question answer order shuffled. */
-export function buildGameQuestions(): GameQuestion[] {
-  const picked = [
-    ...sampleTier('easy', 5),
-    ...sampleTier('medium', 5),
-    ...sampleTier('hard', 5),
-  ];
-  return picked.map((q) => {
+/** Shuffle each question's answer order while tracking the correct index. */
+export function toGameQuestions(
+  raw: Array<{ question: string; answers: string[]; correct: number }>,
+): GameQuestion[] {
+  return raw.map((q) => {
     const order = shuffled([0, 1, 2, 3]);
     return {
       question: q.question,
@@ -41,6 +38,15 @@ export function buildGameQuestions(): GameQuestion[] {
       correct: order.indexOf(q.correct),
     };
   });
+}
+
+/** 15 bank questions: 5 easy, 5 medium, 5 hard, answer order shuffled. */
+export function buildGameQuestions(): GameQuestion[] {
+  return toGameQuestions([
+    ...sampleTier('easy', 5),
+    ...sampleTier('medium', 5),
+    ...sampleTier('hard', 5),
+  ]);
 }
 
 /** Prize when stopping voluntarily (or timing out) after `correct` right answers. */

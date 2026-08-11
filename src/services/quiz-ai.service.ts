@@ -1,0 +1,124 @@
+/**
+ * AI-generated quiz questions via the DeepSeek API (OpenAI-compatible).
+ * Fail-open: any error returns null and the caller uses the static bank.
+ */
+
+export interface RawQuestion {
+  question: string;
+  answers: string[];
+  correct: number;
+}
+
+const API_URL = 'https://api.deepseek.com/chat/completions';
+const QUESTION_COUNT = 15;
+
+const TOPICS = [
+  'lịch sử Việt Nam',
+  'địa lý Việt Nam',
+  'văn hóa và ẩm thực Việt Nam',
+  'văn học Việt Nam',
+  'khoa học tự nhiên',
+  'toán học vui',
+  'địa lý thế giới',
+  'lịch sử thế giới',
+  'thể thao',
+  'âm nhạc và nghệ thuật',
+  'động vật và thiên nhiên',
+  'vũ trụ và thiên văn',
+  'phát minh và công nghệ',
+];
+
+function pickTopics(count: number): string[] {
+  const copy = [...TOPICS];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
+
+export function buildPrompt(recent: string[]): string {
+  const avoid =
+    recent.length > 0
+      ? `\nTUYỆT ĐỐI tránh trùng hoặc gần giống các câu đã dùng gần đây:\n${recent.map((q) => `- ${q}`).join('\n')}`
+      : '';
+  return [
+    'Bạn là biên tập viên câu hỏi cho gameshow "Ai Là Triệu Phú" tiếng Việt.',
+    `Hãy tạo đúng ${QUESTION_COUNT} câu hỏi trắc nghiệm MỚI và trả về JSON đúng mẫu sau:`,
+    '{"questions":[{"question":"...","answers":["...","...","...","..."],"correct":0}]}',
+    '',
+    'Yêu cầu bắt buộc:',
+    '- Câu 1-5 dễ (kiến thức phổ thông), câu 6-10 trung bình, câu 11-15 khó, xếp đúng thứ tự đó.',
+    '- "correct" là chỉ số (0-3) của đáp án đúng trong mảng "answers".',
+    '- Chỉ dùng sự thật ổn định đã được kiểm chứng, KHÔNG dùng số liệu thay đổi theo thời gian hay tin thời sự.',
+    '- Mỗi câu có đúng MỘT đáp án đúng; ba đáp án sai phải hợp lý nhưng sai rõ ràng.',
+    '- Không đánh đố, không mơ hồ, không chơi chữ.',
+    `- Chủ đề trải đều trong: ${pickTopics(6).join(', ')}.`,
+    '- Toàn bộ nội dung bằng tiếng Việt.',
+    avoid,
+  ].join('\n');
+}
+
+/** Validate the model's payload; returns only structurally sound questions. */
+export function parseGeneratedQuestions(payload: unknown): RawQuestion[] {
+  if (typeof payload !== 'object' || payload === null) return [];
+  const list = (payload as { questions?: unknown }).questions;
+  if (!Array.isArray(list)) return [];
+  const valid: RawQuestion[] = [];
+  for (const item of list) {
+    if (typeof item !== 'object' || item === null) continue;
+    const { question, answers, correct } = item as {
+      question?: unknown;
+      answers?: unknown;
+      correct?: unknown;
+    };
+    if (typeof question !== 'string' || question.trim().length < 8) continue;
+    if (!Array.isArray(answers) || answers.length !== 4) continue;
+    if (!answers.every((a) => typeof a === 'string' && a.trim().length > 0)) continue;
+    if (new Set(answers).size !== 4) continue;
+    if (typeof correct !== 'number' || !Number.isInteger(correct) || correct < 0 || correct > 3)
+      continue;
+    valid.push({ question: question.trim(), answers: answers as string[], correct });
+  }
+  return valid;
+}
+
+export async function generateQuizQuestions(
+  apiKey: string,
+  recent: string[],
+): Promise<RawQuestion[] | null> {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: buildPrompt(recent) }],
+        response_format: { type: 'json_object' },
+        temperature: 0.8,
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) {
+      console.warn(`[quiz-ai] HTTP ${res.status}`);
+      return null;
+    }
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return null;
+    const questions = parseGeneratedQuestions(JSON.parse(content));
+    if (questions.length < QUESTION_COUNT) {
+      console.warn(`[quiz-ai] only ${questions.length}/${QUESTION_COUNT} valid questions`);
+      return null;
+    }
+    return questions.slice(0, QUESTION_COUNT);
+  } catch (error) {
+    console.warn(`[quiz-ai] ${String(error)}`);
+    return null;
+  }
+}

@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS transactions (
 
 CREATE INDEX IF NOT EXISTS idx_tx_user ON transactions(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_users_balance ON users(balance DESC);
+
+CREATE TABLE IF NOT EXISTS quiz_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  question TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 export function createDb(dbPath: string): Db {
