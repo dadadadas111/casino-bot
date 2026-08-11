@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="felt" cx="50%" cy="42%" r="70%">
+      <stop offset="0%" stop-color="#11764c"/>
+      <stop offset="100%" stop-color="#063a25"/>
+    </radialGradient>
+    <radialGradient id="chip" cx="42%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#d94436"/>
+      <stop offset="100%" stop-color="#a32619"/>
+    </radialGradient>
+  </defs>
+
+  <!-- casino felt background -->
+  <rect width="512" height="512" fill="url(#felt)"/>
+
+  <!-- chip shadow -->
+  <circle cx="256" cy="266" r="206" fill="#000000" opacity="0.35"/>
+
+  <!-- chip body -->
+  <circle cx="256" cy="256" r="206" fill="url(#chip)" stroke="#7e1d12" stroke-width="6"/>
+
+  <!-- edge stripes -->
+  <g fill="#f7f2e7">
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(0 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(45 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(90 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(135 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(180 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(225 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(270 256 256)"/>
+    <rect x="232" y="58" width="48" height="52" rx="10" transform="rotate(315 256 256)"/>
+  </g>
+
+  <!-- inner face -->
+  <circle cx="256" cy="256" r="146" fill="#f7f2e7" stroke="#d4af37" stroke-width="9"/>
+  <circle cx="256" cy="256" r="128" fill="none" stroke="#a32619" stroke-width="3" stroke-dasharray="10 8"/>
+
+  <!-- spade -->
+  <g transform="translate(256 262) scale(0.72) translate(-256 -240)">
+    <path d="M256 80
+      C 205 155 140 196 140 262
+      C 140 308 176 334 212 334
+      C 230 334 245 326 254 313
+      C 250 355 236 380 214 398
+      L 298 398
+      C 276 380 262 355 258 313
+      C 267 326 282 334 300 334
+      C 336 334 372 308 372 262
+      C 372 196 307 155 256 80 Z" fill="#161616"/>
+  </g>
+</svg>

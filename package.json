@@ -10,6 +10,7 @@
     "build": "tsc",
     "start": "node --env-file-if-exists=.env dist/index.js",
     "deploy-commands": "tsx --env-file-if-exists=.env src/deploy-commands.ts",
+    "set-avatar": "tsx --env-file-if-exists=.env src/set-avatar.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist"
