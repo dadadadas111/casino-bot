@@ -15,7 +15,7 @@ import {
   taiXiuPayout,
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
-import { joinOrCreateRace } from './commands/duangua.command.js';
+import { openRace, placeRaceBet } from './commands/duangua.command.js';
 import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
 import { MAX_TICKETS_PER_DAY } from './services/lottery.service.js';
 import { parseTextCommand } from './services/prefix.service.js';
@@ -192,7 +192,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}bc <cược> <bau|cua|tom|ca|ga|nai>\` : Bầu cua`,
               `\`${prefix}cf <cược> <ngua|sap>\` : Tung đồng xu (viết tắt: n, s)`,
               `\`${prefix}sl <cược>\` : Máy xèng`,
-              `\`${prefix}dn <cược> <1-4>\` : Đua ngựa cả kênh cùng chơi`,
+              `\`${prefix}dn\` : Mở trường đua ngựa, \`${prefix}dn <cược> <1-4>\` : vào kèo`,
               `\`${prefix}xs <số 0-99>\` : Mua vé xổ số, quay 21h mỗi tối`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
               '',
@@ -235,6 +235,15 @@ export async function handleTextCommand(message: Message): Promise<void> {
   // ---- horse race (shared lobby per channel) ----
   if (name === 'dn' || name === 'duangua') {
     if (tryUse(userId, 'game', 5_000) > 0) return;
+    if (!message.channel.isSendable()) return;
+
+    // Bare command opens the lobby; args place a bet on the open lobby.
+    if (args.length === 0) {
+      const result = await openRace(message.channel);
+      await message.reply(result.text);
+      return;
+    }
+
     const balance = economy.getBalance(userId);
     let horse: number | null = null;
     let rawBet: number | null = null;
@@ -252,8 +261,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
     }
     const bet = await resolveBet(message, rawBet, `\`${prefix}dn <cược> <1-4>\``);
     if (bet === null) return;
-    if (!message.channel.isSendable()) return;
-    const result = await joinOrCreateRace(message.channel, userId, username, bet, horse);
+    const result = await placeRaceBet(message.channelId, userId, username, bet, horse);
     if (result.ok) lastBets.set(userId, bet);
     await message.reply(result.text);
     return;

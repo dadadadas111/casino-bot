@@ -8,10 +8,12 @@ import {
 } from '../src/services/race.service';
 
 describe('generateHorses', () => {
-  it('produces 4 horses with unique names and probabilities summing to 1', () => {
+  it('produces 4 horses with unique names, traits, and probabilities summing to 1', () => {
     const horses = generateHorses();
     expect(horses).toHaveLength(HORSE_COUNT);
     expect(new Set(horses.map((h) => h.name)).size).toBe(HORSE_COUNT);
+    expect(new Set(horses.map((h) => h.trait)).size).toBe(HORSE_COUNT);
+    for (const h of horses) expect(h.trait.length).toBeGreaterThan(0);
     const total = horses.reduce((sum, h) => sum + h.weight, 0);
     expect(total).toBeCloseTo(1, 5);
   });
@@ -47,5 +49,15 @@ describe('renderTrack', () => {
       expect(lines[i]).toContain('🏇');
     }
     expect(lines[3]).toContain('👑');
+  });
+
+  it('races right-to-left: finish flag left of the horse, winner reaches it', () => {
+    const horses = generateHorses();
+    const lines = renderTrack([0, TRACK_LEN], horses, 1).split('\n');
+    for (const line of lines) {
+      expect(line.indexOf('🏁')).toBeLessThan(line.indexOf('🏇'));
+    }
+    expect(lines[0]).toContain('🏁' + '·'.repeat(TRACK_LEN) + '🏇'); // at the start line
+    expect(lines[1]).toContain('🏁🏇'); // finished
   });
 });

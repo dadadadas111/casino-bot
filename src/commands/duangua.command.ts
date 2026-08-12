@@ -29,7 +29,7 @@ import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
 import type { Command } from './types.js';
 
-const BETTING_MS = 25_000;
+const BETTING_MS = 30_000;
 const FRAMES = 8;
 const FRAME_MS = 1_300;
 
@@ -54,7 +54,7 @@ const races = new Map<string, RaceSession>();
 function lobbyEmbed(session: RaceSession): EmbedBuilder {
   const endsUnix = Math.floor(session.endsAt / 1000);
   const horsesText = session.horses
-    .map((h, i) => `${NUM_EMOJI[i]} **${h.name}** : ăn **x${h.odds}**`)
+    .map((h, i) => `${NUM_EMOJI[i]} **${h.name}** · ăn **x${h.odds}**\n-# ${h.trait}`)
     .join('\n');
   const betsText =
     session.bets.size === 0
@@ -66,7 +66,7 @@ function lobbyEmbed(session: RaceSession): EmbedBuilder {
     .setColor(COLORS.playing)
     .setTitle('🏇 Trường đua mở cửa!')
     .setDescription(
-      `Xuất phát <t:${endsUnix}:R>. Bấm nút chọn ngựa hoặc dùng \`/duangua\`.\n\n${horsesText}`,
+      `Xuất phát <t:${endsUnix}:R>. Ngắm kỹ phong độ rồi bấm nút chọn ngựa (hoặc \`!dn <cược> <1-4>\`).\n\n${horsesText}`,
     )
     .addFields({ name: `Kèo đã đặt (${session.bets.size})`, value: betsText })
     .setFooter({ text: 'Mỗi người một kèo mỗi trận · Tỷ lệ ăn cao = ngựa yếu, liều ăn nhiều' });
@@ -90,9 +90,45 @@ export interface RaceJoinResult {
   text: string;
 }
 
-/** Place a bet, opening a new race lobby in the channel when none exists. */
-export async function joinOrCreateRace(
-  channel: SendableChannels,
+/** Open a race lobby so everyone can inspect the horses before betting. */
+export async function openRace(channel: SendableChannels): Promise<RaceJoinResult> {
+  const existing = races.get(channel.id);
+  if (existing) {
+    return {
+      ok: false,
+      text:
+        existing.phase === 'betting'
+          ? 'Trường đua đang mở sẵn rồi, bấm nút trên bảng đua để đặt kèo!'
+          : 'Ngựa đang chạy, chờ trận sau nhé!',
+    };
+  }
+
+  const session: RaceSession = {
+    channelId: channel.id,
+    horses: generateHorses(),
+    bets: new Map(),
+    phase: 'betting',
+    message: null,
+    endsAt: Date.now() + BETTING_MS,
+  };
+  races.set(channel.id, session);
+  try {
+    session.message = await channel.send({
+      embeds: [lobbyEmbed(session)],
+      components: betButtons(session),
+    });
+  } catch (error) {
+    races.delete(channel.id);
+    console.error('[duangua] Failed to open lobby:', error);
+    return { ok: false, text: 'Không mở được trường đua trong kênh này.' };
+  }
+  setTimeout(() => void runRace(channel.id), BETTING_MS);
+  return { ok: true, text: '🏇 Trường đua đã mở! Xem phong độ và tỷ lệ ăn rồi vào kèo thôi.' };
+}
+
+/** Place a bet on an already-open lobby. */
+export async function placeRaceBet(
+  channelId: string,
   userId: string,
   username: string,
   amount: number,
@@ -101,35 +137,13 @@ export async function joinOrCreateRace(
   if (horseIdx < 0 || horseIdx >= HORSE_COUNT) {
     return { ok: false, text: `Chọn ngựa từ 1 đến ${HORSE_COUNT} thôi!` };
   }
-
-  let session = races.get(channel.id);
-  if (session?.phase === 'racing') {
-    return { ok: false, text: 'Ngựa đang chạy, chờ trận sau nhé!' };
-  }
-
-  if (!session) {
-    session = {
-      channelId: channel.id,
-      horses: generateHorses(),
-      bets: new Map(),
-      phase: 'betting',
-      message: null,
-      endsAt: Date.now() + BETTING_MS,
+  const session = races.get(channelId);
+  if (!session || session.phase !== 'betting') {
+    return {
+      ok: false,
+      text: 'Chưa có trường đua nào đang nhận kèo. Mở trận mới bằng `/duangua`!',
     };
-    races.set(channel.id, session);
-    try {
-      session.message = await channel.send({
-        embeds: [lobbyEmbed(session)],
-        components: betButtons(session),
-      });
-    } catch (error) {
-      races.delete(channel.id);
-      console.error('[duangua] Failed to open lobby:', error);
-      return { ok: false, text: 'Không mở được trường đua trong kênh này.' };
-    }
-    setTimeout(() => void runRace(channel.id), BETTING_MS);
   }
-
   if (session.bets.has(userId)) {
     return { ok: false, text: 'Bạn đã đặt kèo trận này rồi, chờ ngựa chạy thôi!' };
   }
@@ -160,6 +174,24 @@ async function runRace(channelId: string): Promise<void> {
     return;
   }
   session.phase = 'racing';
+
+  if (session.bets.size === 0) {
+    try {
+      await session.message.edit({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.push)
+            .setTitle('🏇 Trận đua bị hủy')
+            .setDescription('Không ai đặt cược nên ngựa lười chạy. Mở trận mới bằng `/duangua`!'),
+        ],
+        components: [],
+      });
+    } catch {
+      // Nothing to clean up beyond the session itself.
+    }
+    races.delete(channelId);
+    return;
+  }
 
   try {
     const winner = pickWinner(session.horses);
@@ -229,18 +261,7 @@ async function runRace(channelId: string): Promise<void> {
 export const duanguaCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('duangua')
-    .setDescription('Đua ngựa: cả kênh cùng đặt cược, tỷ lệ ăn theo phong độ từng con')
-    .addIntegerOption((o) =>
-      o.setName('cuoc').setDescription('Số xu muốn cược').setRequired(true).setMinValue(10),
-    )
-    .addIntegerOption((o) =>
-      o
-        .setName('ngua')
-        .setDescription('Số ngựa (1-4, xem tỷ lệ ăn trong bảng đua)')
-        .setRequired(true)
-        .setMinValue(1)
-        .setMaxValue(HORSE_COUNT),
-    ),
+    .setDescription('Mở trường đua ngựa: xem phong độ 4 con rồi cả kênh đặt cược qua nút'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const channel = interaction.channel;
     if (!channel || !channel.isSendable()) {
@@ -250,15 +271,7 @@ export const duanguaCommand: Command = {
       });
       return;
     }
-    const bet = interaction.options.getInteger('cuoc', true);
-    const horseIdx = interaction.options.getInteger('ngua', true) - 1;
-    const result = await joinOrCreateRace(
-      channel,
-      interaction.user.id,
-      interaction.user.displayName,
-      bet,
-      horseIdx,
-    );
+    const result = await openRace(channel);
     await interaction.reply({ content: result.text, flags: MessageFlags.Ephemeral });
   },
 };
@@ -326,8 +339,8 @@ export const duanguaComponents: ComponentHandler = {
       return;
     }
 
-    const result = await joinOrCreateRace(
-      session.message.channel as SendableChannels,
+    const result = await placeRaceBet(
+      channelId,
       interaction.user.id,
       interaction.user.displayName,
       amount,
