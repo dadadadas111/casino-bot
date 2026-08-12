@@ -1,4 +1,4 @@
-import type { ButtonInteraction } from 'discord.js';
+import type { ButtonInteraction, ModalSubmitInteraction } from 'discord.js';
 
 /**
  * Component customId convention: `cs:<namespace>:<...args>`.
@@ -12,4 +12,5 @@ export function componentId(...parts: string[]): string {
 
 export interface ComponentHandler {
   handleButton?(interaction: ButtonInteraction, args: string[]): Promise<void>;
+  handleModal?(interaction: ModalSubmitInteraction, args: string[]): Promise<void>;
 }

@@ -15,6 +15,7 @@ import {
   taiXiuPayout,
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
+import { joinOrCreateRace } from './commands/duangua.command.js';
 import { parseTextCommand } from './services/prefix.service.js';
 import { extractBetAndChoice, parseBetToken } from './services/bet-parse.js';
 import { COLORS, formatCoins, sleep } from './embeds/format.js';
@@ -189,6 +190,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}bc <cược> <bau|cua|tom|ca|ga|nai>\` : Bầu cua`,
               `\`${prefix}cf <cược> <ngua|sap>\` : Tung đồng xu (viết tắt: n, s)`,
               `\`${prefix}sl <cược>\` : Máy xèng`,
+              `\`${prefix}dn <cược> <1-4>\` : Đua ngựa cả kênh cùng chơi`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
               '',
               '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
@@ -199,6 +201,33 @@ export async function handleTextCommand(message: Message): Promise<void> {
           ),
       ],
     });
+    return;
+  }
+
+  // ---- horse race (shared lobby per channel) ----
+  if (name === 'dn' || name === 'duangua') {
+    if (tryUse(userId, 'game', 5_000) > 0) return;
+    const balance = economy.getBalance(userId);
+    let horse: number | null = null;
+    let rawBet: number | null = null;
+    for (const arg of args) {
+      if (/^[1-4]$/.test(arg)) {
+        horse = Number(arg) - 1;
+        continue;
+      }
+      const parsed = parseBetToken(arg, balance);
+      if (parsed !== null) rawBet = parsed;
+    }
+    if (horse === null) {
+      await message.reply(`Chọn ngựa 1-4 nhé: \`${prefix}dn 100 2\` (hoặc bấm nút trên bảng đua)`);
+      return;
+    }
+    const bet = await resolveBet(message, rawBet, `\`${prefix}dn <cược> <1-4>\``);
+    if (bet === null) return;
+    if (!message.channel.isSendable()) return;
+    const result = await joinOrCreateRace(message.channel, userId, username, bet, horse);
+    if (result.ok) lastBets.set(userId, bet);
+    await message.reply(result.text);
     return;
   }
 

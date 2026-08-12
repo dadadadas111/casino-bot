@@ -25,6 +25,8 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   cf: GAME_CD,
   slots: GAME_CD,
   keo: { key: 'keo', ms: 30_000 },
+  duangua: GAME_CD,
+  dn: GAME_CD,
   om: TUONGTAC_CD,
   hon: TUONGTAC_CD,
   danh: TUONGTAC_CD,
@@ -87,7 +89,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
       await command.execute(interaction);
-    } else if (interaction.isButton()) {
+    } else if (interaction.isButton() || interaction.isModalSubmit()) {
       await routeComponent(interaction);
     }
   } catch (error) {
