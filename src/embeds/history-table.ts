@@ -17,6 +17,7 @@ const GAME_LABELS: Record<string, string> = {
   keo: 'Kèo 1v1',
   trieuphu: 'Triệu phú',
   duangua: 'Đua ngựa',
+  xoso: 'Xổ số',
 };
 
 export function typeLabel(entry: HistoryEntry): string {

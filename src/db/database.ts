@@ -40,6 +40,22 @@ CREATE TABLE IF NOT EXISTS guild_prefixes (
   guild_id TEXT PRIMARY KEY,
   prefix TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS lottery_tickets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  number INTEGER NOT NULL,
+  day TEXT NOT NULL,
+  guild_id TEXT NOT NULL,
+  channel_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_lottery_day ON lottery_tickets(day);
+
+CREATE TABLE IF NOT EXISTS lottery_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `;
 
 export function createDb(dbPath: string): Db {

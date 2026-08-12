@@ -39,6 +39,7 @@ export const helpCommand: Command = {
                 '`/keo nguoi:<@ai> cuoc:<xu>` : Solo 1v1 tung đồng xu, ai thắng ăn cả',
                 '`/trieuphu` : Ai Là Triệu Phú, 15 câu hỏi, tối đa 15.000 xu, 1 lần/ngày',
                 '`/duangua cuoc:<xu> ngua:<1-4>` : Đua ngựa, cả kênh cùng đặt, ăn theo tỷ lệ',
+                '`/xoso mua so:<0-99>` : Vé số 100 xu, quay 21h mỗi tối, jackpot dồn từng ngày',
                 'Viết tắt: `/bj` `/tx` `/bc` `/cf`',
               ].join('\n'),
             },

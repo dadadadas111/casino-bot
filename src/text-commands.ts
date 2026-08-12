@@ -1,5 +1,5 @@
 import { EmbedBuilder, type Message } from 'discord.js';
-import { economy, prefixes } from './context.js';
+import { economy, lottery, prefixes } from './context.js';
 import { tryUse } from './services/cooldown.service.js';
 import {
   BAU_CUA_SYMBOLS,
@@ -16,6 +16,8 @@ import {
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
 import { joinOrCreateRace } from './commands/duangua.command.js';
+import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
+import { MAX_TICKETS_PER_DAY } from './services/lottery.service.js';
 import { parseTextCommand } from './services/prefix.service.js';
 import { extractBetAndChoice, parseBetToken } from './services/bet-parse.js';
 import { COLORS, formatCoins, sleep } from './embeds/format.js';
@@ -191,6 +193,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}cf <cược> <ngua|sap>\` : Tung đồng xu (viết tắt: n, s)`,
               `\`${prefix}sl <cược>\` : Máy xèng`,
               `\`${prefix}dn <cược> <1-4>\` : Đua ngựa cả kênh cùng chơi`,
+              `\`${prefix}xs <số 0-99>\` : Mua vé xổ số, quay 21h mỗi tối`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
               '',
               '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
@@ -201,6 +204,31 @@ export async function handleTextCommand(message: Message): Promise<void> {
           ),
       ],
     });
+    return;
+  }
+
+  // ---- lottery ----
+  if (name === 'xs' || name === 'xoso') {
+    const numArg = args[0];
+    if (numArg === undefined || !/^\d{1,2}$/.test(numArg)) {
+      const info = lottery.info(userId);
+      const myText =
+        info.myNumbers.length > 0
+          ? info.myNumbers.map((n) => `\`${String(n).padStart(2, '0')}\``).join(' ')
+          : 'chưa có';
+      await message.reply(
+        `🎱 Jackpot: **${formatCoins(info.jackpot)}** · Quay <t:${drawTimeUnix(info.drawDay)}:R> · Vé của bạn: ${myText}\nMua vé: \`${prefix}xs <số 0-99>\``,
+      );
+      return;
+    }
+    const result = lottery.buy(userId, Number(numArg), message.guildId, message.channelId);
+    if (!result.ok) {
+      await message.reply(buyErrorText(result.error!, userId));
+      return;
+    }
+    await message.reply(
+      `🎫 Đã mua vé số **${numArg.padStart(2, '0')}** (${result.myTickets}/${MAX_TICKETS_PER_DAY}). Jackpot: **${formatCoins(result.jackpot!)}**, quay <t:${drawTimeUnix(result.drawDay!)}:R>`,
+    );
     return;
   }
 

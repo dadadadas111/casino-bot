@@ -4,6 +4,7 @@ import { commands } from './commands/index.js';
 import { routeComponent } from './interactions/registry.js';
 import { tryUse } from './services/cooldown.service.js';
 import { handleTextCommand } from './text-commands.js';
+import { startLotteryScheduler } from './lottery-scheduler.js';
 
 // Message prefix commands need the privileged MessageContent intent (portal
 // toggle required), so they sit behind an env flag to avoid login crashes.
@@ -27,6 +28,8 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   keo: { key: 'keo', ms: 30_000 },
   duangua: GAME_CD,
   dn: GAME_CD,
+  xoso: GAME_CD,
+  xs: GAME_CD,
   om: TUONGTAC_CD,
   hon: TUONGTAC_CD,
   danh: TUONGTAC_CD,
@@ -62,6 +65,7 @@ async function registerGuildCommands(guildId: string, guildName: string): Promis
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Logged in as ${c.user.tag} (${commands.size} commands loaded)`);
+  startLotteryScheduler(client);
   // Re-register on every boot so command changes ship with each deploy.
   for (const guild of c.guilds.cache.values()) {
     await registerGuildCommands(guild.id, guild.name);
