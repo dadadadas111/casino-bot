@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.5.0',
+    date: '13/08/2026',
+    title: 'Hồ sơ cá nhân',
+    changes: [
+      '📋 **`/hoso [nguoi]`**: xem trọn đời một người chơi. Tài sản, thành tích từng trò (kèm cú thắng đậm nhất), số lần đi tù, số lần nhập viện, trộm được mấy vố và bị trộm mấy lần, vé số đã mua, cưới ai từ bao giờ, túi đồ đang có',
+      '-# `/sodu` vẫn giữ nguyên cho ai chỉ muốn liếc nhanh cái ví.',
+    ],
+  },
+  {
     version: '2.4.0',
     date: '13/08/2026',
     title: 'Đội mũ vào rồi hãy cầm súng',

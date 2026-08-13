@@ -9,6 +9,7 @@ import { duanguaCommand } from './duangua.command.js';
 import { xosoCommand } from './xoso.command.js';
 import { trieuphuCommand } from './trieuphu.command.js';
 import { soduCommand } from './sodu.command.js';
+import { hosoCommand } from './hoso.command.js';
 import { dailyCommand } from './daily.command.js';
 import { lamviecCommand } from './lamviec.command.js';
 import { chuyentienCommand } from './chuyentien.command.js';
@@ -51,6 +52,7 @@ const all: Command[] = [
   xosoCommand,
   trieuphuCommand,
   soduCommand,
+  hosoCommand,
   dailyCommand,
   lamviecCommand,
   chuyentienCommand,

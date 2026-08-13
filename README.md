@@ -29,7 +29,8 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/patchnote xem\|config` | Ghi chú cập nhật, bot tự đăng khi lên bản mới, đổi kênh hoặc tắt được |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/lamviec` (`/work`) | Làm việc kiếm 100-300 xu mỗi giờ, cooldown lưu trong DB |
-| `/sodu [nguoi]` | Xem ví, hạng, thống kê thắng thua |
+| `/sodu [nguoi]` | Xem nhanh ví, két, hạng, trạng thái tù/viện/hôn nhân |
+| `/hoso [nguoi]` | Hồ sơ đầy đủ: tài sản, thành tích từng trò, tiền án tiền sự, gia đình, túi đồ |
 | `/lichsu [soluong] [nguoi]` | Lịch sử giao dịch nhóm theo ngày, chấm màu 🟩🟥, mobile-friendly, ephemeral |
 | `/chuyentien nguoi soxu` | Chuyển xu cho người khác |
 | `/top` | Bảng xếp hạng 10 người giàu nhất |

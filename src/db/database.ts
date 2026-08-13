@@ -169,6 +169,9 @@ function migrate(db: Db): void {
   ensureColumn('jail_count_at');
   ensureColumn('hospital_count', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('hospital_count_at');
+  // Lifetime tallies; the *_count columns above roll over every day.
+  ensureColumn('jail_total', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('hospital_total', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('last_rob');
   ensureColumn('married_to');
   ensureColumn('married_at');

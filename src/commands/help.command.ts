@@ -79,6 +79,7 @@ const PAGES: HelpPage[] = [
         '',
         '**Khoe và soi**',
         '`/sodu [nguoi]` : ví của bạn hoặc của người khác',
+        '`/hoso [nguoi]` : hồ sơ đầy đủ, từ tài sản tới tiền án tiền sự và chuyện gia đình',
         '`/lichsu [nguoi]` : từng đồng ra vào, ai nướng tiền vào đâu lộ hết',
         '`/top` : bảng xếp hạng đại gia',
         '`/chuyentien nguoi soxu` : chuyển xu, hào phóng hay hối lộ tùy bạn',

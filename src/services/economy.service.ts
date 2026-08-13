@@ -404,7 +404,10 @@ export class EconomyService {
   private bumpOffense(userId: string, kind: OffenseKind, now: Date): void {
     const count = this.offenseCount(userId, kind, now) + 1;
     this.db
-      .prepare(`UPDATE users SET ${kind}_count = ?, ${kind}_count_at = ? WHERE user_id = ?`)
+      .prepare(
+        `UPDATE users SET ${kind}_count = ?, ${kind}_count_at = ?, ${kind}_total = ${kind}_total + 1
+         WHERE user_id = ?`,
+      )
       .run(count, now.toISOString(), userId);
   }
 
