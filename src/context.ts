@@ -9,6 +9,7 @@ import { ReportService } from './services/report.service.js';
 import { CashService } from './services/cash.service.js';
 import { ItemsService } from './services/items.service.js';
 import { BuffService } from './services/buff.service.js';
+import { TopupService } from './services/topup.service.js';
 
 export const db = createDb(env.DB_PATH);
 export const buffs = new BuffService(db);
@@ -20,3 +21,4 @@ export const activity = new ActivityService(db);
 export const reports = new ReportService(db);
 export const cash = new CashService(db);
 export const items = new ItemsService(db);
+export const topups = new TopupService(db, cash);

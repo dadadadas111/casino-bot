@@ -78,7 +78,10 @@ CREATE TABLE IF NOT EXISTS report_config (
   hour INTEGER NOT NULL DEFAULT 10,
   channel_id TEXT,
   tag_everyone INTEGER NOT NULL DEFAULT 1,
-  last_sent_day TEXT
+  last_sent_day TEXT,
+  patch_enabled INTEGER NOT NULL DEFAULT 1,
+  patch_channel_id TEXT,
+  last_patch_version TEXT
 );
 
 CREATE TABLE IF NOT EXISTS user_items (
@@ -93,6 +96,25 @@ CREATE TABLE IF NOT EXISTS user_buffs (
   buff TEXT NOT NULL,
   expires_at TEXT NOT NULL,
   PRIMARY KEY (user_id, buff)
+);
+
+CREATE TABLE IF NOT EXISTS topup_requests (
+  code TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  paid_at TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_topup_user ON topup_requests(user_id, status);
+
+CREATE TABLE IF NOT EXISTS sepay_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT,
+  amount INTEGER NOT NULL,
+  content TEXT,
+  matched_code TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS cash_ledger (
@@ -119,14 +141,20 @@ export function createDb(dbPath: string): Db {
 
 /** Additive migrations for databases created before a column existed. */
 function migrate(db: Db): void {
-  const ensureColumn = (name: string, ddl = 'TEXT'): void => {
+  const addColumn = (table: string, name: string, ddl: string): void => {
     const exists = db
-      .prepare("SELECT COUNT(*) AS n FROM pragma_table_info('users') WHERE name = ?")
+      .prepare(`SELECT COUNT(*) AS n FROM pragma_table_info('${table}') WHERE name = ?`)
       .get(name) as { n: number };
     if (!exists.n) {
-      db.exec(`ALTER TABLE users ADD COLUMN ${name} ${ddl}`);
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${ddl}`);
     }
   };
+  const ensureColumn = (name: string, ddl = 'TEXT'): void => addColumn('users', name, ddl);
+
+  addColumn('report_config', 'patch_enabled', 'INTEGER NOT NULL DEFAULT 1');
+  addColumn('report_config', 'patch_channel_id', 'TEXT');
+  addColumn('report_config', 'last_patch_version', 'TEXT');
+
   ensureColumn('last_work');
   ensureColumn('last_trieuphu');
   ensureColumn('cash', 'INTEGER NOT NULL DEFAULT 0'); // premium currency, unit = VND

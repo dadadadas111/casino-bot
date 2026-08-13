@@ -10,6 +10,9 @@ export interface ReportConfig {
   channelId: string | null; // null = pick the busiest channel automatically
   tagEveryone: boolean;
   lastSentDay: string | null;
+  patchEnabled: boolean;
+  patchChannelId: string | null; // null = same auto-pick as the newsletter
+  lastPatchVersion: string | null;
 }
 
 export interface GameStat {
@@ -31,7 +34,14 @@ export interface PlayerProfile {
   facts: string[]; // human-readable Vietnamese data points, most salient first
 }
 
-const DEFAULTS = { enabled: true, hour: 10, channelId: null, tagEveryone: true };
+const DEFAULTS = {
+  enabled: true,
+  hour: 10,
+  channelId: null,
+  tagEveryone: true,
+  patchEnabled: true,
+  patchChannelId: null,
+};
 
 export class ReportService {
   constructor(private db: Db) {}
@@ -47,9 +57,12 @@ export class ReportService {
           channel_id: string | null;
           tag_everyone: number;
           last_sent_day: string | null;
+          patch_enabled: number;
+          patch_channel_id: string | null;
+          last_patch_version: string | null;
         }
       | undefined;
-    if (!row) return { guildId, ...DEFAULTS, lastSentDay: null };
+    if (!row) return { guildId, ...DEFAULTS, lastSentDay: null, lastPatchVersion: null };
     return {
       guildId,
       enabled: row.enabled === 1,
@@ -57,22 +70,33 @@ export class ReportService {
       channelId: row.channel_id,
       tagEveryone: row.tag_everyone === 1,
       lastSentDay: row.last_sent_day,
+      patchEnabled: row.patch_enabled === 1,
+      patchChannelId: row.patch_channel_id,
+      lastPatchVersion: row.last_patch_version,
     };
   }
 
   updateConfig(
     guildId: string,
-    patch: Partial<Pick<ReportConfig, 'enabled' | 'hour' | 'channelId' | 'tagEveryone'>>,
+    patch: Partial<
+      Pick<
+        ReportConfig,
+        'enabled' | 'hour' | 'channelId' | 'tagEveryone' | 'patchEnabled' | 'patchChannelId'
+      >
+    >,
   ): ReportConfig {
     const current = this.getConfig(guildId);
     const next = { ...current, ...patch };
     this.db
       .prepare(
-        `INSERT INTO report_config (guild_id, enabled, hour, channel_id, tag_everyone, last_sent_day)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO report_config
+           (guild_id, enabled, hour, channel_id, tag_everyone, last_sent_day,
+            patch_enabled, patch_channel_id, last_patch_version)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(guild_id) DO UPDATE SET
            enabled = excluded.enabled, hour = excluded.hour,
-           channel_id = excluded.channel_id, tag_everyone = excluded.tag_everyone`,
+           channel_id = excluded.channel_id, tag_everyone = excluded.tag_everyone,
+           patch_enabled = excluded.patch_enabled, patch_channel_id = excluded.patch_channel_id`,
       )
       .run(
         guildId,
@@ -81,8 +105,24 @@ export class ReportService {
         next.channelId,
         next.tagEveryone ? 1 : 0,
         current.lastSentDay,
+        next.patchEnabled ? 1 : 0,
+        next.patchChannelId,
+        current.lastPatchVersion,
       );
     return next;
+  }
+
+  /** True when this guild has not been told about `version` yet. */
+  patchDue(guildId: string, version: string): boolean {
+    const config = this.getConfig(guildId);
+    return config.patchEnabled && config.lastPatchVersion !== version;
+  }
+
+  markPatchSent(guildId: string, version: string): void {
+    this.updateConfig(guildId, {}); // ensure the row exists
+    this.db
+      .prepare('UPDATE report_config SET last_patch_version = ? WHERE guild_id = ?')
+      .run(version, guildId);
   }
 
   markSent(guildId: string, now: Date = new Date()): void {

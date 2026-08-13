@@ -13,6 +13,12 @@ const envSchema = z.object({
   ENABLE_PREFIX_COMMANDS: z.string().default('false'),
   // Discord user id allowed to grant premium cash (manual top-ups).
   BOT_OWNER_ID: z.string().optional(),
+  // SePay top-ups. Without SEPAY_API_KEY the webhook server stays off.
+  SEPAY_API_KEY: z.string().optional(),
+  SEPAY_PORT: z.coerce.number().default(3020),
+  SEPAY_BANK: z.string().default('MBBank'),
+  SEPAY_ACCOUNT: z.string().default(''),
+  SEPAY_HOLDER: z.string().default(''),
 });
 
 const parsed = envSchema.safeParse(process.env);

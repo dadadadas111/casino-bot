@@ -1,0 +1,102 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { createDb, type Db } from '../src/db/database';
+import { CashService } from '../src/services/cash.service';
+import { TopupService, extractCode, normalizeContent } from '../src/services/topup.service';
+
+let db: Db;
+let cash: CashService;
+let topups: TopupService;
+
+beforeEach(() => {
+  db = createDb(':memory:');
+  cash = new CashService(db);
+  topups = new TopupService(db, cash);
+});
+
+const webhook = (over: Record<string, unknown> = {}) => ({
+  id: 1001,
+  transferType: 'in',
+  transferAmount: 20_000,
+  content: 'CASINOABCDE',
+  ...over,
+});
+
+describe('memo parsing', () => {
+  it('strips bank formatting before matching', () => {
+    expect(normalizeContent('ct dt casino abcde - mb')).toBe('CTDTCASINOABCDEMB');
+    expect(extractCode('CT DT casino-ABCDE tu MB Bank')).toBe('CASINOABCDE');
+    expect(extractCode('chuyen tien an trua')).toBeNull();
+  });
+});
+
+describe('handleWebhook', () => {
+  it('credits the requesting user and closes the request', () => {
+    const req = topups.createRequest('u1', 20_000);
+    const result = topups.handleWebhook(webhook({ content: `CT DT ${req.code}` }));
+    expect(result).toMatchObject({ action: 'credited', userId: 'u1', amount: 20_000 });
+    expect(cash.get('u1')).toBe(20_000);
+    expect(topups.pendingFor('u1')).toHaveLength(0);
+  });
+
+  it('is idempotent across SePay retries', () => {
+    const req = topups.createRequest('u1', 20_000);
+    const payload = webhook({ content: req.code });
+    expect(topups.handleWebhook(payload).action).toBe('credited');
+    expect(topups.handleWebhook(payload)).toMatchObject({
+      action: 'ignored',
+      reason: 'duplicate',
+    });
+    expect(cash.get('u1')).toBe(20_000);
+  });
+
+  it('credits the amount actually received, not the amount requested', () => {
+    const req = topups.createRequest('u1', 50_000);
+    topups.handleWebhook(webhook({ content: req.code, transferAmount: 30_000 }));
+    expect(cash.get('u1')).toBe(30_000);
+  });
+
+  it('ignores outgoing transfers', () => {
+    expect(topups.handleWebhook(webhook({ transferType: 'out' }))).toMatchObject({
+      action: 'ignored',
+      reason: 'not_incoming',
+    });
+  });
+
+  it('records transfers whose memo matches nothing', () => {
+    const result = topups.handleWebhook(webhook({ content: 'chuyen tien mua ca phe' }));
+    expect(result.action).toBe('unmatched');
+    const row = db.prepare('SELECT user_id, matched_code FROM sepay_transactions').get() as {
+      user_id: string | null;
+      matched_code: string | null;
+    };
+    expect(row).toMatchObject({ user_id: null, matched_code: null });
+  });
+
+  it('uses SePay pre-parsed code when the memo is noisy', () => {
+    const req = topups.createRequest('u1', 20_000);
+    const result = topups.handleWebhook(
+      webhook({ code: req.code, content: 'noi dung bi cat mat' }),
+    );
+    expect(result).toMatchObject({ action: 'credited', code: req.code });
+  });
+
+  it('does not double-pay a code that was already settled', () => {
+    const req = topups.createRequest('u1', 20_000);
+    topups.handleWebhook(webhook({ id: 1, content: req.code }));
+    const second = topups.handleWebhook(webhook({ id: 2, content: req.code }));
+    expect(second.action).toBe('unmatched');
+    expect(cash.get('u1')).toBe(20_000);
+  });
+});
+
+describe('createRequest', () => {
+  it('issues unique unambiguous codes', () => {
+    const codes = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const { code } = topups.createRequest('u1', 5_000);
+      expect(code).toMatch(/^CASINO[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{5}$/);
+      codes.add(code);
+    }
+    expect(codes.size).toBe(50);
+  });
+});
