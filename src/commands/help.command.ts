@@ -111,7 +111,7 @@ const PAGES: HelpPage[] = [
         '',
         '**Chuyện đôi lứa**',
         '`/cauhon nguoi` : quỳ gối cầu hôn, nhớ mua 💍 trước kẻo quê',
-        '`/honle` : mở tiệc cưới, khách bấm nút mừng tiền cho hai bạn',
+        '`/honle` : mở tiệc cưới, khách bấm nút mừng tiền hoặc dự tay không',
         '`/lyhon` : hết duyên thì đường ai nấy đi, phí 1.000 xu',
       ].join('\n'),
   },

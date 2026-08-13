@@ -39,6 +39,23 @@ describe('handleWebhook', () => {
     expect(topups.pendingFor('u1')).toHaveLength(0);
   });
 
+  it('reports the channel the request came from so the receipt is visible', () => {
+    const req = topups.createRequest('u1', 20_000, 'g1', 'c1');
+    const result = topups.handleWebhook(webhook({ content: req.code }));
+    expect(result).toMatchObject({ action: 'credited', channelId: 'c1' });
+  });
+
+  it('handles a real MoMo-style memo', () => {
+    const req = topups.createRequest('u1', 10_000);
+    const result = topups.handleWebhook(
+      webhook({
+        transferAmount: 10_000,
+        content: `142035901733-${req.code}-CHUYEN TIEN-OQCH000Hk0hi-MOMO142035901733MOMO`,
+      }),
+    );
+    expect(result).toMatchObject({ action: 'credited', amount: 10_000 });
+  });
+
   it('is idempotent across SePay retries', () => {
     const req = topups.createRequest('u1', 20_000);
     const payload = webhook({ content: req.code });

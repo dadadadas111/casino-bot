@@ -48,7 +48,12 @@ export const napCommand: Command = {
       return;
     }
     const amount = interaction.options.getInteger('sotien', true);
-    const request = topups.createRequest(interaction.user.id, amount);
+    const request = topups.createRequest(
+      interaction.user.id,
+      amount,
+      interaction.inGuild() ? interaction.guildId : null,
+      interaction.channelId,
+    );
 
     await interaction.reply({
       embeds: [

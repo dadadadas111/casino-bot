@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.1.1',
+    date: '13/08/2026',
+    title: 'Sửa vặt sau ngày ra mắt',
+    changes: [
+      '💵 Nạp tiền xong bot báo ngay tại kênh bạn gõ `/nap`, không còn im lặng khi tài khoản chặn tin nhắn riêng',
+      '🥂 **Tiệc cưới**: thêm nút dự tiệc miễn phí, hết tiền vẫn vào ăn cỗ được',
+    ],
+  },
+  {
     version: '2.1.0',
     date: '13/08/2026',
     title: 'Đổi tiền lấy xu',

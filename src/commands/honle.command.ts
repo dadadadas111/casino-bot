@@ -19,11 +19,16 @@ export const CEREMONY_COST = 5_000;
 export const GIFT_AMOUNT = 500;
 const CEREMONY_MS = 5 * 60 * 1000;
 
+interface Guest {
+  name: string;
+  gifted: boolean;
+}
+
 interface Ceremony {
   hostId: string;
   hostName: string;
   spouseId: string;
-  guests: Map<string, string>; // guestId -> display name
+  guests: Map<string, Guest>;
   giftTotal: number;
   message: Message | null;
   endsAt: number;
@@ -33,11 +38,12 @@ interface Ceremony {
 const ceremonies = new Map<string, Ceremony>();
 
 function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBuilder {
+  const shown = [...c.guests.values()].slice(0, 15);
   const guestList =
     c.guests.size > 0
-      ? [...c.guests.values()].slice(0, 15).join(', ') +
+      ? shown.map((g) => `${g.gifted ? '🎁' : '🥂'} ${g.name}`).join(', ') +
         (c.guests.size > 15 ? ` và ${c.guests.size - 15} người nữa` : '')
-      : 'Chưa có khách nào tới mừng.';
+      : 'Chưa có khách nào tới dự.';
   const embed = new EmbedBuilder()
     .setColor(COLORS.gold)
     .setTitle(closed ? '💒 Hôn lễ đã kết thúc' : '💒 HÔN LỄ ĐANG DIỄN RA 💒')
@@ -47,7 +53,7 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
         '',
         closed
           ? `Cảm ơn **${c.guests.size}** vị khách đã tới chung vui.`
-          : `Bấm nút mừng cưới để tặng ${formatCoins(GIFT_AMOUNT)} cho cặp đôi, tiệc tan <t:${Math.floor(c.endsAt / 1000)}:R>.`,
+          : `🎁 Mừng cưới ${formatCoins(GIFT_AMOUNT)}, hoặc 🥂 dự tiệc tay không cũng được, miễn là có mặt! Tiệc tan <t:${Math.floor(c.endsAt / 1000)}:R>.`,
       ].join('\n'),
     )
     .addFields(
@@ -125,6 +131,11 @@ export const honleCommand: Command = {
             .setLabel(`Mừng cưới ${GIFT_AMOUNT.toLocaleString('vi-VN')} xu`)
             .setEmoji('🎁')
             .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(componentId('hl', hostId, 'attend'))
+            .setLabel('Dự tiệc (miễn phí)')
+            .setEmoji('🥂')
+            .setStyle(ButtonStyle.Secondary),
         ),
       ],
       allowedMentions: { parse: ['everyone'], users: [hostId, spouseId] },
@@ -136,7 +147,7 @@ export const honleCommand: Command = {
 
 export const honleComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {
-    const [hostId] = args;
+    const [hostId, action] = args;
     const ceremony = ceremonies.get(hostId);
 
     if (!ceremony) {
@@ -154,16 +165,28 @@ export const honleComponents: ComponentHandler = {
       });
       return;
     }
-    if (ceremony.guests.has(guestId)) {
+
+    const existing = ceremony.guests.get(guestId);
+    // Attending first then gifting is fine; gifting twice is not.
+    if (existing?.gifted || (existing && action === 'attend')) {
       await interaction.reply({
-        content: 'Bạn mừng cưới rồi, tham gì nữa!',
+        content: existing.gifted ? 'Bạn mừng cưới rồi, tham gì nữa!' : 'Bạn đang ở trong tiệc rồi!',
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
+
+    if (action === 'attend') {
+      ceremony.guests.set(guestId, { name: interaction.user.displayName, gifted: false });
+      await interaction.update({
+        embeds: [ceremonyEmbed(ceremony, interaction.message.embeds[0]?.image?.url ?? null)],
+      });
+      return;
+    }
+
     if (!economy.debit(guestId, GIFT_AMOUNT, 'wedding_gift', hostId)) {
       await interaction.reply({
-        content: `Không đủ ${formatCoins(GIFT_AMOUNT)} để mừng cưới. Đi ăn cỗ chay vậy!`,
+        content: `Không đủ ${formatCoins(GIFT_AMOUNT)} để mừng cưới. Bấm 🥂 dự tiệc tay không cũng được, cô dâu chú rể không giận đâu!`,
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -173,7 +196,7 @@ export const honleComponents: ComponentHandler = {
     const half = Math.floor(GIFT_AMOUNT / 2);
     economy.credit(ceremony.hostId, GIFT_AMOUNT - half, 'wedding_gift', guestId);
     economy.credit(ceremony.spouseId, half, 'wedding_gift', guestId);
-    ceremony.guests.set(guestId, interaction.user.displayName);
+    ceremony.guests.set(guestId, { name: interaction.user.displayName, gifted: true });
     ceremony.giftTotal += GIFT_AMOUNT;
 
     await interaction.update({ embeds: [ceremonyEmbed(ceremony, interaction.message.embeds[0]?.image?.url ?? null)] });

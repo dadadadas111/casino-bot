@@ -20,7 +20,13 @@ export interface TopupRequest {
 
 export type WebhookResult =
   | { action: 'ignored'; reason: 'not_incoming' | 'duplicate' }
-  | { action: 'credited'; userId: string; amount: number; code: string }
+  | {
+      action: 'credited';
+      userId: string;
+      amount: number;
+      code: string;
+      channelId: string | null;
+    }
   | { action: 'unmatched'; amount: number; content: string };
 
 export interface SepayPayload {
@@ -66,11 +72,19 @@ export class TopupService {
     throw new Error('Could not allocate a unique topup code');
   }
 
-  createRequest(userId: string, amount: number): TopupRequest {
+  /** Remembers where the request came from so the receipt lands somewhere visible. */
+  createRequest(
+    userId: string,
+    amount: number,
+    guildId: string | null = null,
+    channelId: string | null = null,
+  ): TopupRequest {
     const code = this.generateCode();
     this.db
-      .prepare('INSERT INTO topup_requests (code, user_id, amount) VALUES (?, ?, ?)')
-      .run(code, userId, amount);
+      .prepare(
+        'INSERT INTO topup_requests (code, user_id, amount, guild_id, channel_id) VALUES (?, ?, ?, ?, ?)',
+      )
+      .run(code, userId, amount, guildId, channelId);
     return { code, userId, amount, status: 'pending' };
   }
 
@@ -116,9 +130,17 @@ export class TopupService {
 
     const request = code
       ? (this.db
-          .prepare("SELECT code, user_id, amount, status FROM topup_requests WHERE code = ?")
+          .prepare(
+            'SELECT code, user_id, amount, status, channel_id FROM topup_requests WHERE code = ?',
+          )
           .get(code) as
-          | { code: string; user_id: string; amount: number; status: string }
+          | {
+              code: string;
+              user_id: string;
+              amount: number;
+              status: string;
+              channel_id: string | null;
+            }
           | undefined)
       : undefined;
 
@@ -145,6 +167,12 @@ export class TopupService {
     run();
     this.cash.credit(request.user_id, amount, `sepay:${request.code}`);
 
-    return { action: 'credited', userId: request.user_id, amount, code: request.code };
+    return {
+      action: 'credited',
+      userId: request.user_id,
+      amount,
+      code: request.code,
+      channelId: request.channel_id,
+    };
   }
 }

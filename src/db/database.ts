@@ -104,7 +104,9 @@ CREATE TABLE IF NOT EXISTS topup_requests (
   amount INTEGER NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  paid_at TEXT
+  paid_at TEXT,
+  guild_id TEXT,
+  channel_id TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_topup_user ON topup_requests(user_id, status);
 
@@ -151,6 +153,8 @@ function migrate(db: Db): void {
   };
   const ensureColumn = (name: string, ddl = 'TEXT'): void => addColumn('users', name, ddl);
 
+  addColumn('topup_requests', 'guild_id', 'TEXT');
+  addColumn('topup_requests', 'channel_id', 'TEXT');
   addColumn('report_config', 'patch_enabled', 'INTEGER NOT NULL DEFAULT 1');
   addColumn('report_config', 'patch_channel_id', 'TEXT');
   addColumn('report_config', 'last_patch_version', 'TEXT');

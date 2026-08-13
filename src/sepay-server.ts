@@ -7,6 +7,56 @@ import { formatVnd } from './commands/cash.command.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 
+function receiptEmbed(amount: number, code: string): EmbedBuilder {
+  return new EmbedBuilder()
+    .setColor(COLORS.win)
+    .setTitle('💵 Nạp tiền thành công!')
+    .setDescription(
+      [
+        `Đã nhận **${formatVnd(amount)}** cho mã \`${code}\`.`,
+        '`/cash xem` để kiểm tra ví, `/cash doixu` để đổi sang xu, `/trieuphu` để reset ghế nóng.',
+      ].join('\n'),
+    );
+}
+
+/**
+ * Post the receipt where the player asked for the top-up. DMs are unreliable
+ * (many accounts block messages from non-friends), so the originating channel
+ * comes first and the DM is only a fallback.
+ */
+async function announceTopup(
+  client: Client,
+  userId: string,
+  amount: number,
+  code: string,
+  channelId: string | null,
+): Promise<void> {
+  const embed = receiptEmbed(amount, code);
+
+  if (channelId) {
+    try {
+      const channel = await client.channels.fetch(channelId);
+      if (channel?.isSendable()) {
+        await channel.send({
+          content: `<@${userId}>`,
+          embeds: [embed],
+          allowedMentions: { users: [userId] },
+        });
+        return;
+      }
+    } catch (error) {
+      console.warn(`[sepay] Cannot post receipt in ${channelId}: ${String(error)}`);
+    }
+  }
+
+  try {
+    const user = await client.users.fetch(userId);
+    await user.send({ embeds: [embed] });
+  } catch (error) {
+    console.warn(`[sepay] Could not DM ${userId}: ${String(error)}`);
+  }
+}
+
 /**
  * Webhook endpoint for SePay bank-transfer notifications.
  * SePay requires HTTP 200/201 with {"success": true} inside 30 seconds,
@@ -58,24 +108,7 @@ export function startSepayServer(client: Client): void {
           console.log(`[sepay] ${JSON.stringify(result)}`);
 
           if (result.action === 'credited') {
-            try {
-              const user = await client.users.fetch(result.userId);
-              await user.send({
-                embeds: [
-                  new EmbedBuilder()
-                    .setColor(COLORS.win)
-                    .setTitle('💵 Nạp tiền thành công!')
-                    .setDescription(
-                      [
-                        `Đã nhận **${formatVnd(result.amount)}** cho mã \`${result.code}\`.`,
-                        'Gõ `/cash xem` để kiểm tra số dư, hoặc `/trieuphu` để reset ghế nóng ngay.',
-                      ].join('\n'),
-                    ),
-                ],
-              });
-            } catch (error) {
-              console.warn(`[sepay] Could not DM ${result.userId}: ${String(error)}`);
-            }
+            await announceTopup(client, result.userId, result.amount, result.code, result.channelId);
           }
           reply(200, { success: true });
         } catch (error) {
