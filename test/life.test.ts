@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../src/db/database';
 import {
-  BAIL_COST,
+  BAIL_BASE_COST,
   DIVORCE_FEE,
   EconomyService,
   HOSPITAL_DURATION_MS,
   JAIL_DURATION_MS,
+  OFFENSE_RESET_MS,
   ROB_COOLDOWN_MS,
   STARTING_BALANCE,
 } from '../src/services/economy.service';
@@ -49,15 +50,49 @@ describe('jail and bail', () => {
     expect(economy.jailedUntil('u1', t0)?.getTime()).toBe(release.getTime());
     expect(economy.jailedUntil('u1', new Date(release.getTime() + 1000))).toBeNull();
     expect(economy.bail('u1', t0)).toBe('ok');
-    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 5_000 - BAIL_COST);
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 5_000 - BAIL_BASE_COST);
     expect(economy.jailedUntil('u1', t0)).toBeNull();
   });
 
   it('refuses bail when broke or free', () => {
     expect(economy.bail('u1', t0)).toBe('not_jailed');
-    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the 100 fee
+    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the fee
     economy.jail('u1', JAIL_DURATION_MS, t0);
     expect(economy.bail('u1', t0)).toBe('poor');
+  });
+});
+
+describe('escalating release fees', () => {
+  it('multiplies the fee with each offence and resets after a day', () => {
+    expect(economy.releaseFee('u1', 'jail', t0)).toBe(BAIL_BASE_COST);
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    expect(economy.releaseFee('u1', 'jail', t0)).toBe(BAIL_BASE_COST);
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    expect(economy.releaseFee('u1', 'jail', t0)).toBe(BAIL_BASE_COST * 2);
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    expect(economy.releaseFee('u1', 'jail', t0)).toBe(BAIL_BASE_COST * 3);
+
+    const nextDay = new Date(t0.getTime() + OFFENSE_RESET_MS + 1_000);
+    expect(economy.offenseCount('u1', 'jail', nextDay)).toBe(0);
+    expect(economy.releaseFee('u1', 'jail', nextDay)).toBe(BAIL_BASE_COST);
+  });
+
+  it('charges the escalated fee when bailing out', () => {
+    economy.credit('u1', 20_000, 'admin_add');
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    economy.jail('u1', JAIL_DURATION_MS, t0); // second offence today
+    const before = economy.getBalance('u1');
+    expect(economy.bail('u1', t0)).toBe('ok');
+    expect(economy.getBalance('u1')).toBe(before - BAIL_BASE_COST * 2);
+  });
+
+  it('keeps jail and hospital tallies separate', () => {
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    economy.jail('u1', JAIL_DURATION_MS, t0);
+    expect(economy.offenseCount('u1', 'jail', t0)).toBe(2);
+    expect(economy.offenseCount('u1', 'hospital', t0)).toBe(0);
+    economy.hospitalize('u1', HOSPITAL_DURATION_MS, t0);
+    expect(economy.offenseCount('u1', 'hospital', t0)).toBe(1);
   });
 });
 
@@ -74,7 +109,7 @@ describe('hospital', () => {
 
   it('refuses discharge when healthy or broke', () => {
     expect(economy.payMedicalBill('u1', t0)).toBe('not_admitted');
-    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the 100 fee
+    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the fee
     economy.hospitalize('u1', HOSPITAL_DURATION_MS, t0);
     expect(economy.payMedicalBill('u1', t0)).toBe('poor');
   });

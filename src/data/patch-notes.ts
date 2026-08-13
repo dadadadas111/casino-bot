@@ -15,7 +15,8 @@ export const PATCH_NOTES: PatchNote[] = [
       '🪖 **Mũ bảo hiểm** (1.000 xu): trúng đạn cò quay Nga vẫn khỏi nhập viện, mũ vỡ sau một lần đỡ đạn',
       '🏷️ **Toàn bộ shop giảm giá**, không món nào quá 1.000 xu: khiên 800, cà phê 300, chìa khóa 200, hộp quà 500',
       '🗝️ Chìa khóa vạn năng giờ dùng được cho cả trốn viện, không chỉ vượt ngục',
-      '⏱️ Ngồi tù còn 5 phút, nằm viện 3 phút 36 giây, chuộc thân chỉ 100 xu',
+      '⏱️ Ngồi tù còn 5 phút, nằm viện 3 phút 36 giây',
+      '💸 **Phí chuộc thân lũy tiến**: lần đầu 1.000 xu, tái phạm trong ngày thì nhân đôi nhân ba, reset sau 24 giờ. Chơi liều nhiều lần là cháy ví',
     ],
   },
   {

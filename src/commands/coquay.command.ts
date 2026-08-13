@@ -11,7 +11,7 @@ import {
   type SendableChannels,
 } from 'discord.js';
 import { economy, items } from '../context.js';
-import { HOSPITAL_DURATION_MS, MEDICAL_FEE } from '../services/economy.service.js';
+import { HOSPITAL_DURATION_MS, MEDICAL_BASE_FEE } from '../services/economy.service.js';
 import {
   CHAMBERS,
   MIN_PLAYERS,
@@ -170,7 +170,7 @@ async function runGame(channelId: string): Promise<void> {
               `🎉 Người sống sót nhận thêm **${formatCoins(share)}** mỗi người: ${survivors.map((s) => s.name).join(', ')}`,
               '',
               release
-                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(MEDICAL_FEE)} bằng \`/vienphi\` để ra sớm.`
+                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(economy.releaseFee(victim.id, 'hospital'))} bằng \`/vienphi\` để ra sớm.`
                 : '-# Mua mũ mới trong `/shop` trước khi cầm súng lần nữa nhé.',
             ].join('\n'),
           ),
@@ -319,8 +319,11 @@ export const coquayComponents: ComponentHandler = {
 export const vienphiCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('vienphi')
-    .setDescription(`Trả viện phí ${MEDICAL_FEE.toLocaleString('vi-VN')} xu để xuất viện ngay`),
+    .setDescription(
+      `Trả viện phí để xuất viện ngay (${MEDICAL_BASE_FEE.toLocaleString('vi-VN')} xu, nhập viện lại trong ngày thì nhân lên)`,
+    ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const fee = economy.releaseFee(interaction.user.id, 'hospital');
     const result = economy.payMedicalBill(interaction.user.id);
     if (result === 'not_admitted') {
       await interaction.reply({
@@ -331,17 +334,18 @@ export const vienphiCommand: Command = {
     }
     if (result === 'poor') {
       await interaction.reply({
-        content: `Không đủ ${formatCoins(MEDICAL_FEE)} trả viện phí. Nằm chờ hồi phục tự nhiên vậy!`,
+        content: `Không đủ ${formatCoins(fee)} trả viện phí. Nằm chờ hồi phục tự nhiên vậy!`,
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
+    const times = economy.offenseCount(interaction.user.id, 'hospital');
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
           .setColor(COLORS.win)
           .setDescription(
-            `🏥 **${interaction.user.displayName}** đã trả ${formatCoins(MEDICAL_FEE)} viện phí và xuất viện. Giữ gìn sức khỏe nhé!`,
+            `🏥 **${interaction.user.displayName}** đã trả ${formatCoins(fee)} viện phí và xuất viện.${times > 1 ? ` Vào viện lần thứ ${times} trong ngày, mua mũ bảo hiểm đi cho đỡ tốn!` : ' Giữ gìn sức khỏe nhé!'}`,
           ),
       ],
     });

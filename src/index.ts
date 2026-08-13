@@ -9,7 +9,7 @@ import { startReportScheduler } from './report-scheduler.js';
 import { startSepayServer } from './sepay-server.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { activity, economy } from './context.js';
-import { BAIL_COST, MEDICAL_FEE } from './services/economy.service.js';
+import { formatCoins } from './embeds/format.js';
 
 // While jailed or hospitalised, everything that moves money or plays games
 // is off-limits.
@@ -115,7 +115,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const release = economy.jailedUntil(interaction.user.id);
         if (release) {
           await interaction.reply({
-            content: `🚔 Bạn đang ngồi tù, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Nộp phạt ${BAIL_COST.toLocaleString('vi-VN')} xu bằng \`/nopphat\` để ra sớm.`,
+            content: `🚔 Bạn đang ngồi tù, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Nộp phạt ${formatCoins(economy.releaseFee(interaction.user.id, 'jail'))} bằng \`/nopphat\` để ra sớm.`,
             flags: MessageFlags.Ephemeral,
           });
           return;
@@ -123,7 +123,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const discharge = economy.hospitalizedUntil(interaction.user.id);
         if (discharge) {
           await interaction.reply({
-            content: `🏥 Bạn đang nằm viện, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Trả viện phí ${MEDICAL_FEE.toLocaleString('vi-VN')} xu bằng \`/vienphi\` để ra sớm.`,
+            content: `🏥 Bạn đang nằm viện, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Trả viện phí ${formatCoins(economy.releaseFee(interaction.user.id, 'hospital'))} bằng \`/vienphi\` để ra sớm.`,
             flags: MessageFlags.Ephemeral,
           });
           return;

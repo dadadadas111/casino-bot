@@ -165,6 +165,10 @@ function migrate(db: Db): void {
   ensureColumn('bank_balance', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('jail_until');
   ensureColumn('hospital_until');
+  ensureColumn('jail_count', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('jail_count_at');
+  ensureColumn('hospital_count', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('hospital_count_at');
   ensureColumn('last_rob');
   ensureColumn('married_to');
   ensureColumn('married_at');

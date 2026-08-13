@@ -99,9 +99,9 @@ const PAGES: HelpPage[] = [
       [
         '**Làm ăn phi pháp**',
         '`/trom nguoi` : móc ví người khác, 40% ăn 15% ví họ',
-        '`/nopphat` : chi 100 xu ra tù sớm',
-        '`/vienphi` : chi 100 xu xuất viện sớm sau khi trúng đạn cò quay',
+        '`/nopphat` `/vienphi` : chuộc thân ra sớm, 1.000 xu cho lần đầu',
         '-# Ngồi tù 5 phút, nằm viện 3 phút 36 giây, lúc đó cấm tiệt chơi game và tiêu tiền.',
+        '-# Tái phạm trong ngày thì phí nhân lên: lần 2 gấp đôi, lần 3 gấp ba... reset sau 24 giờ.',
         '',
         '**Mua sắm**',
         '`/shop` `/mua` `/tuido` `/dungdo` : xem hàng, xuống tiền, kiểm kê, xài đồ',

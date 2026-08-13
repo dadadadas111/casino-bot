@@ -5,7 +5,7 @@ import {
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import { economy, items } from '../context.js';
-import { BAIL_COST, ROB_MIN_VICTIM_WALLET } from '../services/economy.service.js';
+import { BAIL_BASE_COST, ROB_MIN_VICTIM_WALLET } from '../services/economy.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -76,7 +76,7 @@ export const tromCommand: Command = {
           new EmbedBuilder()
             .setColor(COLORS.info)
             .setDescription(
-              `🚔 **${thief.displayName}** trộm hụt **${victim.displayName}** và bị tóm tại trận! Ngồi tù đến <t:${Math.floor(outcome.releaseAt.getTime() / 1000)}:R>.\n-# Nộp phạt ${formatCoins(BAIL_COST)} bằng \`/nopphat\` để ra sớm.`,
+              `🚔 **${thief.displayName}** trộm hụt **${victim.displayName}** và bị tóm tại trận! Ngồi tù đến <t:${Math.floor(outcome.releaseAt.getTime() / 1000)}:R>.\n-# Nộp phạt ${formatCoins(economy.releaseFee(thief.id, 'jail'))} bằng \`/nopphat\` để ra sớm.`,
             ),
         ],
       });
@@ -89,8 +89,11 @@ export const tromCommand: Command = {
 export const nopphatCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('nopphat')
-    .setDescription(`Nộp phạt ${BAIL_COST.toLocaleString('vi-VN')} xu để ra tù ngay`),
+    .setDescription(
+      `Nộp phạt để ra tù ngay (${BAIL_BASE_COST.toLocaleString('vi-VN')} xu, tái phạm trong ngày thì nhân lên)`,
+    ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const fee = economy.releaseFee(interaction.user.id, 'jail');
     const result = economy.bail(interaction.user.id);
     if (result === 'not_jailed') {
       await interaction.reply({
@@ -101,17 +104,18 @@ export const nopphatCommand: Command = {
     }
     if (result === 'poor') {
       await interaction.reply({
-        content: `Không đủ ${formatCoins(BAIL_COST)} để nộp phạt. Ngồi bóc lịch tiếp thôi!`,
+        content: `Không đủ ${formatCoins(fee)} để nộp phạt. Ngồi bóc lịch tiếp thôi!`,
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
+    const times = economy.offenseCount(interaction.user.id, 'jail');
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
           .setColor(COLORS.win)
           .setDescription(
-            `🔓 **${interaction.user.displayName}** đã nộp phạt ${formatCoins(BAIL_COST)} và được thả tự do. Hoàn lương nhé!`,
+            `🔓 **${interaction.user.displayName}** đã nộp phạt ${formatCoins(fee)} và được thả tự do.${times > 1 ? ` Lần thứ ${times} trong ngày rồi đấy, lần sau phạt nặng hơn!` : ' Hoàn lương nhé!'}`,
           ),
       ],
     });

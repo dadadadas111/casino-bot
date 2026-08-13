@@ -34,8 +34,12 @@ export const ROB_MIN_VICTIM_WALLET = 500;
 export const ROB_TAKE_CAP = 10_000;
 export const JAIL_DURATION_MS = 5 * 60_000; // 5 phút
 export const HOSPITAL_DURATION_MS = 3 * 60_000 + 36_000; // 3 phút 36 giây
-export const BAIL_COST = 100;
-export const MEDICAL_FEE = 100;
+/** Release fees scale with how often you reoffend; the tally clears after a day. */
+export const BAIL_BASE_COST = 1_000;
+export const MEDICAL_BASE_FEE = 1_000;
+export const OFFENSE_RESET_MS = 24 * 60 * 60 * 1000;
+
+export type OffenseKind = 'jail' | 'hospital';
 export const DIVORCE_FEE = 1_000;
 
 export type RobOutcome =
@@ -381,8 +385,32 @@ export class EconomyService {
     return until.getTime() > now.getTime() ? until : null;
   }
 
+  /** Offences within the last day; 0 once the tally has aged out. */
+  offenseCount(userId: string, kind: OffenseKind, now: Date = new Date()): number {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare(`SELECT ${kind}_count AS n, ${kind}_count_at AS at FROM users WHERE user_id = ?`)
+      .get(userId) as { n: number; at: string | null };
+    if (!row.at || now.getTime() - Date.parse(row.at) > OFFENSE_RESET_MS) return 0;
+    return row.n;
+  }
+
+  /** What it costs to buy your way out right now. */
+  releaseFee(userId: string, kind: OffenseKind, now: Date = new Date()): number {
+    const base = kind === 'jail' ? BAIL_BASE_COST : MEDICAL_BASE_FEE;
+    return base * Math.max(1, this.offenseCount(userId, kind, now));
+  }
+
+  private bumpOffense(userId: string, kind: OffenseKind, now: Date): void {
+    const count = this.offenseCount(userId, kind, now) + 1;
+    this.db
+      .prepare(`UPDATE users SET ${kind}_count = ?, ${kind}_count_at = ? WHERE user_id = ?`)
+      .run(count, now.toISOString(), userId);
+  }
+
   jail(userId: string, durationMs: number, now: Date = new Date()): Date {
     this.ensureUser(userId);
+    this.bumpOffense(userId, 'jail', now);
     const until = new Date(now.getTime() + durationMs);
     this.db
       .prepare('UPDATE users SET jail_until = ? WHERE user_id = ?')
@@ -397,7 +425,7 @@ export class EconomyService {
 
   bail(userId: string, now: Date = new Date()): 'ok' | 'not_jailed' | 'poor' {
     if (!this.jailedUntil(userId, now)) return 'not_jailed';
-    if (!this.debit(userId, BAIL_COST, 'bail')) return 'poor';
+    if (!this.debit(userId, this.releaseFee(userId, 'jail', now), 'bail')) return 'poor';
     this.db.prepare('UPDATE users SET jail_until = NULL WHERE user_id = ?').run(userId);
     return 'ok';
   }
@@ -416,6 +444,7 @@ export class EconomyService {
 
   hospitalize(userId: string, durationMs: number, now: Date = new Date()): Date {
     this.ensureUser(userId);
+    this.bumpOffense(userId, 'hospital', now);
     const until = new Date(now.getTime() + durationMs);
     this.db
       .prepare('UPDATE users SET hospital_until = ? WHERE user_id = ?')
@@ -431,7 +460,7 @@ export class EconomyService {
   /** Pay the medical bill to be discharged immediately. */
   payMedicalBill(userId: string, now: Date = new Date()): 'ok' | 'not_admitted' | 'poor' {
     if (!this.hospitalizedUntil(userId, now)) return 'not_admitted';
-    if (!this.debit(userId, MEDICAL_FEE, 'medical')) return 'poor';
+    if (!this.debit(userId, this.releaseFee(userId, 'hospital', now), 'medical')) return 'poor';
     this.db.prepare('UPDATE users SET hospital_until = NULL WHERE user_id = ?').run(userId);
     return 'ok';
   }
