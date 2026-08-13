@@ -20,6 +20,13 @@ describe('buildCommentaryPrompt', () => {
     expect(prompt).toContain('Người chơi 2:');
     expect(prompt).toContain('2 người chơi');
   });
+
+  it('asks for varied angles and a mix of praise and teasing', () => {
+    const prompt = buildCommentaryPrompt([{ facts: ['a'] }]);
+    expect(prompt).toContain('KHÔNG được câu nào cũng nói về tiền');
+    expect(prompt).toContain('KHEN');
+    expect(prompt).toContain('không được chỉ toàn khịa');
+  });
 });
 
 describe('parseComments', () => {
