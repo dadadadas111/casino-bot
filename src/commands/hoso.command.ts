@@ -78,18 +78,17 @@ export const hosoCommand: Command = {
         },
       );
 
-    if (p.games.length > 0) {
+    // Only the favourite game: the full per-game list made the card a wall.
+    const favorite = p.games.find((g) => g.bets > 0);
+    if (favorite) {
+      const label = GAME_LABELS[favorite.game] ?? favorite.game;
+      const gameNet = favorite.won - favorite.staked;
       embed.addFields({
-        name: '🎲 Chơi những trò gì',
-        value: p.games
-          .slice(0, 8)
-          .map((g) => {
-            const label = GAME_LABELS[g.game] ?? g.game;
-            const net = g.won - g.staked;
-            const sign = net >= 0 ? '+' : '-';
-            return `**${label}**: ${g.bets} lượt, cược ${g.staked.toLocaleString('vi-VN')}, ${sign}${Math.abs(net).toLocaleString('vi-VN')} xu${g.biggestWin > 0 ? ` (đậm nhất +${g.biggestWin.toLocaleString('vi-VN')})` : ''}`;
-          })
-          .join('\n'),
+        name: '🎲 Trò tủ',
+        value: [
+          `**${label}** · ${favorite.bets} lượt · cược ${formatCoins(favorite.staked)}`,
+          `Lời/lỗ riêng trò này: **${gameNet >= 0 ? '+' : '-'}${formatCoins(Math.abs(gameNet))}**${favorite.biggestWin > 0 ? ` · đậm nhất +${formatCoins(favorite.biggestWin)}` : ''}`,
+        ].join('\n'),
       });
     }
 
