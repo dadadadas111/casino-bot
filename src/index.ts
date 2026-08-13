@@ -6,7 +6,7 @@ import { tryUse } from './services/cooldown.service.js';
 import { handleTextCommand } from './text-commands.js';
 import { startLotteryScheduler } from './lottery-scheduler.js';
 import { startReportScheduler } from './report-scheduler.js';
-import { startSepayServer } from './sepay-server.js';
+import { startWebServer } from './web-server.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { activity, economy } from './context.js';
 import { formatCoins } from './embeds/format.js';
@@ -90,7 +90,7 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Logged in as ${c.user.tag} (${commands.size} commands loaded)`);
   startLotteryScheduler(client);
   startReportScheduler(client);
-  startSepayServer(client);
+  startWebServer(client);
   // Re-register on every boot so command changes ship with each deploy.
   for (const guild of c.guilds.cache.values()) {
     await registerGuildCommands(guild.id, guild.name);

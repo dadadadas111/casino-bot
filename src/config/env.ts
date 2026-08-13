@@ -19,6 +19,10 @@ const envSchema = z.object({
   SEPAY_BANK: z.string().default('MBBank'),
   SEPAY_ACCOUNT: z.string().default(''),
   SEPAY_HOLDER: z.string().default(''),
+  // Admin dashboard; all three must be set for it to serve.
+  DASHBOARD_EMAIL: z.string().optional(),
+  DASHBOARD_PASSWORD_HASH: z.string().optional(),
+  DASHBOARD_SESSION_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
