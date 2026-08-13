@@ -7,7 +7,7 @@ import type { HistoryEntry } from '../services/economy.service.js';
  * keep every line short, and plain markdown lets mentions render again.
  */
 
-const GAME_LABELS: Record<string, string> = {
+export const GAME_LABELS: Record<string, string> = {
   blackjack: 'Blackjack',
   blackjack_double: 'BJ gấp đôi',
   taixiu: 'Tài xỉu',

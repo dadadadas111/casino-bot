@@ -56,6 +56,7 @@ export const helpCommand: Command = {
                 '`/sodu` : Xem ví và thống kê thắng thua',
                 '`/chuyentien nguoi:<@ai> soxu:<xu>` : Chuyển xu cho bạn bè',
                 '`/lichsu [nguoi]` : Lịch sử biến động số dư, xem của mình hoặc người khác',
+                '`/bantin xem` : Bản tin sòng bạc (tự đăng 10h sáng, chỉnh bằng `/bantin config`)',
                 '`/top` : Bảng xếp hạng đại gia',
               ].join('\n'),
             },

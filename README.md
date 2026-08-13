@@ -15,6 +15,7 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/trieuphu` | Ai Là Triệu Phú: 15 câu, mốc an toàn câu 5/10, 50:50, dừng giữ thưởng, 1 lần/ngày |
 | `/duangua cuoc ngua` | Đua ngựa animate: cả kênh cùng đặt trong 25s (nút + modal), odds theo phong độ, RTP 90% |
 | `/xoso mua so` | Vé số 100 xu chọn 00-99 (tối đa 5 vé/kỳ), bot tự quay 21h VN, jackpot dồn, trúng chia hũ |
+| `/bantin xem\|config` | Bản tin hằng ngày (mặc định 10h VN): top 10 server, thống kê 24h, jackpot. Tự chọn kênh nhộn nhịp nhất, config được giờ/kênh/tag |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/lamviec` (`/work`) | Làm việc kiếm 100-300 xu mỗi giờ, cooldown lưu trong DB |
 | `/sodu [nguoi]` | Xem ví, hạng, thống kê thắng thua |

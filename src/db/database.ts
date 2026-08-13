@@ -56,6 +56,30 @@ CREATE TABLE IF NOT EXISTS lottery_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS user_guilds (
+  user_id TEXT NOT NULL,
+  guild_id TEXT NOT NULL,
+  last_seen TEXT NOT NULL,
+  PRIMARY KEY (user_id, guild_id)
+);
+
+CREATE TABLE IF NOT EXISTS channel_activity (
+  guild_id TEXT NOT NULL,
+  channel_id TEXT NOT NULL,
+  day TEXT NOT NULL,
+  n INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (guild_id, channel_id, day)
+);
+
+CREATE TABLE IF NOT EXISTS report_config (
+  guild_id TEXT PRIMARY KEY,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  hour INTEGER NOT NULL DEFAULT 10,
+  channel_id TEXT,
+  tag_everyone INTEGER NOT NULL DEFAULT 1,
+  last_sent_day TEXT
+);
 `;
 
 export function createDb(dbPath: string): Db {

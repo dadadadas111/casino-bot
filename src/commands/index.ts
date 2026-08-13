@@ -17,6 +17,7 @@ import { topCommand } from './top.command.js';
 import { helpCommand } from './help.command.js';
 import { adminCommand } from './admin.command.js';
 import { setprefixCommand } from './setprefix.command.js';
+import { bantinCommand } from './bantin.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
@@ -49,6 +50,7 @@ const all: Command[] = [
   helpCommand,
   adminCommand,
   setprefixCommand,
+  bantinCommand,
   ...tuongtacCommands,
   alias(blackjackCommand, 'bj'),
   alias(taixiuCommand, 'tx'),
