@@ -4,6 +4,7 @@ import { env } from './config/env.js';
 import { vnDay } from './services/economy.service.js';
 import { generateComments } from './services/commentary.service.js';
 import { GAME_LABELS } from './embeds/history-table.js';
+import { findAnnounceChannel } from './utils/announce.js';
 import { COLORS, formatCoins } from './embeds/format.js';
 
 const CHECK_INTERVAL_MS = 60_000;
@@ -100,27 +101,24 @@ async function sendReport(client: Client, guildId: string): Promise<boolean> {
   if (!guild) return false;
   const config = reports.getConfig(guildId);
 
-  const candidateIds = [
+  const channel = await findAnnounceChannel(guild, [
     config.channelId,
     activity.topChannel(guildId),
     guild.systemChannelId,
-  ].filter((id): id is string => Boolean(id));
+  ]);
+  if (!channel) return false;
 
-  for (const channelId of candidateIds) {
-    try {
-      const channel = await client.channels.fetch(channelId);
-      if (!channel?.isSendable()) continue;
-      await channel.send({
-        content: config.tagEveryone ? '@everyone Bản tin sòng bạc hôm nay đã ra lò! 📰' : undefined,
-        embeds: [await buildReportEmbed(guildId, guild.name)],
-        allowedMentions: config.tagEveryone ? { parse: ['everyone'] } : { parse: [] },
-      });
-      return true;
-    } catch (error) {
-      console.warn(`[bantin] Cannot send to channel ${channelId}: ${String(error)}`);
-    }
+  try {
+    await channel.send({
+      content: config.tagEveryone ? '@everyone Bản tin sòng bạc hôm nay đã ra lò! 📰' : undefined,
+      embeds: [await buildReportEmbed(guildId, guild.name)],
+      allowedMentions: config.tagEveryone ? { parse: ['everyone'] } : { parse: [] },
+    });
+    return true;
+  } catch (error) {
+    console.warn(`[bantin] Cannot send in ${guild.name}: ${String(error)}`);
+    return false;
   }
-  return false;
 }
 
 export function startReportScheduler(client: Client): void {
