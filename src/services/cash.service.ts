@@ -1,8 +1,12 @@
 import type { Db } from '../db/database.js';
 
+/** 1đ of premium cash buys this many xu. Strictly one-way. */
+export const XU_PER_VND = 10;
+
 /**
- * Premium currency, unit = VND (real money, one-way: top-ups only, never
- * cashed back out and never converted to xu). Ledger lives in cash_ledger,
+ * Premium currency, unit = VND (real money). One-way by design: cash comes in
+ * via top-ups and can be spent on perks or converted down to xu, but xu never
+ * converts back and cash is never paid out. Ledger lives in cash_ledger,
  * separate from the xu transactions table so history math stays consistent.
  */
 export class CashService {

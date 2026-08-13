@@ -4,10 +4,11 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { cash, topups } from '../context.js';
+import { cash, economy, topups } from '../context.js';
 import { env } from '../config/env.js';
 import { MAX_TOPUP, MIN_TOPUP } from '../services/topup.service.js';
-import { COLORS } from '../embeds/format.js';
+import { XU_PER_VND } from '../services/cash.service.js';
+import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
 export function formatVnd(amount: number): string {
@@ -84,6 +85,18 @@ export const cashCommand: Command = {
     .addSubcommand((sc) => sc.setName('xem').setDescription('Xem số dư tiền nạp của bạn'))
     .addSubcommand((sc) =>
       sc
+        .setName('doixu')
+        .setDescription(`Đổi tiền nạp sang xu (1đ = ${XU_PER_VND} xu, không đổi ngược lại được)`)
+        .addIntegerOption((o) =>
+          o
+            .setName('sotien')
+            .setDescription('Số tiền nạp (VND) muốn đổi sang xu')
+            .setRequired(true)
+            .setMinValue(1_000),
+        ),
+    )
+    .addSubcommand((sc) =>
+      sc
         .setName('nap')
         .setDescription('Cộng tiền nạp cho người chơi (chỉ chủ bot)')
         .addUserOption((o) => o.setName('nguoi').setDescription('Người nhận').setRequired(true))
@@ -92,7 +105,40 @@ export const cashCommand: Command = {
         ),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (interaction.options.getSubcommand() === 'nap') {
+    const sub = interaction.options.getSubcommand();
+
+    if (sub === 'doixu') {
+      const amountVnd = interaction.options.getInteger('sotien', true);
+      const userId = interaction.user.id;
+      if (!cash.spend(userId, amountVnd, 'exchange_xu')) {
+        await interaction.reply({
+          content: `Không đủ tiền nạp! Bạn đang có ${formatVnd(cash.get(userId))}. Nạp thêm bằng \`/nap\`.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      const xu = amountVnd * XU_PER_VND;
+      economy.credit(userId, xu, 'exchange', `${amountVnd}vnd`);
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.gold)
+            .setTitle('💱 Đổi tiền thành công')
+            .setDescription(
+              [
+                `**${interaction.user.displayName}** đổi ${formatVnd(amountVnd)} lấy **${formatCoins(xu)}**`,
+                '',
+                `💵 Tiền nạp còn lại: ${formatVnd(cash.get(userId))}`,
+                `🪙 Ví xu hiện tại: ${formatCoins(economy.getBalance(userId))}`,
+              ].join('\n'),
+            )
+            .setFooter({ text: 'Xu không đổi ngược lại thành tiền được nhé!' }),
+        ],
+      });
+      return;
+    }
+
+    if (sub === 'nap') {
       // Real money on the line: only the bot owner may credit, never guild admins.
       if (!env.BOT_OWNER_ID || interaction.user.id !== env.BOT_OWNER_ID) {
         await interaction.reply({
@@ -120,9 +166,9 @@ export const cashCommand: Command = {
             [
               `Số dư của bạn: **${formatVnd(cash.get(interaction.user.id))}**`,
               '',
-              'Dùng để: reset cooldown Ai Là Triệu Phú (2.000đ/lần), và các món premium sắp ra mắt.',
+              `Dùng để: reset cooldown Ai Là Triệu Phú (2.000đ/lần), đổi sang xu (1đ = ${XU_PER_VND} xu qua \`/cash doixu\`), và các món premium sắp ra mắt.`,
               'Nạp bằng `/nap sotien:<VND>`: quét QR chuyển khoản, tiền vào ví sau vài giây.',
-              'Lưu ý: tiền nạp chỉ dùng trong bot, không quy đổi ngược ra tiền thật, không mua được xu.',
+              'Lưu ý: chỉ đi một chiều, xu và tiền nạp không quy đổi ngược ra tiền thật.',
             ].join('\n'),
           ),
       ],

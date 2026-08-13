@@ -61,6 +61,8 @@ export function typeLabel(entry: HistoryEntry): string {
       return 'Mua đồ shop';
     case 'gift_box':
       return 'Mở hộp quà';
+    case 'exchange':
+      return `Đổi tiền nạp${entry.meta ? ` (${entry.meta})` : ''}`;
     case 'buff_bonus':
       return `Thưởng bùa may mắn${game ? ` (${game})` : ''}`;
     case 'wedding_cost':

@@ -83,8 +83,10 @@ const PAGES: HelpPage[] = [
         '`/chuyentien nguoi soxu` : chuyển xu, hào phóng hay hối lộ tùy bạn',
         '',
         '**Tiền nạp** 💵',
-        '`/nap sotien` : quét QR chuyển khoản, vài giây sau tiền vào ví',
-        '`/cash xem` : xem ví tiền nạp, dùng để reset ghế nóng Triệu Phú',
+        '`/nap sotien` : quét QR chuyển khoản (tối thiểu 10.000đ), vài giây sau tiền vào ví',
+        '`/cash xem` : xem ví tiền nạp',
+        '`/cash doixu sotien` : đổi tiền nạp sang xu, 1đ ăn 10 xu',
+        '-# Reset ghế nóng Triệu Phú 2.000đ. Tiền chỉ đi một chiều, xu không đổi ngược ra tiền thật.',
       ].join('\n'),
   },
   {

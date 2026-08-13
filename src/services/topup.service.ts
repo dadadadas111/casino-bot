@@ -2,7 +2,8 @@ import type { Db } from '../db/database.js';
 import type { CashService } from './cash.service.js';
 
 export const CODE_PREFIX = 'CASINO';
-export const MIN_TOPUP = 2_000;
+// MB Bank rejects transfers under 10.000đ.
+export const MIN_TOPUP = 10_000;
 export const MAX_TOPUP = 500_000;
 export const REQUEST_TTL_HOURS = 24;
 

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../src/db/database';
-import { CashService } from '../src/services/cash.service';
-import { TopupService, extractCode, normalizeContent } from '../src/services/topup.service';
+import { CashService, XU_PER_VND } from '../src/services/cash.service';
+import { EconomyService, STARTING_BALANCE } from '../src/services/economy.service';
+import { MIN_TOPUP, TopupService, extractCode, normalizeContent } from '../src/services/topup.service';
 
 let db: Db;
 let cash: CashService;
@@ -86,6 +87,25 @@ describe('handleWebhook', () => {
     const second = topups.handleWebhook(webhook({ id: 2, content: req.code }));
     expect(second.action).toBe('unmatched');
     expect(cash.get('u1')).toBe(20_000);
+  });
+});
+
+describe('cash to xu exchange', () => {
+  it('converts one-way at 1 VND to 10 xu', () => {
+    const economy = new EconomyService(db);
+    cash.credit('u1', 10_000, 'topup');
+    expect(cash.spend('u1', 10_000, 'exchange_xu')).toBe(true);
+    economy.credit('u1', 10_000 * XU_PER_VND, 'exchange');
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 100_000);
+    expect(cash.get('u1')).toBe(0);
+    // Nothing converts back: spending more cash than owned must fail.
+    expect(cash.spend('u1', 1_000, 'exchange_xu')).toBe(false);
+  });
+});
+
+describe('top-up limits', () => {
+  it('requires at least the bank minimum', () => {
+    expect(MIN_TOPUP).toBe(10_000);
   });
 });
 

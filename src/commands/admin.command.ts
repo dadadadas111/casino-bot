@@ -10,8 +10,10 @@ import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
 // Anti-inflation caps: admins juice the economy in small doses only.
+// The set cap stays above what a single top-up exchange can produce so
+// paying players are never capped below what they bought.
 export const ADMIN_ADD_CAP = 10_000;
-export const ADMIN_SET_CAP = 100_000;
+export const ADMIN_SET_CAP = 1_000_000;
 
 export const adminCommand: Command = {
   data: new SlashCommandBuilder()

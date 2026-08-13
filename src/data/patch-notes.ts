@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.1.0',
+    date: '13/08/2026',
+    title: 'Đổi tiền lấy xu',
+    changes: [
+      '💱 **`/cash doixu`**: đổi tiền nạp sang xu, 1đ ăn 10 xu (10.000đ = 100.000 xu)',
+      '💵 **`/nap`**: tối thiểu 10.000đ mỗi lần, theo quy định của MB Bank',
+      '-# Vẫn một chiều: xu không đổi ngược lại thành tiền thật được đâu nhé.',
+    ],
+  },
+  {
     version: '2.0.0',
     date: '13/08/2026',
     title: 'Sòng bạc lên đời thành khu phố',
