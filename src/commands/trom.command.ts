@@ -12,7 +12,7 @@ import type { Command } from './types.js';
 export const tromCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('trom')
-    .setDescription('Trộm xu trong ví người khác: 40% thành công, thất bại đi tù 30 phút')
+    .setDescription('Trộm xu trong ví người khác: 40% thành công, thất bại đi tù 5 phút')
     .addUserOption((o) => o.setName('nguoi').setDescription('Con mồi').setRequired(true)),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const thief = interaction.user;

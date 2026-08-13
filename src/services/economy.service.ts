@@ -32,10 +32,10 @@ export const ROB_SUCCESS_RATE = 0.4;
 export const ROB_TAKE_RATE = 0.15;
 export const ROB_MIN_VICTIM_WALLET = 500;
 export const ROB_TAKE_CAP = 10_000;
-export const JAIL_MINUTES = 30;
-export const BAIL_COST = 2_000;
-export const HOSPITAL_MINUTES = 20;
-export const MEDICAL_FEE = 3_000;
+export const JAIL_DURATION_MS = 5 * 60_000; // 5 phút
+export const HOSPITAL_DURATION_MS = 3 * 60_000 + 36_000; // 3 phút 36 giây
+export const BAIL_COST = 100;
+export const MEDICAL_FEE = 100;
 export const DIVORCE_FEE = 1_000;
 
 export type RobOutcome =
@@ -381,9 +381,9 @@ export class EconomyService {
     return until.getTime() > now.getTime() ? until : null;
   }
 
-  jail(userId: string, minutes: number, now: Date = new Date()): Date {
+  jail(userId: string, durationMs: number, now: Date = new Date()): Date {
     this.ensureUser(userId);
-    const until = new Date(now.getTime() + minutes * 60 * 1000);
+    const until = new Date(now.getTime() + durationMs);
     this.db
       .prepare('UPDATE users SET jail_until = ? WHERE user_id = ?')
       .run(until.toISOString(), userId);
@@ -414,9 +414,9 @@ export class EconomyService {
     return until.getTime() > now.getTime() ? until : null;
   }
 
-  hospitalize(userId: string, minutes: number, now: Date = new Date()): Date {
+  hospitalize(userId: string, durationMs: number, now: Date = new Date()): Date {
     this.ensureUser(userId);
-    const until = new Date(now.getTime() + minutes * 60 * 1000);
+    const until = new Date(now.getTime() + durationMs);
     this.db
       .prepare('UPDATE users SET hospital_until = ? WHERE user_id = ?')
       .run(until.toISOString(), userId);
@@ -479,7 +479,7 @@ export class EconomyService {
         return { result: 'victim_poor' };
       }
     }
-    return { result: 'jailed', releaseAt: this.jail(thiefId, JAIL_MINUTES, now) };
+    return { result: 'jailed', releaseAt: this.jail(thiefId, JAIL_DURATION_MS, now) };
   }
 
   // ---- Marriage ----

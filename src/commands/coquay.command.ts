@@ -11,7 +11,7 @@ import {
   type SendableChannels,
 } from 'discord.js';
 import { economy } from '../context.js';
-import { HOSPITAL_MINUTES, MEDICAL_FEE } from '../services/economy.service.js';
+import { HOSPITAL_DURATION_MS, MEDICAL_FEE } from '../services/economy.service.js';
 import {
   CHAMBERS,
   MIN_PLAYERS,
@@ -148,7 +148,7 @@ async function runGame(channelId: string): Promise<void> {
     const share = survivorShare(t.bet, survivors.length);
 
     economy.settleGame(victim.id, t.bet, 0, 'coquay');
-    const release = economy.hospitalize(victim.id, HOSPITAL_MINUTES);
+    const release = economy.hospitalize(victim.id, HOSPITAL_DURATION_MS);
     for (const s of survivors) {
       economy.settleGame(s.id, t.bet, t.bet + share, 'coquay');
     }

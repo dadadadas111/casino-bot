@@ -13,7 +13,8 @@ export const PATCH_NOTES: PatchNote[] = [
     title: 'Cò quay Nga và bệnh viện',
     changes: [
       '🔫 **`/coquay cuoc`**: cò quay Nga từ 2 người trở lên, góp cược bằng nhau, thay phiên bóp cò. Ai dính đạn mất sạch cược, người sống chia nhau',
-      '🏥 **Bệnh viện**: trúng đạn thì nằm viện 20 phút, cấm chơi bời. `/vienphi` 3.000 xu để xuất viện sớm',
+      '🏥 **Bệnh viện**: trúng đạn thì nằm viện 3 phút 36 giây, cấm chơi bời. `/vienphi` 100 xu để xuất viện sớm',
+      '⛓️ Ngồi tù rút còn 5 phút, nộp phạt cũng chỉ 100 xu',
       '✏️ **`/doiten`**: admin đổi được tên hiển thị của bot trong server',
       '⚡ Reset ghế nóng Triệu Phú giảm còn **500đ**',
       '⚖️ Bỏ `/casino-admin resetcd`: giờ đã có nạp tiền thì admin reset chùa là không công bằng',

@@ -4,7 +4,8 @@ import {
   BAIL_COST,
   DIVORCE_FEE,
   EconomyService,
-  JAIL_MINUTES,
+  HOSPITAL_DURATION_MS,
+  JAIL_DURATION_MS,
   ROB_COOLDOWN_MS,
   STARTING_BALANCE,
 } from '../src/services/economy.service';
@@ -44,7 +45,7 @@ describe('jail and bail', () => {
   it('jails, reports release time, and bails for a fee', () => {
     economy.credit('u1', 5_000, 'admin_add'); // afford the bail
     expect(economy.jailedUntil('u1', t0)).toBeNull();
-    const release = economy.jail('u1', JAIL_MINUTES, t0);
+    const release = economy.jail('u1', JAIL_DURATION_MS, t0);
     expect(economy.jailedUntil('u1', t0)?.getTime()).toBe(release.getTime());
     expect(economy.jailedUntil('u1', new Date(release.getTime() + 1000))).toBeNull();
     expect(economy.bail('u1', t0)).toBe('ok');
@@ -54,8 +55,8 @@ describe('jail and bail', () => {
 
   it('refuses bail when broke or free', () => {
     expect(economy.bail('u1', t0)).toBe('not_jailed');
-    economy.debit('u1', STARTING_BALANCE - 100, 'bet');
-    economy.jail('u1', JAIL_MINUTES, t0);
+    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the 100 fee
+    economy.jail('u1', JAIL_DURATION_MS, t0);
     expect(economy.bail('u1', t0)).toBe('poor');
   });
 });
@@ -64,7 +65,7 @@ describe('hospital', () => {
   it('admits, expires on schedule, and discharges for a fee', () => {
     economy.credit('u1', 5_000, 'admin_add');
     expect(economy.hospitalizedUntil('u1', t0)).toBeNull();
-    const until = economy.hospitalize('u1', 20, t0);
+    const until = economy.hospitalize('u1', HOSPITAL_DURATION_MS, t0);
     expect(economy.hospitalizedUntil('u1', t0)?.getTime()).toBe(until.getTime());
     expect(economy.hospitalizedUntil('u1', new Date(until.getTime() + 1))).toBeNull();
     expect(economy.payMedicalBill('u1', t0)).toBe('ok');
@@ -73,15 +74,15 @@ describe('hospital', () => {
 
   it('refuses discharge when healthy or broke', () => {
     expect(economy.payMedicalBill('u1', t0)).toBe('not_admitted');
-    economy.debit('u1', STARTING_BALANCE - 100, 'bet');
-    economy.hospitalize('u1', 20, t0);
+    economy.debit('u1', STARTING_BALANCE - 50, 'bet'); // 50 xu left, under the 100 fee
+    economy.hospitalize('u1', HOSPITAL_DURATION_MS, t0);
     expect(economy.payMedicalBill('u1', t0)).toBe('poor');
   });
 
   it('is independent of jail', () => {
-    economy.jail('u1', 30, t0);
+    economy.jail('u1', JAIL_DURATION_MS, t0);
     expect(economy.hospitalizedUntil('u1', t0)).toBeNull();
-    economy.hospitalize('u2', 20, t0);
+    economy.hospitalize('u2', HOSPITAL_DURATION_MS, t0);
     expect(economy.jailedUntil('u2', t0)).toBeNull();
   });
 });

@@ -17,14 +17,14 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/xoso mua so` | Vé số 100 xu chọn 00-99 (tối đa 5 vé/kỳ), bot tự quay 21h VN, jackpot dồn, trúng chia hũ |
 | `/bantin xem\|config` | Bản tin hằng ngày (mặc định 10h VN): top 10 server, thống kê 24h, jackpot. Tự chọn kênh nhộn nhịp nhất, config được giờ/kênh/tag |
 | `/bank gui\|rut\|xem` | Két ngân hàng: tiền trong két miễn nhiễm trộm cắp |
-| `/trom nguoi` + `/nopphat` | Trộm ví (40% ăn 15%, trượt tù 30 phút, nộp 2.000 xu ra sớm), khiên chặn được |
+| `/trom nguoi` + `/nopphat` | Trộm ví (40% ăn 15%, trượt tù 5 phút, nộp 100 xu ra sớm), khiên chặn được |
 | `/shop` `/mua` `/tuido` `/dungdo` | Shop: khiên chống trộm, nhẫn, hộp quà, bùa may mắn (+10% lời 1h), cà phê (xóa CD work), chìa khóa vượt ngục |
 | `/cauhon` `/honle` `/lyhon` | Cầu hôn (cần 💍), tiệc cưới cho cả kênh mừng tiền 500 xu/khách, ly hôn mất phí |
 | `/help` | Hướng dẫn phân trang bằng nút: Bắt đầu / Trò chơi / Tiền bạc / Đời sống / Linh tinh |
 | `/nap sotien` | Nạp tiền thật qua QR VietQR (tối thiểu 10.000đ), webhook SePay tự cộng, chống trùng theo transaction id |
 | `/cash xem\|doixu\|nap` | Ví tiền nạp 💵 (VND, một chiều): đổi sang xu tỉ lệ 1đ = 20 xu, reset CD Triệu phú 500đ/lần |
-| `/coquay cuoc` | Cò quay Nga từ 2 người: bàn chờ 45s, thay phiên bóp cò, nạn nhân nằm viện 20 phút và mất cược |
-| `/vienphi` | Trả 3.000 xu xuất viện sớm |
+| `/coquay cuoc` | Cò quay Nga từ 2 người: bàn chờ 45s, thay phiên bóp cò, nạn nhân nằm viện 3 phút 36 giây và mất cược |
+| `/vienphi` | Trả 100 xu xuất viện sớm |
 | `/doiten ten` | Đổi biệt danh của bot trong server (cần quyền Quản lý biệt danh) |
 | `/patchnote xem\|config` | Ghi chú cập nhật, bot tự đăng khi lên bản mới, đổi kênh hoặc tắt được |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
