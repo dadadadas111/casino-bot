@@ -29,7 +29,7 @@ import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
-const QUESTION_TIME_MS = 60_000;
+const QUESTION_TIME_MS = 30_000;
 const LETTERS = ['🇦', '🇧', '🇨', '🇩'];
 
 interface QuizSession {
@@ -81,7 +81,7 @@ function questionEmbed(session: QuizSession): EmbedBuilder {
       { name: 'Dừng thì giữ', value: formatCoins(stopPrize(session.index)), inline: true },
     )
     .setFooter({
-      text: `${session.username} · 60 giây mỗi câu · Sai rơi về mốc an toàn (câu 5 và câu 10)`,
+      text: `${session.username} · 30 giây mỗi câu · Sai rơi về mốc an toàn (câu 5 và câu 10)`,
     });
 }
 
@@ -171,7 +171,7 @@ function armTimer(session: QuizSession): void {
 export const trieuphuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('trieuphu')
-    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 15.000 xu, miễn phí 1 lần mỗi ngày'),
+    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 100.000 xu, miễn phí 1 lần mỗi ngày'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
 

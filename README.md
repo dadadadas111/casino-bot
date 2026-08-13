@@ -12,7 +12,7 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/coinflip cuoc:<xu> chon:<ngửa\|sấp>` | Tung đồng xu 50/50 |
 | `/slots cuoc:<xu>` | Máy xèng, 7️⃣7️⃣7️⃣ ăn x100, 2 hình giống nhau hoàn tiền |
 | `/keo nguoi cuoc` | Solo 1v1 tung đồng xu qua nút bấm, escrow tiền cược, ai thắng ăn cả |
-| `/trieuphu` | Ai Là Triệu Phú: 15 câu, mốc an toàn câu 5/10, 50:50, dừng giữ thưởng, 1 lần/ngày |
+| `/trieuphu` | Ai Là Triệu Phú: 15 câu (30s/câu), tối đa 100.000 xu, mốc an toàn câu 5/10, 50:50, dừng giữ thưởng, 1 lần/ngày |
 | `/duangua cuoc ngua` | Đua ngựa animate: cả kênh cùng đặt trong 25s (nút + modal), odds theo phong độ, RTP 90% |
 | `/xoso mua so` | Vé số 100 xu chọn 00-99 (tối đa 5 vé/kỳ), bot tự quay 21h VN, jackpot dồn, trúng chia hũ |
 | `/bantin xem\|config` | Bản tin hằng ngày (mặc định 10h VN): top 10 server, thống kê 24h, jackpot. Tự chọn kênh nhộn nhịp nhất, config được giờ/kênh/tag |
@@ -22,7 +22,7 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/cauhon` `/honle` `/lyhon` | Cầu hôn (cần 💍), tiệc cưới cho cả kênh mừng tiền 500 xu/khách, ly hôn mất phí |
 | `/help` | Hướng dẫn phân trang bằng nút: Bắt đầu / Trò chơi / Tiền bạc / Đời sống / Linh tinh |
 | `/nap sotien` | Nạp tiền thật qua QR VietQR (tối thiểu 10.000đ), webhook SePay tự cộng, chống trùng theo transaction id |
-| `/cash xem\|doixu\|nap` | Ví tiền nạp 💵 (VND, một chiều): đổi sang xu tỉ lệ 1đ = 10 xu, reset CD Triệu phú 2.000đ/lần |
+| `/cash xem\|doixu\|nap` | Ví tiền nạp 💵 (VND, một chiều): đổi sang xu tỉ lệ 1đ = 20 xu, reset CD Triệu phú 2.000đ/lần |
 | `/patchnote xem\|config` | Ghi chú cập nhật, bot tự đăng khi lên bản mới, đổi kênh hoặc tắt được |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/lamviec` (`/work`) | Làm việc kiếm 100-300 xu mỗi giờ, cooldown lưu trong DB |

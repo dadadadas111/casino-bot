@@ -1,8 +1,13 @@
 import { QUESTIONS, type QuizQuestion, type QuizTier } from '../data/trieuphu-questions.js';
 
-/** Prize per question (index 0 = question 1). */
+/**
+ * Prize per question (index 0 = question 1). The top prize sits well above
+ * what a paid cooldown reset converts to in xu, so buying a rerun is a real
+ * gamble rather than a guaranteed loss.
+ */
 export const LADDER = [
-  100, 200, 300, 400, 500, 800, 1_200, 1_600, 2_000, 2_500, 4_000, 6_000, 8_000, 10_000, 15_000,
+  500, 1_000, 2_000, 3_000, 5_000, 8_000, 12_000, 16_000, 20_000, 25_000, 35_000, 50_000, 65_000,
+  80_000, 100_000,
 ] as const;
 
 export const QUESTION_COUNT = LADDER.length;

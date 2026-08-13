@@ -1,7 +1,7 @@
 import type { Db } from '../db/database.js';
 
 /** 1đ of premium cash buys this many xu. Strictly one-way. */
-export const XU_PER_VND = 10;
+export const XU_PER_VND = 20;
 
 /**
  * Premium currency, unit = VND (real money). One-way by design: cash comes in

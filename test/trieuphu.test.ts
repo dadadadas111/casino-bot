@@ -54,22 +54,25 @@ describe('buildGameQuestions', () => {
 describe('prizes', () => {
   it('stop keeps the ladder value of the last correct answer', () => {
     expect(stopPrize(0)).toBe(0);
-    expect(stopPrize(1)).toBe(100);
-    expect(stopPrize(9)).toBe(2_000);
-    expect(stopPrize(15)).toBe(15_000);
+    expect(stopPrize(1)).toBe(500);
+    expect(stopPrize(9)).toBe(20_000);
+    expect(stopPrize(15)).toBe(100_000);
   });
 
   it('wrong answers fall back to the milestones', () => {
     expect(wrongPrize(0)).toBe(0);
     expect(wrongPrize(4)).toBe(0);
-    expect(wrongPrize(5)).toBe(500);
-    expect(wrongPrize(9)).toBe(500);
-    expect(wrongPrize(10)).toBe(2_500);
-    expect(wrongPrize(14)).toBe(2_500);
+    expect(wrongPrize(5)).toBe(5_000);
+    expect(wrongPrize(9)).toBe(5_000);
+    expect(wrongPrize(10)).toBe(25_000);
+    expect(wrongPrize(14)).toBe(25_000);
   });
 
-  it('ladder tops out at 15.000', () => {
+  it('rises monotonically and tops out above a paid reset', () => {
     expect(LADDER).toHaveLength(15);
-    expect(LADDER[14]).toBe(15_000);
+    expect(LADDER[14]).toBe(100_000);
+    for (let i = 1; i < LADDER.length; i++) {
+      expect(LADDER[i]).toBeGreaterThan(LADDER[i - 1]);
+    }
   });
 });

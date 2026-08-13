@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.2.0',
+    date: '13/08/2026',
+    title: 'Triệu phú đúng nghĩa triệu phú',
+    changes: [
+      '💰 **Thang thưởng Triệu Phú tăng mạnh**: phá đảo 15 câu ăn **100.000 xu** (cũ 15.000), mốc an toàn câu 5 là 5.000 và câu 10 là 25.000',
+      '⏱️ Mỗi câu chỉ còn **30 giây**, nghĩ lâu quá là mất lượt',
+      '💱 Đổi tiền nạp sang xu giờ **1đ ăn 20 xu**, gấp đôi tỉ lệ cũ',
+    ],
+  },
+  {
     version: '2.1.1',
     date: '13/08/2026',
     title: 'Sửa vặt sau ngày ra mắt',

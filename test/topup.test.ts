@@ -108,12 +108,13 @@ describe('handleWebhook', () => {
 });
 
 describe('cash to xu exchange', () => {
-  it('converts one-way at 1 VND to 10 xu', () => {
+  it('converts one-way at 1 VND to 20 xu', () => {
     const economy = new EconomyService(db);
+    expect(XU_PER_VND).toBe(20);
     cash.credit('u1', 10_000, 'topup');
     expect(cash.spend('u1', 10_000, 'exchange_xu')).toBe(true);
     economy.credit('u1', 10_000 * XU_PER_VND, 'exchange');
-    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 100_000);
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 200_000);
     expect(cash.get('u1')).toBe(0);
     // Nothing converts back: spending more cash than owned must fail.
     expect(cash.spend('u1', 1_000, 'exchange_xu')).toBe(false);
