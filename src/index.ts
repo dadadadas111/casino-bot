@@ -49,10 +49,10 @@ const client = new Client({
 
 if (prefixCommandsEnabled) {
   client.on(Events.MessageCreate, (message) => {
-    // Channel/user activity feeds the daily report's busiest-channel pick.
+    // Plain chat only maps members to guilds; channel scoring counts bot
+    // command usage exclusively (see text-commands and the interaction path).
     if (!message.author.bot && message.inGuild()) {
       try {
-        activity.recordChannel(message.guildId, message.channelId);
         activity.recordUser(message.guildId, message.author.id);
       } catch (error) {
         console.error('[activity] Failed to record message activity:', error);

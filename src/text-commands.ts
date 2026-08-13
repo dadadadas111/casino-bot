@@ -1,5 +1,5 @@
 import { EmbedBuilder, type Message } from 'discord.js';
-import { economy, lottery, prefixes } from './context.js';
+import { activity, economy, lottery, prefixes } from './context.js';
 import { tryUse } from './services/cooldown.service.js';
 import {
   BAU_CUA_SYMBOLS,
@@ -73,6 +73,30 @@ const SLASH_ONLY = new Set([
   'setprefix',
 ]);
 
+// Every name the text layer reacts to; used for channel activity scoring.
+const KNOWN_TEXT_COMMANDS = new Set([
+  ...SLASH_ONLY,
+  'sodu',
+  'xu',
+  'daily',
+  'lamviec',
+  'work',
+  'top',
+  'help',
+  'xs',
+  'xoso',
+  'dn',
+  'duangua',
+  'tx',
+  'taixiu',
+  'bc',
+  'baucua',
+  'cf',
+  'coinflip',
+  'sl',
+  'slots',
+]);
+
 /**
  * Resolve the stake from parsed args: explicit token, else the user's last
  * stake. Returns null (and hints) when nothing usable is available.
@@ -118,6 +142,11 @@ export async function handleTextCommand(message: Message): Promise<void> {
   const { name, args } = parsed;
   const userId = message.author.id;
   const username = message.author.displayName;
+
+  // Only real bot commands score the channel for the daily report.
+  if (KNOWN_TEXT_COMMANDS.has(name)) {
+    activity.recordChannel(message.guildId, message.channelId);
+  }
 
   if (SLASH_ONLY.has(name)) {
     await message.reply(`Lệnh này dùng bản slash nhé: \`/${name === 'bj' ? 'blackjack' : name === 'tp' ? 'trieuphu' : name}\``);
