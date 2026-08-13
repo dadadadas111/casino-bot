@@ -26,6 +26,8 @@ export interface Mover {
 export interface PlayerProfile {
   userId: string;
   balance: number;
+  gamesPlayed: number;
+  streak: number;
   facts: string[]; // human-readable Vietnamese data points, most salient first
 }
 
@@ -109,66 +111,118 @@ export class ReportService {
   }
 
   /** Top players with the raw material for witty per-player commentary. */
-  playerProfiles(guildId: string, limit: number): PlayerProfile[] {
+  playerProfiles(guildId: string, limit: number, now: Date = new Date()): PlayerProfile[] {
     const fmt = (n: number): string => n.toLocaleString('vi-VN');
-    return this.topUsers(guildId, limit).map(({ userId, balance }) => {
-      const facts: string[] = [`Số dư hiện tại ${fmt(balance)} xu`];
+    const profiles = this.topUsers(guildId, limit).map(({ userId, balance }) => {
+      const facts: string[] = [];
 
       const user = this.db
-        .prepare('SELECT daily_streak, total_won, total_lost, games_played FROM users WHERE user_id = ?')
+        .prepare(
+          'SELECT daily_streak, total_won, total_lost, games_played, created_at FROM users WHERE user_id = ?',
+        )
         .get(userId) as {
         daily_streak: number;
         total_won: number;
         total_lost: number;
         games_played: number;
+        created_at: string;
       };
 
-      const admin = this.db
+      const joinedDays = Math.floor(
+        (now.getTime() - Date.parse(`${user.created_at.replace(' ', 'T')}Z`)) / 86_400_000,
+      );
+      facts.push(joinedDays <= 0 ? 'Mới tham gia hôm nay' : `Tham gia ${joinedDays} ngày trước`);
+      facts.push(`Số dư ${fmt(balance)} xu, đã chơi ${user.games_played} ván`);
+
+      const net = user.total_won - user.total_lost;
+      facts.push(
+        net === 0
+          ? 'Cờ bạc đang hòa vốn'
+          : net > 0
+            ? `Tổng lời cờ bạc +${fmt(net)} xu`
+            : `Tổng lỗ cờ bạc -${fmt(-net)} xu`,
+      );
+
+      // Admin money, broken down by operation.
+      const adminRows = this.db
         .prepare(
-          `SELECT COUNT(*) AS n, SUM(amount) AS s FROM transactions
-           WHERE user_id = ? AND type IN ('admin_add', 'admin_set') AND amount > 0`,
+          `SELECT type, COUNT(*) AS n, SUM(amount) AS s FROM transactions
+           WHERE user_id = ? AND type IN ('admin_add', 'admin_set', 'admin_sub') GROUP BY type`,
         )
-        .get(userId) as { n: number; s: number | null };
-      if (admin.n > 0 && (admin.s ?? 0) > 0) {
-        facts.push(`Được admin bơm tổng ${fmt(admin.s!)} xu qua ${admin.n} lần`);
+        .all(userId) as Array<{ type: string; n: number; s: number }>;
+      for (const row of adminRows) {
+        if (row.type === 'admin_add' && row.s > 0) {
+          facts.push(`Được admin cộng ${row.n} lần, tổng ${fmt(row.s)} xu`);
+        } else if (row.type === 'admin_set') {
+          facts.push(`Được admin set thẳng số dư ${row.n} lần (${row.s >= 0 ? '+' : ''}${fmt(row.s)} xu)`);
+        } else if (row.type === 'admin_sub') {
+          facts.push(`Bị admin trừ ${fmt(-row.s)} xu`);
+        }
+      }
+
+      // Per-game breakdown, top 3 by volume.
+      const gameRows = this.db
+        .prepare(
+          `SELECT meta AS game,
+             SUM(CASE WHEN type = 'bet' THEN 1 ELSE 0 END) AS bets,
+             SUM(CASE WHEN type = 'bet' THEN -amount ELSE 0 END) AS staked,
+             SUM(CASE WHEN type = 'payout' THEN amount ELSE 0 END) AS won,
+             MAX(CASE WHEN type = 'payout' THEN amount ELSE 0 END) AS biggestWin
+           FROM transactions
+           WHERE user_id = ? AND meta IS NOT NULL AND type IN ('bet', 'payout')
+           GROUP BY meta ORDER BY bets DESC, won DESC`,
+        )
+        .all(userId) as Array<{
+        game: string;
+        bets: number;
+        staked: number;
+        won: number;
+        biggestWin: number;
+      }>;
+      for (const g of gameRows.slice(0, 3)) {
+        const label = GAME_LABELS[g.game] ?? g.game;
+        if (g.game === 'trieuphu') {
+          facts.push(
+            g.won > 0
+              ? `Triệu phú: thắng tổng ${fmt(g.won)} xu${g.biggestWin >= 15_000 ? ', từng phá đảo cả 15 câu' : ''}`
+              : 'Chơi Triệu phú nhưng chưa ăn giải nào',
+          );
+        } else if (g.bets > 0) {
+          facts.push(`${label}: ${g.bets} lượt, cược ${fmt(g.staked)}, thắng về ${fmt(g.won)}`);
+        }
       }
 
       if (user.daily_streak >= 2) {
-        facts.push(`Chuỗi điểm danh ${user.daily_streak} ngày liên tục`);
+        facts.push(`Streak điểm danh ${user.daily_streak} ngày liên tục`);
       }
 
-      const biggest = this.db
+      // Largest transfers, with counterparties as mention tokens.
+      const transfers = this.db
         .prepare(
-          `SELECT amount, meta FROM transactions
-           WHERE user_id = ? AND type = 'payout' ORDER BY amount DESC LIMIT 1`,
+          `SELECT type, meta, SUM(amount) AS s FROM transactions
+           WHERE user_id = ? AND type IN ('transfer_in', 'transfer_out') AND meta IS NOT NULL
+           GROUP BY type, meta ORDER BY ABS(SUM(amount)) DESC LIMIT 2`,
         )
-        .get(userId) as { amount: number; meta: string | null } | undefined;
-      if (biggest && biggest.amount > 0) {
+        .all(userId) as Array<{ type: string; meta: string; s: number }>;
+      for (const t of transfers) {
         facts.push(
-          `Cú thắng đậm nhất: +${fmt(biggest.amount)} xu từ ${GAME_LABELS[biggest.meta ?? ''] ?? biggest.meta ?? 'trò bí ẩn'}`,
+          t.type === 'transfer_in'
+            ? `Được <@${t.meta}> chuyển cho ${fmt(t.s)} xu`
+            : `Đã chuyển ${fmt(-t.s)} xu cho <@${t.meta}>`,
         );
       }
 
-      const favorite = this.db
-        .prepare(
-          `SELECT meta, COUNT(*) AS n FROM transactions
-           WHERE user_id = ? AND type = 'bet' GROUP BY meta ORDER BY n DESC LIMIT 1`,
-        )
-        .get(userId) as { meta: string; n: number } | undefined;
-      if (favorite && favorite.n >= 3) {
-        facts.push(`Chơi ${GAME_LABELS[favorite.meta] ?? favorite.meta} nhiều nhất (${favorite.n} lượt)`);
-      }
-
-      const net = user.total_won - user.total_lost;
-      if (net !== 0) {
-        facts.push(
-          net > 0 ? `Tổng lời cờ bạc +${fmt(net)} xu` : `Tổng lỗ cờ bạc -${fmt(-net)} xu`,
-        );
-      }
-      facts.push(`Đã chơi ${user.games_played} ván`);
-
-      return { userId, balance, facts };
+      return { userId, balance, gamesPlayed: user.games_played, streak: user.daily_streak, facts };
     });
+
+    // Server-wide superlatives make "nhất server" comments possible.
+    if (profiles.length > 1) {
+      const mostGames = profiles.reduce((a, b) => (b.gamesPlayed > a.gamesPlayed ? b : a));
+      if (mostGames.gamesPlayed >= 5) mostGames.facts.unshift('Chơi nhiều ván nhất server');
+      const bestStreak = profiles.reduce((a, b) => (b.streak > a.streak ? b : a));
+      if (bestStreak.streak >= 2) bestStreak.facts.unshift('Chăm điểm danh nhất server');
+    }
+    return profiles;
   }
 
   guildPlayerCount(guildId: string): number {

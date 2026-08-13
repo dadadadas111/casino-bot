@@ -21,11 +21,12 @@ describe('buildCommentaryPrompt', () => {
     expect(prompt).toContain('2 người chơi');
   });
 
-  it('asks for varied angles and a mix of praise and teasing', () => {
+  it('teaches the data-dense style with examples and balance rules', () => {
     const prompt = buildCommentaryPrompt([{ facts: ['a'] }]);
-    expect(prompt).toContain('KHÔNG được câu nào cũng nói về tiền');
-    expect(prompt).toContain('KHEN');
+    expect(prompt).toContain('KỂ BẰNG SỐ LIỆU CỤ THỂ');
+    expect(prompt).toContain('Được admin bơm: 2 lần cộng 1,1 triệu');
     expect(prompt).toContain('không được chỉ toàn khịa');
+    expect(prompt).toContain('<@số> trong hồ sơ thì giữ nguyên');
   });
 });
 

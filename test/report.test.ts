@@ -99,12 +99,34 @@ describe('ReportService data', () => {
     economy.credit('u1', 1_000_000, 'admin_add');
     economy.debit('u1', 100, 'bet', 'taixiu');
     economy.settleGame('u1', 100, 20_000, 'taixiu');
+    economy.transfer('u1', 'u9', 5_000);
     activity.recordUser('g1', 'u1');
     const [profile] = reports.playerProfiles('g1', 10);
     expect(profile.userId).toBe('u1');
-    expect(profile.facts.join(' | ')).toContain('Được admin bơm tổng 1.000.000 xu qua 1 lần');
-    expect(profile.facts.join(' | ')).toContain('+20.000 xu từ Tài xỉu');
-    expect(profile.facts.join(' | ')).toContain('Tổng lời cờ bạc +19.900 xu');
+    expect(profile.gamesPlayed).toBe(1);
+    const joined = profile.facts.join(' | ');
+    expect(joined).toContain('Được admin cộng 1 lần, tổng 1.000.000 xu');
+    expect(joined).toContain('Tài xỉu: 1 lượt, cược 100, thắng về 20.000');
+    expect(joined).toContain('Tổng lời cờ bạc +19.900 xu');
+    expect(joined).toContain('Đã chuyển 5.000 xu cho <@u9>');
+  });
+
+  it('tags server superlatives on the right players', () => {
+    const day1 = new Date('2026-08-09T10:00:00+07:00');
+    const day2 = new Date('2026-08-10T10:00:00+07:00');
+    activity.recordUser('g1', 'grinder');
+    activity.recordUser('g1', 'streaker');
+    for (let i = 0; i < 6; i++) {
+      economy.debit('grinder', 10, 'bet', 'slots');
+      economy.settleGame('grinder', 10, 0, 'slots');
+    }
+    economy.claimDaily('streaker', day1);
+    economy.claimDaily('streaker', day2);
+    const profiles = reports.playerProfiles('g1', 10);
+    const grinder = profiles.find((p) => p.userId === 'grinder')!;
+    const streaker = profiles.find((p) => p.userId === 'streaker')!;
+    expect(grinder.facts[0]).toBe('Chơi nhiều ván nhất server');
+    expect(streaker.facts[0]).toBe('Chăm điểm danh nhất server');
   });
 
   it('summarizes 24h game stats and movers', () => {

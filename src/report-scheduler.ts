@@ -43,7 +43,7 @@ export async function buildReportEmbed(guildId: string, guildName: string): Prom
     top.length > 0
       ? top
           .map((u, i) => {
-            const line = `${MEDALS[i] ?? `**${i + 1}.**`} <@${u.userId}> : ${formatCoins(u.balance)}`;
+            const line = `${MEDALS[i] ?? `**${i + 1}.**`} <@${u.userId}> · ${formatCoins(u.balance)} · ${u.gamesPlayed} ván`;
             const comment = comments[i];
             return comment ? `${line}\n-# ${comment}` : line;
           })

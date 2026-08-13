@@ -9,24 +9,34 @@ export interface CommentaryInput {
 }
 
 const API_URL = 'https://api.deepseek.com/chat/completions';
-const MAX_COMMENT_LENGTH = 120;
+const MAX_COMMENT_LENGTH = 160;
 
 export function buildCommentaryPrompt(players: CommentaryInput[]): string {
   const blocks = players
     .map((p, i) => `Người chơi ${i + 1}:\n${p.facts.map((f) => `- ${f}`).join('\n')}`)
     .join('\n\n');
   return [
-    'Bạn là MC của một sòng bạc Discord vui tính (tiền ảo, chơi cho vui).',
-    `Dưới đây là thống kê của ${players.length} người chơi theo thứ tự trên bảng xếp hạng.`,
-    'Với MỖI người, viết đúng MỘT câu nhận xét bằng tiếng Việt, tối đa 90 ký tự.',
+    'Bạn là biên tập viên bản tin của một sòng bạc Discord (tiền ảo, chơi cho vui).',
+    `Dưới đây là hồ sơ của ${players.length} người chơi theo thứ tự trên bảng xếp hạng.`,
+    'Với MỖI người, viết đúng MỘT dòng "nét đáng chú ý" bằng tiếng Việt, tối đa 140 ký tự.',
     '',
-    'Yêu cầu về nội dung:',
-    '- Mỗi người chọn MỘT góc khác nhau để nói, xoay vòng giữa: tiền bạc, số ván đã chơi, trò họ hay chơi, chuỗi điểm danh, cú thắng đậm nhất. KHÔNG được câu nào cũng nói về tiền.',
-    '- Trộn cả KHEN và khịa: ai có điểm sáng thật (lời ròng, chăm điểm danh, thắng đậm, chơi đều) thì khen chân thành; ai thua lỗ hay liều lĩnh thì trêu nhẹ nhàng. Đại khái nửa khen nửa khịa, không được chỉ toàn khịa.',
-    '- Giọng thân thiện như bạn bè trong server, không xúc phạm, không gọi tên riêng.',
-    '- Không dùng dấu gạch ngang dài, tối đa 1 emoji mỗi câu.',
+    'Phong cách bắt buộc, học theo các ví dụ sau (dữ liệu khác, chỉ học giọng):',
+    '- "Được admin bơm: 2 lần cộng 1,1 triệu + 1 lần set thẳng ~9 triệu"',
+    '- "Chăm nhất server: streak điểm danh 3 ngày, trúng Triệu phú 15.000"',
+    '- "Chơi nhiều nhất; thần tài xỉu: cược 22.200 thắng về 42.400"',
+    '- "Kiếp đỏ đen: trúng Triệu phú 15.000 xong nướng sạch vào đua ngựa, giờ còn 437"',
+    '- "Vốn chủ yếu do <@123456> chuyển cho 50.000"',
+    '- "Mới vào, chơi đúng 1 ván Triệu phú và thua trắng"',
     '',
-    'Trả về JSON đúng mẫu: {"comments":["câu 1","câu 2",...]} với đúng số câu và đúng thứ tự.',
+    'Quy tắc:',
+    '- Dòng nào cũng phải KỂ BẰNG SỐ LIỆU CỤ THỂ lấy từ hồ sơ, tuyệt đối không bịa số, không nói chung chung.',
+    '- Chọn chi tiết ĐẮT NHẤT của mỗi người: dòng tiền admin, hành trình thắng rồi thua, trò tủ, chuỗi điểm danh, số ván. Mỗi người một góc khác nhau.',
+    '- Có nhãn "nhất server" trong hồ sơ thì tận dụng ("Chơi nhiều nhất server", "Chăm nhất server").',
+    '- Khen người có thành tích thật, khịa nhẹ người nướng tiền; tự nhiên như ví dụ, không được chỉ toàn khịa.',
+    '- Gặp token dạng <@số> trong hồ sơ thì giữ nguyên y hệt khi dùng (đó là tên người được nhắc đến).',
+    '- Không gọi tên riêng khác, không dùng dấu gạch ngang dài, hạn chế emoji.',
+    '',
+    'Trả về JSON đúng mẫu: {"comments":["dòng 1","dòng 2",...]} với đúng số dòng và đúng thứ tự.',
     '',
     blocks,
   ].join('\n');
