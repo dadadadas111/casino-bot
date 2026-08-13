@@ -10,7 +10,8 @@ import { BUFFS } from '../services/buff.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
-const GIFT_BOX_MAX = 3_000;
+// Kept below twice the box price so opening boxes stays a losing habit.
+const GIFT_BOX_MAX = 900;
 
 export const shopCommand: Command = {
   data: new SlashCommandBuilder().setName('shop').setDescription('Cửa hàng vật phẩm của sòng bạc'),
@@ -110,9 +111,11 @@ export const dungdoCommand: Command = {
     const userId = interaction.user.id;
 
     // Check the effect is worth using BEFORE burning the item.
-    if (key === 'chiakhoa' && !economy.jailedUntil(userId)) {
+    const jailed = economy.jailedUntil(userId);
+    const hospitalized = economy.hospitalizedUntil(userId);
+    if (key === 'chiakhoa' && !jailed && !hospitalized) {
       await interaction.reply({
-        content: 'Bạn có ở tù đâu mà cần phá khóa!',
+        content: 'Bạn đang tự do mà, cần phá khóa gì!',
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -134,7 +137,10 @@ export const dungdoCommand: Command = {
       description = `☕ **${interaction.user.displayName}** làm một ly cà phê, tỉnh cả người! Có thể \`/lamviec\` ngay bây giờ.`;
     } else {
       economy.release(userId);
-      description = `🗝️ **${interaction.user.displayName}** phá khóa vượt ngục thành công, không tốn một xu nộp phạt!`;
+      economy.discharge(userId);
+      description = jailed
+        ? `🗝️ **${interaction.user.displayName}** phá khóa vượt ngục thành công, không tốn một xu nộp phạt!`
+        : `🗝️ **${interaction.user.displayName}** lẻn khỏi bệnh viện, quên luôn hóa đơn viện phí!`;
     }
 
     await interaction.reply({

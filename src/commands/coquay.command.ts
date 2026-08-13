@@ -10,7 +10,7 @@ import {
   type Message,
   type SendableChannels,
 } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, items } from '../context.js';
 import { HOSPITAL_DURATION_MS, MEDICAL_FEE } from '../services/economy.service.js';
 import {
   CHAMBERS,
@@ -148,7 +148,9 @@ async function runGame(channelId: string): Promise<void> {
     const share = survivorShare(t.bet, survivors.length);
 
     economy.settleGame(victim.id, t.bet, 0, 'coquay');
-    const release = economy.hospitalize(victim.id, HOSPITAL_DURATION_MS);
+    // A helmet eats the trip to hospital, but not the lost ante.
+    const helmeted = items.consume(victim.id, 'mubaohiem');
+    const release = helmeted ? null : economy.hospitalize(victim.id, HOSPITAL_DURATION_MS);
     for (const s of survivors) {
       economy.settleGame(s.id, t.bet, t.bet + share, 'coquay');
     }
@@ -162,10 +164,14 @@ async function runGame(channelId: string): Promise<void> {
             [
               ...lines,
               '',
-              `🏥 **${victim.name}** trúng đạn, mất ${formatCoins(t.bet)} và nhập viện, ra viện <t:${Math.floor(release.getTime() / 1000)}:R>.`,
+              release
+                ? `🏥 **${victim.name}** trúng đạn, mất ${formatCoins(t.bet)} và nhập viện, ra viện <t:${Math.floor(release.getTime() / 1000)}:R>.`
+                : `🪖 **${victim.name}** trúng đạn, mất ${formatCoins(t.bet)} nhưng **mũ bảo hiểm** đỡ trọn phát! Chỉ xây xẩm mặt mày, khỏi nhập viện. Mũ vỡ tan.`,
               `🎉 Người sống sót nhận thêm **${formatCoins(share)}** mỗi người: ${survivors.map((s) => s.name).join(', ')}`,
               '',
-              `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(MEDICAL_FEE)} bằng \`/vienphi\` để ra sớm.`,
+              release
+                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(MEDICAL_FEE)} bằng \`/vienphi\` để ra sớm.`
+                : '-# Mua mũ mới trong `/shop` trước khi cầm súng lần nữa nhé.',
             ].join('\n'),
           ),
       ],

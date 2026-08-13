@@ -423,6 +423,11 @@ export class EconomyService {
     return until;
   }
 
+  /** Discharge without paying (used by the skeleton key item). */
+  discharge(userId: string): void {
+    this.db.prepare('UPDATE users SET hospital_until = NULL WHERE user_id = ?').run(userId);
+  }
+
   /** Pay the medical bill to be discharged immediately. */
   payMedicalBill(userId: string, now: Date = new Date()): 'ok' | 'not_admitted' | 'poor' {
     if (!this.hospitalizedUntil(userId, now)) return 'not_admitted';

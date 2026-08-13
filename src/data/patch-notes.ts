@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.4.0',
+    date: '13/08/2026',
+    title: 'Đội mũ vào rồi hãy cầm súng',
+    changes: [
+      '🪖 **Mũ bảo hiểm** (1.000 xu): trúng đạn cò quay Nga vẫn khỏi nhập viện, mũ vỡ sau một lần đỡ đạn',
+      '🏷️ **Toàn bộ shop giảm giá**, không món nào quá 1.000 xu: khiên 800, cà phê 300, chìa khóa 200, hộp quà 500',
+      '🗝️ Chìa khóa vạn năng giờ dùng được cho cả trốn viện, không chỉ vượt ngục',
+      '⏱️ Ngồi tù còn 5 phút, nằm viện 3 phút 36 giây, chuộc thân chỉ 100 xu',
+    ],
+  },
+  {
     version: '2.3.0',
     date: '13/08/2026',
     title: 'Cò quay Nga và bệnh viện',

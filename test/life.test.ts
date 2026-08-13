@@ -10,7 +10,7 @@ import {
   STARTING_BALANCE,
 } from '../src/services/economy.service';
 import { CashService } from '../src/services/cash.service';
-import { ItemsService } from '../src/services/items.service';
+import { ItemsService, SHOP_ITEMS } from '../src/services/items.service';
 import { BUFFS, BuffService } from '../src/services/buff.service';
 
 let db: Db;
@@ -194,6 +194,22 @@ describe('lucky charm buff', () => {
     economy.debit('u1', 100, 'bet', 'taixiu');
     economy.settleGame('u1', 100, 300, 'taixiu', new Date(until.getTime() + 1000));
     expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 200);
+  });
+});
+
+describe('shop pricing', () => {
+  it('keeps every item at or under 1.000 xu', () => {
+    for (const item of Object.values(SHOP_ITEMS)) {
+      expect(item.price).toBeGreaterThan(0);
+      expect(item.price).toBeLessThanOrEqual(1_000);
+    }
+  });
+
+  it('sells a helmet that survivors of roulette can burn', () => {
+    expect(SHOP_ITEMS.mubaohiem).toBeDefined();
+    items.add('u1', 'mubaohiem');
+    expect(items.consume('u1', 'mubaohiem')).toBe(true);
+    expect(items.consume('u1', 'mubaohiem')).toBe(false);
   });
 });
 

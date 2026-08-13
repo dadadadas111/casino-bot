@@ -9,33 +9,41 @@ export interface ShopItem {
   usable?: boolean; // consumed on demand via /dungdo
 }
 
+/** Everything in the shop stays at or under 1.000 xu. */
 export const SHOP_ITEMS: Record<string, ShopItem> = {
   khien: {
     key: 'khien',
     name: 'Khiên chống trộm',
     emoji: '🛡️',
-    price: 5_000,
+    price: 800,
     desc: 'Tự động chặn 1 lần bị trộm rồi vỡ',
+  },
+  mubaohiem: {
+    key: 'mubaohiem',
+    name: 'Mũ bảo hiểm',
+    emoji: '🪖',
+    price: 1_000,
+    desc: 'Trúng đạn cò quay Nga vẫn không phải nhập viện, mũ vỡ sau 1 lần',
   },
   nhan: {
     key: 'nhan',
     name: 'Nhẫn cầu hôn',
     emoji: '💍',
-    price: 10_000,
+    price: 1_000,
     desc: 'Vật phẩm bắt buộc để /cauhon ai đó',
   },
   hopqua: {
     key: 'hopqua',
     name: 'Hộp quà bí ẩn',
     emoji: '📦',
-    price: 1_000,
-    desc: 'Mở ngay khi mua, nhận ngẫu nhiên 0 đến 3.000 xu',
+    price: 500,
+    desc: 'Mở ngay khi mua, nhận ngẫu nhiên 0 đến 900 xu',
   },
   buamayman: {
     key: 'buamayman',
     name: 'Bùa may mắn',
     emoji: '🍀',
-    price: 8_000,
+    price: 1_000,
     desc: 'Dùng để bật buff: thắng ván nào cũng +10% tiền lời trong 1 giờ',
     usable: true,
   },
@@ -43,7 +51,7 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     key: 'caphe',
     name: 'Ly cà phê',
     emoji: '☕',
-    price: 2_000,
+    price: 300,
     desc: 'Dùng để xóa ngay cooldown /lamviec, cày tiếp không cần chờ',
     usable: true,
   },
@@ -51,8 +59,8 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     key: 'chiakhoa',
     name: 'Chìa khóa vạn năng',
     emoji: '🗝️',
-    price: 6_000,
-    desc: 'Dùng để tự phá khóa ra tù ngay, không tốn tiền nộp phạt',
+    price: 200,
+    desc: 'Dùng để thoát tù hoặc trốn viện ngay, khỏi tốn tiền chuộc',
     usable: true,
   },
 };
