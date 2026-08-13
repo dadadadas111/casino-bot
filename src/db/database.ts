@@ -88,6 +88,13 @@ CREATE TABLE IF NOT EXISTS user_items (
   PRIMARY KEY (user_id, item)
 );
 
+CREATE TABLE IF NOT EXISTS user_buffs (
+  user_id TEXT NOT NULL,
+  buff TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  PRIMARY KEY (user_id, buff)
+);
+
 CREATE TABLE IF NOT EXISTS cash_ledger (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL,

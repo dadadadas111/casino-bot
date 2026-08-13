@@ -61,6 +61,12 @@ export function typeLabel(entry: HistoryEntry): string {
       return 'Mua đồ shop';
     case 'gift_box':
       return 'Mở hộp quà';
+    case 'buff_bonus':
+      return `Thưởng bùa may mắn${game ? ` (${game})` : ''}`;
+    case 'wedding_cost':
+      return 'Đặt tiệc cưới';
+    case 'wedding_gift':
+      return entry.amount >= 0 ? 'Tiền mừng cưới' : 'Đi mừng cưới';
     default:
       return entry.type;
   }

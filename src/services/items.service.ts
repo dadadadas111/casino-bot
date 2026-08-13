@@ -6,6 +6,7 @@ export interface ShopItem {
   emoji: string;
   price: number; // xu
   desc: string;
+  usable?: boolean; // consumed on demand via /dungdo
 }
 
 export const SHOP_ITEMS: Record<string, ShopItem> = {
@@ -30,7 +31,33 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     price: 1_000,
     desc: 'Mở ngay khi mua, nhận ngẫu nhiên 0 đến 3.000 xu',
   },
+  buamayman: {
+    key: 'buamayman',
+    name: 'Bùa may mắn',
+    emoji: '🍀',
+    price: 8_000,
+    desc: 'Dùng để bật buff: thắng ván nào cũng +10% tiền lời trong 1 giờ',
+    usable: true,
+  },
+  caphe: {
+    key: 'caphe',
+    name: 'Ly cà phê',
+    emoji: '☕',
+    price: 2_000,
+    desc: 'Dùng để xóa ngay cooldown /lamviec, cày tiếp không cần chờ',
+    usable: true,
+  },
+  chiakhoa: {
+    key: 'chiakhoa',
+    name: 'Chìa khóa vạn năng',
+    emoji: '🗝️',
+    price: 6_000,
+    desc: 'Dùng để tự phá khóa ra tù ngay, không tốn tiền nộp phạt',
+    usable: true,
+  },
 };
+
+export const USABLE_ITEMS = Object.values(SHOP_ITEMS).filter((i) => i.usable);
 
 export class ItemsService {
   constructor(private db: Db) {}

@@ -13,7 +13,7 @@ import { BAIL_COST } from './services/economy.service.js';
 const JAIL_BLOCKED = new Set([
   'blackjack', 'bj', 'taixiu', 'tx', 'baucua', 'bc', 'coinflip', 'cf', 'slots',
   'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp',
-  'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon',
+  'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon', 'honle',
 ]);
 
 // Message prefix commands need the privileged MessageContent intent (portal

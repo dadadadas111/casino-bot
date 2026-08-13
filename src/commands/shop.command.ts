@@ -4,8 +4,9 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { economy, items } from '../context.js';
-import { SHOP_ITEMS } from '../services/items.service.js';
+import { buffs, economy, items } from '../context.js';
+import { SHOP_ITEMS, USABLE_ITEMS } from '../services/items.service.js';
+import { BUFFS } from '../services/buff.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -24,7 +25,7 @@ export const shopCommand: Command = {
               .map((i) => `${i.emoji} **${i.name}** · ${formatCoins(i.price)}\n-# ${i.desc}`)
               .join('\n'),
           )
-          .setFooter({ text: 'Mua bằng /mua · Xem đồ đã có bằng /tuido' }),
+          .setFooter({ text: 'Mua bằng /mua · Xem đồ bằng /tuido · Dùng đồ bằng /dungdo' }),
       ],
     });
   },
@@ -86,6 +87,58 @@ export const muaCommand: Command = {
             `${item.emoji} Đã mua **${item.name}** với giá ${formatCoins(item.price)}. Đang có: ${items.count(userId, key)} cái. Xem \`/tuido\``,
           ),
       ],
+    });
+  },
+};
+
+export const dungdoCommand: Command = {
+  data: new SlashCommandBuilder()
+    .setName('dungdo')
+    .setDescription('Dùng vật phẩm trong túi (bùa may mắn, cà phê, chìa khóa)')
+    .addStringOption((o) =>
+      o
+        .setName('mon')
+        .setDescription('Vật phẩm muốn dùng')
+        .setRequired(true)
+        .addChoices(
+          ...USABLE_ITEMS.map((i) => ({ name: `${i.emoji} ${i.name}`, value: i.key })),
+        ),
+    ),
+  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const key = interaction.options.getString('mon', true);
+    const item = SHOP_ITEMS[key];
+    const userId = interaction.user.id;
+
+    // Check the effect is worth using BEFORE burning the item.
+    if (key === 'chiakhoa' && !economy.jailedUntil(userId)) {
+      await interaction.reply({
+        content: 'Bạn có ở tù đâu mà cần phá khóa!',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    if (!items.consume(userId, key)) {
+      await interaction.reply({
+        content: `Bạn không có ${item.emoji} **${item.name}** nào. Ghé \`/shop\` mua nhé!`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    let description: string;
+    if (key === 'buamayman') {
+      const until = buffs.activate(userId, 'mayman');
+      description = `🍀 **${interaction.user.displayName}** kích hoạt **${BUFFS.mayman.name}**! Mọi ván thắng +10% tiền lời đến <t:${Math.floor(until.getTime() / 1000)}:R>.`;
+    } else if (key === 'caphe') {
+      economy.resetCooldown(userId, 'work');
+      description = `☕ **${interaction.user.displayName}** làm một ly cà phê, tỉnh cả người! Có thể \`/lamviec\` ngay bây giờ.`;
+    } else {
+      economy.release(userId);
+      description = `🗝️ **${interaction.user.displayName}** phá khóa vượt ngục thành công, không tốn một xu nộp phạt!`;
+    }
+
+    await interaction.reply({
+      embeds: [new EmbedBuilder().setColor(COLORS.win).setDescription(description)],
     });
   },
 };

@@ -10,17 +10,20 @@ import {
 } from '../src/services/economy.service';
 import { CashService } from '../src/services/cash.service';
 import { ItemsService } from '../src/services/items.service';
+import { BUFFS, BuffService } from '../src/services/buff.service';
 
 let db: Db;
 let economy: EconomyService;
 let cashSvc: CashService;
 let items: ItemsService;
+let buffs: BuffService;
 
 const t0 = new Date('2026-08-13T10:00:00+07:00');
 
 beforeEach(() => {
   db = createDb(':memory:');
-  economy = new EconomyService(db);
+  buffs = new BuffService(db);
+  economy = new EconomyService(db, buffs);
   cashSvc = new CashService(db);
   items = new ItemsService(db);
 });
@@ -123,6 +126,47 @@ describe('cash (premium currency)', () => {
     expect(cashSvc.spend('u1', 9_000, 'trieuphu_reset')).toBe(false);
     const rows = db.prepare('SELECT COUNT(*) AS n FROM cash_ledger').get() as { n: number };
     expect(rows.n).toBe(2);
+  });
+});
+
+describe('lucky charm buff', () => {
+  it('expires on its own schedule and extends when reapplied', () => {
+    const until = buffs.activate('u1', 'mayman', t0);
+    expect(until.getTime()).toBe(t0.getTime() + BUFFS.mayman.durationMs);
+    expect(buffs.activeUntil('u1', 'mayman', t0)).not.toBeNull();
+    const afterExpiry = new Date(until.getTime() + 1000);
+    expect(buffs.activeUntil('u1', 'mayman', afterExpiry)).toBeNull();
+    expect(buffs.activeList('u1', afterExpiry)).toEqual([]);
+
+    // Re-buying mid-buff extends rather than resets.
+    const midway = new Date(t0.getTime() + 10 * 60 * 1000);
+    const extended = buffs.activate('u1', 'mayman', midway);
+    expect(extended.getTime()).toBe(until.getTime() + BUFFS.mayman.durationMs);
+  });
+
+  it('adds 10% to winnings only, never to losses or pushes', () => {
+    buffs.activate('winner', 'mayman', t0);
+    economy.debit('winner', 100, 'bet', 'taixiu');
+    economy.settleGame('winner', 100, 300, 'taixiu', t0); // net +200, bonus +20
+    expect(economy.getBalance('winner')).toBe(STARTING_BALANCE + 220);
+    expect(economy.getProfile('winner').totalWon).toBe(220);
+
+    buffs.activate('loser', 'mayman', t0);
+    economy.debit('loser', 100, 'bet', 'slots');
+    economy.settleGame('loser', 100, 0, 'slots', t0);
+    expect(economy.getBalance('loser')).toBe(STARTING_BALANCE - 100);
+
+    economy.debit('pusher', 100, 'bet', 'blackjack');
+    buffs.activate('pusher', 'mayman', t0);
+    economy.settleGame('pusher', 100, 100, 'blackjack', t0); // push
+    expect(economy.getBalance('pusher')).toBe(STARTING_BALANCE);
+  });
+
+  it('does nothing once the buff has lapsed', () => {
+    const until = buffs.activate('u1', 'mayman', t0);
+    economy.debit('u1', 100, 'bet', 'taixiu');
+    economy.settleGame('u1', 100, 300, 'taixiu', new Date(until.getTime() + 1000));
+    expect(economy.getBalance('u1')).toBe(STARTING_BALANCE + 200);
   });
 });
 

@@ -18,8 +18,9 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/bantin xem\|config` | Bản tin hằng ngày (mặc định 10h VN): top 10 server, thống kê 24h, jackpot. Tự chọn kênh nhộn nhịp nhất, config được giờ/kênh/tag |
 | `/bank gui\|rut\|xem` | Két ngân hàng: tiền trong két miễn nhiễm trộm cắp |
 | `/trom nguoi` + `/nopphat` | Trộm ví (40% ăn 15%, trượt tù 30 phút, nộp 2.000 xu ra sớm), khiên chặn được |
-| `/shop` `/mua` `/tuido` | Shop: khiên chống trộm, nhẫn cầu hôn, hộp quà bí ẩn |
-| `/cauhon` `/lyhon` | Cầu hôn (cần 💍), lễ cưới công khai, ly hôn mất phí |
+| `/shop` `/mua` `/tuido` `/dungdo` | Shop: khiên chống trộm, nhẫn, hộp quà, bùa may mắn (+10% lời 1h), cà phê (xóa CD work), chìa khóa vượt ngục |
+| `/cauhon` `/honle` `/lyhon` | Cầu hôn (cần 💍), tiệc cưới cho cả kênh mừng tiền 500 xu/khách, ly hôn mất phí |
+| `/help` | Hướng dẫn phân trang bằng nút: Bắt đầu / Trò chơi / Tiền bạc / Đời sống / Linh tinh |
 | `/cash xem\|nap` | Tiền nạp 💵 (VND, one-way): reset CD Triệu phú 2.000đ/lần; nạp tay bởi owner, SePay sẽ tự động hóa |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/lamviec` (`/work`) | Làm việc kiếm 100-300 xu mỗi giờ, cooldown lưu trong DB |

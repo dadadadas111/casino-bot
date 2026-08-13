@@ -1,4 +1,5 @@
 import type { Db } from '../db/database.js';
+import { BuffService, LUCKY_BONUS_RATE } from './buff.service.js';
 
 export const STARTING_BALANCE = 1_000;
 export const DAILY_BASE = 500;
@@ -61,7 +62,10 @@ export function vnDay(now: Date): string {
 }
 
 export class EconomyService {
-  constructor(private db: Db) {}
+  constructor(
+    private db: Db,
+    private buffs: BuffService = new BuffService(db),
+  ) {}
 
   ensureUser(userId: string): void {
     const inserted = this.db
@@ -241,9 +245,14 @@ export class EconomyService {
    * Settle a finished game. `bet` was already debited when the bet was placed;
    * `payout` is the total returned to the player (0 = lost, bet = push).
    */
-  settleGame(userId: string, bet: number, payout: number, game: string): void {
+  settleGame(userId: string, bet: number, payout: number, game: string, now: Date = new Date()): void {
     this.ensureUser(userId);
     const net = payout - bet;
+    // The lucky charm tops up winnings only, never softens a loss.
+    const bonus =
+      net > 0 && this.buffs.activeUntil(userId, 'mayman', now)
+        ? Math.floor(net * LUCKY_BONUS_RATE)
+        : 0;
     const run = this.db.transaction(() => {
       if (payout > 0) {
         this.db
@@ -251,13 +260,19 @@ export class EconomyService {
           .run(payout, userId);
         this.logTx(userId, payout, 'payout', game);
       }
+      if (bonus > 0) {
+        this.db
+          .prepare('UPDATE users SET balance = balance + ? WHERE user_id = ?')
+          .run(bonus, userId);
+        this.logTx(userId, bonus, 'buff_bonus', game);
+      }
       this.db
         .prepare(
           `UPDATE users SET games_played = games_played + 1,
              total_won = total_won + ?, total_lost = total_lost + ?
            WHERE user_id = ?`,
         )
-        .run(net > 0 ? net : 0, net < 0 ? -net : 0, userId);
+        .run(net > 0 ? net + bonus : 0, net < 0 ? -net : 0, userId);
     });
     run();
   }
@@ -371,6 +386,11 @@ export class EconomyService {
       .prepare('UPDATE users SET jail_until = ? WHERE user_id = ?')
       .run(until.toISOString(), userId);
     return until;
+  }
+
+  /** Free someone without charging bail (used by the skeleton key item). */
+  release(userId: string): void {
+    this.db.prepare('UPDATE users SET jail_until = NULL WHERE user_id = ?').run(userId);
   }
 
   bail(userId: string, now: Date = new Date()): 'ok' | 'not_jailed' | 'poor' {

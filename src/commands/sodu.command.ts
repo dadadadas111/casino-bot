@@ -4,7 +4,8 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { economy } from '../context.js';
+import { buffs, economy } from '../context.js';
+import { BUFFS } from '../services/buff.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -41,6 +42,12 @@ export const soduCommand: Command = {
           value: [
             spouse ? `💍 Đã kết hôn với <@${spouse}>` : '🕊️ Độc thân vui tính',
             jailed ? `🚔 Đang ngồi tù, ra tù <t:${Math.floor(jailed.getTime() / 1000)}:R>` : null,
+            ...buffs
+              .activeList(target.id)
+              .map(
+                (b) =>
+                  `${BUFFS[b.buff]?.emoji ?? '✨'} ${BUFFS[b.buff]?.name ?? b.buff} còn hiệu lực đến <t:${Math.floor(b.expiresAt.getTime() / 1000)}:R>`,
+              ),
           ]
             .filter(Boolean)
             .join('\n'),

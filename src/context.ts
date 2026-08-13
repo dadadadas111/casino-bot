@@ -8,9 +8,11 @@ import { ActivityService } from './services/activity.service.js';
 import { ReportService } from './services/report.service.js';
 import { CashService } from './services/cash.service.js';
 import { ItemsService } from './services/items.service.js';
+import { BuffService } from './services/buff.service.js';
 
 export const db = createDb(env.DB_PATH);
-export const economy = new EconomyService(db);
+export const buffs = new BuffService(db);
+export const economy = new EconomyService(db, buffs);
 export const quizHistory = new QuizHistoryStore(db);
 export const prefixes = new PrefixStore(db);
 export const lottery = new LotteryService(db, economy);

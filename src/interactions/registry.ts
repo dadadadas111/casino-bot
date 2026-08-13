@@ -5,13 +5,17 @@ import { keoComponents } from '../commands/keo.command.js';
 import { trieuphuComponents } from '../commands/trieuphu.command.js';
 import { duanguaComponents } from '../commands/duangua.command.js';
 import { weddingComponents } from '../commands/marry.command.js';
+import { honleComponents } from '../commands/honle.command.js';
+import { helpComponents } from '../commands/help.command.js';
 
 const handlers: Record<string, ComponentHandler> = {
+  help: helpComponents,
   bj: blackjackComponents,
   keo: keoComponents,
   tp: trieuphuComponents,
   dn: duanguaComponents,
   wed: weddingComponents,
+  hl: honleComponents,
 };
 
 export async function routeComponent(
