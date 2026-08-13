@@ -17,6 +17,7 @@ const DOWNTIME_BLOCKED = new Set([
   'blackjack', 'bj', 'taixiu', 'tx', 'baucua', 'bc', 'coinflip', 'cf', 'slots',
   'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp', 'coquay',
   'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon', 'honle',
+  'casino-admin', // no editing the books from behind bars
 ]);
 
 // Message prefix commands need the privileged MessageContent intent (portal

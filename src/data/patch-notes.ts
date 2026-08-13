@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.6.0',
+    date: '13/08/2026',
+    title: 'Admin cũng phải sợ pháp luật',
+    changes: [
+      '🚨 **Cheat là có ngày bị tóm**: mỗi lần admin cộng/trừ/đặt xu đều có **35%** bị cảnh sát đột kích. Bị bắt thì giao dịch hủy sạch, admin vào tù như thường dân, cả server được xem',
+      '⛓️ Đang ngồi tù thì `/casino-admin` cũng bị khóa luôn, khỏi sửa sổ sách từ sau song sắt',
+    ],
+  },
+  {
     version: '2.5.0',
     date: '13/08/2026',
     title: 'Hồ sơ cá nhân',

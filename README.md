@@ -37,7 +37,7 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/om` `/hon` `/danh` `/choc` `/xoadau` | Tương tác vui kèm GIF anime (nekos.best, fail-open) |
 | `/bj` `/tx` `/bc` `/cf` | Viết tắt của blackjack, taixiu, baucua, coinflip |
 | `/help` | Hướng dẫn trong Discord |
-| `/casino-admin cong\|tru\|dat` | Quản lý xu (chỉ admin) |
+| `/casino-admin cong\|tru\|dat` | Quản lý xu (chỉ admin, 35% bị cảnh sát bắt, giao dịch hủy và admin đi tù) |
 
 Người chơi mới tự động được tặng 1.000 xu ở lần tương tác đầu tiên.
 

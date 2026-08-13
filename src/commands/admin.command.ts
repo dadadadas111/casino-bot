@@ -6,19 +6,21 @@ import {
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import { economy } from '../context.js';
+import { JAIL_DURATION_MS } from '../services/economy.service.js';
+import {
+  ADMIN_ADD_CAP as ADD_CAP,
+  ADMIN_SET_CAP as SET_CAP,
+  isCheatBusted,
+} from '../services/enforcement.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
-// Anti-inflation caps: admins juice the economy in small doses only.
-// The set cap stays above what a single top-up exchange can produce so
-// paying players are never capped below what they bought.
-export const ADMIN_ADD_CAP = 10_000;
-export const ADMIN_SET_CAP = 1_000_000;
+export { ADMIN_ADD_CAP, ADMIN_SET_CAP } from '../services/enforcement.service.js';
 
 export const adminCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('casino-admin')
-    .setDescription('Quản lý xu (chỉ dành cho admin)')
+    .setDescription('Quản lý xu (chỉ admin, coi chừng cảnh sát)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand((sc) =>
       sc
@@ -61,17 +63,46 @@ export const adminCommand: Command = {
     const target = interaction.options.getUser('nguoi', true);
     const amount = interaction.options.getInteger('soxu', true);
 
-    if ((sub === 'cong' || sub === 'tru') && amount > ADMIN_ADD_CAP) {
+    if ((sub === 'cong' || sub === 'tru') && amount > ADD_CAP) {
       await interaction.reply({
-        content: `Tối đa ${formatCoins(ADMIN_ADD_CAP)} mỗi lần cộng/trừ, để kinh tế server không vỡ trận.`,
+        content: `Tối đa ${formatCoins(ADD_CAP)} mỗi lần cộng/trừ, để kinh tế server không vỡ trận.`,
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
-    if (sub === 'dat' && amount > ADMIN_SET_CAP) {
+    if (sub === 'dat' && amount > SET_CAP) {
       await interaction.reply({
-        content: `Số dư đặt tối đa là ${formatCoins(ADMIN_SET_CAP)}.`,
+        content: `Số dư đặt tối đa là ${formatCoins(SET_CAP)}.`,
         flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // The raid happens before any money moves, so a bust changes nothing.
+    if (isCheatBusted()) {
+      const release = economy.jail(interaction.user.id, JAIL_DURATION_MS);
+      const attempt =
+        sub === 'cong'
+          ? `bơm ${formatCoins(amount)} cho`
+          : sub === 'tru'
+            ? `rút trộm ${formatCoins(amount)} của`
+            : `sửa sổ sách thành ${formatCoins(amount)} cho`;
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.lose)
+            .setTitle('🚨 CẢNH SÁT ĐỘT KÍCH!')
+            .setDescription(
+              [
+                `**${interaction.user.displayName}** đang lén ${attempt} **${target.displayName}** thì bị tóm tại trận!`,
+                '',
+                '❌ Giao dịch đã bị hủy, không một xu nào được chuyển.',
+                `🚔 Bị áp giải về đồn, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>. Nộp phạt bằng \`/nopphat\` nếu muốn ra sớm.`,
+                '',
+                '-# Làm admin không có nghĩa là đứng trên pháp luật.',
+              ].join('\n'),
+            ),
+        ],
       });
       return;
     }
