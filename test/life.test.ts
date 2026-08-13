@@ -60,6 +60,32 @@ describe('jail and bail', () => {
   });
 });
 
+describe('hospital', () => {
+  it('admits, expires on schedule, and discharges for a fee', () => {
+    economy.credit('u1', 5_000, 'admin_add');
+    expect(economy.hospitalizedUntil('u1', t0)).toBeNull();
+    const until = economy.hospitalize('u1', 20, t0);
+    expect(economy.hospitalizedUntil('u1', t0)?.getTime()).toBe(until.getTime());
+    expect(economy.hospitalizedUntil('u1', new Date(until.getTime() + 1))).toBeNull();
+    expect(economy.payMedicalBill('u1', t0)).toBe('ok');
+    expect(economy.hospitalizedUntil('u1', t0)).toBeNull();
+  });
+
+  it('refuses discharge when healthy or broke', () => {
+    expect(economy.payMedicalBill('u1', t0)).toBe('not_admitted');
+    economy.debit('u1', STARTING_BALANCE - 100, 'bet');
+    economy.hospitalize('u1', 20, t0);
+    expect(economy.payMedicalBill('u1', t0)).toBe('poor');
+  });
+
+  it('is independent of jail', () => {
+    economy.jail('u1', 30, t0);
+    expect(economy.hospitalizedUntil('u1', t0)).toBeNull();
+    economy.hospitalize('u2', 20, t0);
+    expect(economy.jailedUntil('u2', t0)).toBeNull();
+  });
+});
+
 describe('robbery', () => {
   it('steals a slice of the victim wallet on success', () => {
     economy.credit('victim', 9_000, 'admin_add'); // wallet 10.000

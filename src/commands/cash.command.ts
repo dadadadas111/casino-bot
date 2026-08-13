@@ -171,7 +171,7 @@ export const cashCommand: Command = {
             [
               `Số dư của bạn: **${formatVnd(cash.get(interaction.user.id))}**`,
               '',
-              `Dùng để: reset cooldown Ai Là Triệu Phú (2.000đ/lần), đổi sang xu (1đ = ${XU_PER_VND} xu qua \`/cash doixu\`), và các món premium sắp ra mắt.`,
+              `Dùng để: reset cooldown Ai Là Triệu Phú (500đ/lần), đổi sang xu (1đ = ${XU_PER_VND} xu qua \`/cash doixu\`), và các món premium sắp ra mắt.`,
               'Nạp bằng `/nap sotien:<VND>`: quét QR chuyển khoản, tiền vào ví sau vài giây.',
               'Lưu ý: chỉ đi một chiều, xu và tiền nạp không quy đổi ngược ra tiền thật.',
             ].join('\n'),

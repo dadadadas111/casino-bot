@@ -10,7 +10,7 @@ import {
   type Message,
 } from 'discord.js';
 
-export const QUIZ_RESET_PRICE_VND = 2_000;
+export const QUIZ_RESET_PRICE_VND = 500;
 import { cash, economy, quizHistory } from '../context.js';
 import { env } from '../config/env.js';
 import { formatVnd } from './cash.command.js';

@@ -7,9 +7,11 @@ import { duanguaComponents } from '../commands/duangua.command.js';
 import { weddingComponents } from '../commands/marry.command.js';
 import { honleComponents } from '../commands/honle.command.js';
 import { helpComponents } from '../commands/help.command.js';
+import { coquayComponents } from '../commands/coquay.command.js';
 
 const handlers: Record<string, ComponentHandler> = {
   help: helpComponents,
+  cq: coquayComponents,
   bj: blackjackComponents,
   keo: keoComponents,
   tp: trieuphuComponents,

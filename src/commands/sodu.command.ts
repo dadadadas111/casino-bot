@@ -25,6 +25,7 @@ export const soduCommand: Command = {
     const netText = net >= 0 ? `+${formatCoins(net)}` : `-${formatCoins(-net)}`;
     const spouse = economy.spouseOf(target.id);
     const jailed = economy.jailedUntil(target.id);
+    const hospitalized = economy.hospitalizedUntil(target.id);
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.gold)
@@ -42,6 +43,9 @@ export const soduCommand: Command = {
           value: [
             spouse ? `💍 Đã kết hôn với <@${spouse}>` : '🕊️ Độc thân vui tính',
             jailed ? `🚔 Đang ngồi tù, ra tù <t:${Math.floor(jailed.getTime() / 1000)}:R>` : null,
+            hospitalized
+              ? `🏥 Đang nằm viện, xuất viện <t:${Math.floor(hospitalized.getTime() / 1000)}:R>`
+              : null,
             ...buffs
               .activeList(target.id)
               .map(

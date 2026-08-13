@@ -9,12 +9,13 @@ import { startReportScheduler } from './report-scheduler.js';
 import { startSepayServer } from './sepay-server.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { activity, economy } from './context.js';
-import { BAIL_COST } from './services/economy.service.js';
+import { BAIL_COST, MEDICAL_FEE } from './services/economy.service.js';
 
-// While jailed, everything that moves money or plays games is off-limits.
-const JAIL_BLOCKED = new Set([
+// While jailed or hospitalised, everything that moves money or plays games
+// is off-limits.
+const DOWNTIME_BLOCKED = new Set([
   'blackjack', 'bj', 'taixiu', 'tx', 'baucua', 'bc', 'coinflip', 'cf', 'slots',
-  'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp',
+  'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp', 'coquay',
   'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon', 'honle',
 ]);
 
@@ -110,11 +111,19 @@ client.on(Events.InteractionCreate, async (interaction) => {
         activity.recordUser(interaction.guildId, interaction.user.id);
         activity.recordChannel(interaction.guildId, interaction.channelId);
       }
-      if (JAIL_BLOCKED.has(interaction.commandName)) {
+      if (DOWNTIME_BLOCKED.has(interaction.commandName)) {
         const release = economy.jailedUntil(interaction.user.id);
         if (release) {
           await interaction.reply({
             content: `🚔 Bạn đang ngồi tù, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Nộp phạt ${BAIL_COST.toLocaleString('vi-VN')} xu bằng \`/nopphat\` để ra sớm.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+        const discharge = economy.hospitalizedUntil(interaction.user.id);
+        if (discharge) {
+          await interaction.reply({
+            content: `🏥 Bạn đang nằm viện, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Trả viện phí ${MEDICAL_FEE.toLocaleString('vi-VN')} xu bằng \`/vienphi\` để ra sớm.`,
             flags: MessageFlags.Ephemeral,
           });
           return;

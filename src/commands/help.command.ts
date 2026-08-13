@@ -55,6 +55,7 @@ const PAGES: HelpPage[] = [
         '`/coinflip cuoc chon` : ngửa hay sấp, 50/50 sòng phẳng',
         '`/slots cuoc` : máy xèng, 7️⃣7️⃣7️⃣ ăn x100',
         '`/keo nguoi cuoc` : thách solo 1v1, ai thắng ăn cả',
+        '`/coquay cuoc` : cò quay Nga từ 2 người, ai dính đạn thì nằm viện, người sống chia tiền',
         '`/duangua` : mở trường đua, cả kênh đặt cửa theo tỷ lệ, ngựa chạy trực tiếp',
         '`/trieuphu` : 15 câu hỏi, 30 giây mỗi câu, tối đa 100.000 xu, ngày một lần',
         '`/xoso mua so` : vé số 00-99, quay 21h mỗi tối, không ai trúng thì hũ dồn',
@@ -86,7 +87,7 @@ const PAGES: HelpPage[] = [
         '`/nap sotien` : quét QR chuyển khoản (tối thiểu 10.000đ), vài giây sau tiền vào ví',
         '`/cash xem` : xem ví tiền nạp',
         '`/cash doixu sotien` : đổi tiền nạp sang xu, 1đ ăn 20 xu',
-        '-# Reset ghế nóng Triệu Phú 2.000đ. Tiền chỉ đi một chiều, xu không đổi ngược ra tiền thật.',
+        '-# Reset ghế nóng Triệu Phú chỉ 500đ. Tiền chỉ đi một chiều, xu không đổi ngược ra tiền thật.',
       ].join('\n'),
   },
   {
@@ -99,7 +100,8 @@ const PAGES: HelpPage[] = [
         '**Làm ăn phi pháp**',
         '`/trom nguoi` : móc ví người khác, 40% ăn 15% ví họ',
         '`/nopphat` : chi 2.000 xu ra tù sớm',
-        '-# Trượt kèo là bóc lịch 30 phút, ngồi tù thì đừng mơ chơi game hay tiêu tiền.',
+        '`/vienphi` : chi 3.000 xu xuất viện sớm sau khi trúng đạn cò quay',
+        '-# Ngồi tù 30 phút, nằm viện 20 phút, lúc đó cấm tiệt chơi game và tiêu tiền.',
         '',
         '**Mua sắm**',
         '`/shop` `/mua` `/tuido` `/dungdo` : xem hàng, xuống tiền, kiểm kê, xài đồ',
@@ -133,7 +135,8 @@ const PAGES: HelpPage[] = [
         '',
         '**Cho admin server**',
         '`/setprefix` : đổi prefix lệnh nhắn (hiện tại: `' + prefix + '`)',
-        '`/casino-admin cong|tru|dat|resetcd` : bơm xu, reset cooldown cho người chơi',
+        '`/doiten ten` : đổi tên hiển thị của bot trong server',
+        '`/casino-admin cong|tru|dat` : chỉnh xu cho người chơi (tối đa 10.000 mỗi lần)',
         '',
         env.ENABLE_PREFIX_COMMANDS === 'true'
           ? `**Gõ nhanh không cần slash**\n\`${prefix}tx 1k tai\` · \`${prefix}sl all\` · \`${prefix}dn\` · \`${prefix}sodu\` · \`${prefix}daily\`\n-# Mẹo: \`1k\`=1.000, \`all\`=tất tay, \`half\`=nửa ví. Bỏ trống tiền cược thì lặp lại lần trước.`

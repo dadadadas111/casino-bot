@@ -22,7 +22,10 @@ Bot Discord sòng bạc giải trí: blackjack, tài xỉu, bầu cua, tung đ�
 | `/cauhon` `/honle` `/lyhon` | Cầu hôn (cần 💍), tiệc cưới cho cả kênh mừng tiền 500 xu/khách, ly hôn mất phí |
 | `/help` | Hướng dẫn phân trang bằng nút: Bắt đầu / Trò chơi / Tiền bạc / Đời sống / Linh tinh |
 | `/nap sotien` | Nạp tiền thật qua QR VietQR (tối thiểu 10.000đ), webhook SePay tự cộng, chống trùng theo transaction id |
-| `/cash xem\|doixu\|nap` | Ví tiền nạp 💵 (VND, một chiều): đổi sang xu tỉ lệ 1đ = 20 xu, reset CD Triệu phú 2.000đ/lần |
+| `/cash xem\|doixu\|nap` | Ví tiền nạp 💵 (VND, một chiều): đổi sang xu tỉ lệ 1đ = 20 xu, reset CD Triệu phú 500đ/lần |
+| `/coquay cuoc` | Cò quay Nga từ 2 người: bàn chờ 45s, thay phiên bóp cò, nạn nhân nằm viện 20 phút và mất cược |
+| `/vienphi` | Trả 3.000 xu xuất viện sớm |
+| `/doiten ten` | Đổi biệt danh của bot trong server (cần quyền Quản lý biệt danh) |
 | `/patchnote xem\|config` | Ghi chú cập nhật, bot tự đăng khi lên bản mới, đổi kênh hoặc tắt được |
 | `/daily` | Điểm danh nhận 500 xu, chuỗi liên tục lên tối đa 1.000 xu/ngày (theo giờ VN) |
 | `/lamviec` (`/work`) | Làm việc kiếm 100-300 xu mỗi giờ, cooldown lưu trong DB |

@@ -164,6 +164,7 @@ function migrate(db: Db): void {
   ensureColumn('cash', 'INTEGER NOT NULL DEFAULT 0'); // premium currency, unit = VND
   ensureColumn('bank_balance', 'INTEGER NOT NULL DEFAULT 0');
   ensureColumn('jail_until');
+  ensureColumn('hospital_until');
   ensureColumn('last_rob');
   ensureColumn('married_to');
   ensureColumn('married_at');

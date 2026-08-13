@@ -34,6 +34,8 @@ export const ROB_MIN_VICTIM_WALLET = 500;
 export const ROB_TAKE_CAP = 10_000;
 export const JAIL_MINUTES = 30;
 export const BAIL_COST = 2_000;
+export const HOSPITAL_MINUTES = 20;
+export const MEDICAL_FEE = 3_000;
 export const DIVORCE_FEE = 1_000;
 
 export type RobOutcome =
@@ -397,6 +399,35 @@ export class EconomyService {
     if (!this.jailedUntil(userId, now)) return 'not_jailed';
     if (!this.debit(userId, BAIL_COST, 'bail')) return 'poor';
     this.db.prepare('UPDATE users SET jail_until = NULL WHERE user_id = ?').run(userId);
+    return 'ok';
+  }
+
+  // ---- Hospital: same shape as jail, different flavour of downtime ----
+
+  hospitalizedUntil(userId: string, now: Date = new Date()): Date | null {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT hospital_until FROM users WHERE user_id = ?')
+      .get(userId) as { hospital_until: string | null };
+    if (!row.hospital_until) return null;
+    const until = new Date(row.hospital_until);
+    return until.getTime() > now.getTime() ? until : null;
+  }
+
+  hospitalize(userId: string, minutes: number, now: Date = new Date()): Date {
+    this.ensureUser(userId);
+    const until = new Date(now.getTime() + minutes * 60 * 1000);
+    this.db
+      .prepare('UPDATE users SET hospital_until = ? WHERE user_id = ?')
+      .run(until.toISOString(), userId);
+    return until;
+  }
+
+  /** Pay the medical bill to be discharged immediately. */
+  payMedicalBill(userId: string, now: Date = new Date()): 'ok' | 'not_admitted' | 'poor' {
+    if (!this.hospitalizedUntil(userId, now)) return 'not_admitted';
+    if (!this.debit(userId, MEDICAL_FEE, 'medical')) return 'poor';
+    this.db.prepare('UPDATE users SET hospital_until = NULL WHERE user_id = ?').run(userId);
     return 'ok';
   }
 

@@ -146,10 +146,18 @@ export async function handleTextCommand(message: Message): Promise<void> {
   // Only real bot commands score the channel for the daily report.
   if (KNOWN_TEXT_COMMANDS.has(name)) {
     activity.recordChannel(message.guildId, message.channelId);
+    const exempt = name === 'help' || name === 'sodu' || name === 'xu';
     const release = economy.jailedUntil(userId);
-    if (release && name !== 'help' && name !== 'sodu' && name !== 'xu') {
+    if (release && !exempt) {
       await message.reply(
         `🚔 Đang ngồi tù thì gõ lệnh gì cũng vô ích, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Dùng \`/nopphat\` để ra sớm.`,
+      );
+      return;
+    }
+    const discharge = economy.hospitalizedUntil(userId);
+    if (discharge && !exempt) {
+      await message.reply(
+        `🏥 Đang nằm viện thì nghỉ ngơi đi, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Dùng \`/vienphi\` để ra sớm.`,
       );
       return;
     }

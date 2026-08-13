@@ -16,6 +16,7 @@ export const GAME_LABELS: Record<string, string> = {
   slots: 'Xèng',
   keo: 'Kèo 1v1',
   trieuphu: 'Triệu phú',
+  coquay: 'Cò quay Nga',
   duangua: 'Đua ngựa',
   xoso: 'Xổ số',
 };
@@ -55,6 +56,8 @@ export function typeLabel(entry: HistoryEntry): string {
       return entry.meta ? `Bị <@${entry.meta}> trộm` : 'Bị trộm';
     case 'bail':
       return 'Nộp phạt ra tù';
+    case 'medical':
+      return 'Trả viện phí';
     case 'divorce_fee':
       return 'Phí ly hôn';
     case 'item':
