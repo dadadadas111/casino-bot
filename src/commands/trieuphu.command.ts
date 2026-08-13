@@ -9,8 +9,11 @@ import {
   type ChatInputCommandInteraction,
   type Message,
 } from 'discord.js';
-import { economy, quizHistory } from '../context.js';
+
+export const QUIZ_RESET_PRICE_VND = 2_000;
+import { cash, economy, quizHistory } from '../context.js';
 import { env } from '../config/env.js';
+import { formatVnd } from './cash.command.js';
 import {
   type GameQuestion,
   LADDER,
@@ -181,7 +184,16 @@ export const trieuphuCommand: Command = {
     }
     if (!economy.canPlayQuiz(userId)) {
       await interaction.reply({
-        content: 'Hôm nay bạn đã ngồi ghế nóng rồi. Quay lại vào ngày mai nhé!',
+        content: `Hôm nay bạn đã ngồi ghế nóng rồi. Quay lại vào ngày mai, hoặc chơi lại ngay với ${formatVnd(QUIZ_RESET_PRICE_VND)} tiền nạp (bạn đang có ${formatVnd(cash.get(userId))}).`,
+        components: [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(componentId('tp', userId, 'reset'))
+              .setLabel(`Chơi lại ngay (${QUIZ_RESET_PRICE_VND.toLocaleString('vi-VN')}đ)`)
+              .setEmoji('⚡')
+              .setStyle(ButtonStyle.Danger),
+          ),
+        ],
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -235,6 +247,37 @@ export const trieuphuComponents: ComponentHandler = {
     if (interaction.user.id !== ownerId) {
       await interaction.reply({
         content: 'Ghế nóng này của người khác. Dùng `/trieuphu` để tự chơi nhé!',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
+    // Paid cooldown reset, charged in premium cash.
+    if (action === 'reset') {
+      if (sessions.has(ownerId) || pending.has(ownerId)) {
+        await interaction.reply({
+          content: 'Bạn đang trong ghế nóng rồi mà!',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      if (economy.canPlayQuiz(ownerId)) {
+        await interaction.reply({
+          content: 'Cooldown của bạn đang trống, gõ `/trieuphu` chơi luôn không mất tiền!',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      if (!cash.spend(ownerId, QUIZ_RESET_PRICE_VND, 'trieuphu_reset')) {
+        await interaction.reply({
+          content: `Không đủ tiền nạp (cần ${formatVnd(QUIZ_RESET_PRICE_VND)}, bạn có ${formatVnd(cash.get(ownerId))}). Xem cách nạp: \`/cash xem\``,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      economy.resetCooldown(ownerId, 'trieuphu');
+      await interaction.reply({
+        content: `⚡ Đã trừ ${formatVnd(QUIZ_RESET_PRICE_VND)} và reset ghế nóng! Gõ \`/trieuphu\` để chơi ngay.`,
         flags: MessageFlags.Ephemeral,
       });
       return;

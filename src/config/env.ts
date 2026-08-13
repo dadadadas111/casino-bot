@@ -11,6 +11,8 @@ const envSchema = z.object({
   // privileged intent to be toggled on in the Developer Portal first,
   // otherwise the bot fails to log in with "Used disallowed intents".
   ENABLE_PREFIX_COMMANDS: z.string().default('false'),
+  // Discord user id allowed to grant premium cash (manual top-ups).
+  BOT_OWNER_ID: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

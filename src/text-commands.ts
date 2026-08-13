@@ -146,6 +146,13 @@ export async function handleTextCommand(message: Message): Promise<void> {
   // Only real bot commands score the channel for the daily report.
   if (KNOWN_TEXT_COMMANDS.has(name)) {
     activity.recordChannel(message.guildId, message.channelId);
+    const release = economy.jailedUntil(userId);
+    if (release && name !== 'help' && name !== 'sodu' && name !== 'xu') {
+      await message.reply(
+        `🚔 Đang ngồi tù thì gõ lệnh gì cũng vô ích, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Dùng \`/nopphat\` để ra sớm.`,
+      );
+      return;
+    }
   }
 
   if (SLASH_ONLY.has(name)) {

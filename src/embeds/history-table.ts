@@ -45,6 +45,22 @@ export function typeLabel(entry: HistoryEntry): string {
       return 'Admin trừ';
     case 'admin_set':
       return 'Admin đặt số dư';
+    case 'bank_in':
+      return 'Gửi vào két';
+    case 'bank_out':
+      return 'Rút khỏi két';
+    case 'rob_in':
+      return entry.meta ? `Trộm được của <@${entry.meta}>` : 'Trộm được';
+    case 'rob_out':
+      return entry.meta ? `Bị <@${entry.meta}> trộm` : 'Bị trộm';
+    case 'bail':
+      return 'Nộp phạt ra tù';
+    case 'divorce_fee':
+      return 'Phí ly hôn';
+    case 'item':
+      return 'Mua đồ shop';
+    case 'gift_box':
+      return 'Mở hộp quà';
     default:
       return entry.type;
   }

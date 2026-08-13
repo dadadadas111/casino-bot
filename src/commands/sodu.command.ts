@@ -22,22 +22,32 @@ export const soduCommand: Command = {
     const profile = economy.getProfile(target.id);
     const net = profile.totalWon - profile.totalLost;
     const netText = net >= 0 ? `+${formatCoins(net)}` : `-${formatCoins(-net)}`;
+    const spouse = economy.spouseOf(target.id);
+    const jailed = economy.jailedUntil(target.id);
 
-    await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(COLORS.gold)
-          .setTitle(`💰 Ví của ${target.displayName}`)
-          .setThumbnail(target.displayAvatarURL())
-          .addFields(
-            { name: 'Số dư', value: formatCoins(profile.balance), inline: true },
-            { name: 'Hạng', value: `#${profile.rank}`, inline: true },
-            { name: 'Chuỗi điểm danh', value: `${profile.dailyStreak} ngày`, inline: true },
-            { name: 'Số ván đã chơi', value: `${profile.gamesPlayed}`, inline: true },
-            { name: 'Tổng thắng', value: formatCoins(profile.totalWon), inline: true },
-            { name: 'Lời/lỗ', value: netText, inline: true },
-          ),
-      ],
-    });
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.gold)
+      .setTitle(`💰 Ví của ${target.displayName}`)
+      .setThumbnail(target.displayAvatarURL())
+      .addFields(
+        { name: 'Ví', value: formatCoins(profile.balance), inline: true },
+        { name: 'Két ngân hàng', value: formatCoins(economy.getBank(target.id)), inline: true },
+        { name: 'Hạng', value: `#${profile.rank}`, inline: true },
+        { name: 'Chuỗi điểm danh', value: `${profile.dailyStreak} ngày`, inline: true },
+        { name: 'Số ván đã chơi', value: `${profile.gamesPlayed}`, inline: true },
+        { name: 'Lời/lỗ', value: netText, inline: true },
+        {
+          name: 'Tình trạng',
+          value: [
+            spouse ? `💍 Đã kết hôn với <@${spouse}>` : '🕊️ Độc thân vui tính',
+            jailed ? `🚔 Đang ngồi tù, ra tù <t:${Math.floor(jailed.getTime() / 1000)}:R>` : null,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+          inline: false,
+        },
+      );
+
+    await interaction.reply({ embeds: [embed] });
   },
 };

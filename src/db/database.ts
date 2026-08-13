@@ -80,6 +80,22 @@ CREATE TABLE IF NOT EXISTS report_config (
   tag_everyone INTEGER NOT NULL DEFAULT 1,
   last_sent_day TEXT
 );
+
+CREATE TABLE IF NOT EXISTS user_items (
+  user_id TEXT NOT NULL,
+  item TEXT NOT NULL,
+  qty INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, item)
+);
+
+CREATE TABLE IF NOT EXISTS cash_ledger (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  type TEXT NOT NULL,
+  meta TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;
 
 export function createDb(dbPath: string): Db {
@@ -96,14 +112,20 @@ export function createDb(dbPath: string): Db {
 
 /** Additive migrations for databases created before a column existed. */
 function migrate(db: Db): void {
-  const ensureColumn = (name: string): void => {
+  const ensureColumn = (name: string, ddl = 'TEXT'): void => {
     const exists = db
       .prepare("SELECT COUNT(*) AS n FROM pragma_table_info('users') WHERE name = ?")
       .get(name) as { n: number };
     if (!exists.n) {
-      db.exec(`ALTER TABLE users ADD COLUMN ${name} TEXT`);
+      db.exec(`ALTER TABLE users ADD COLUMN ${name} ${ddl}`);
     }
   };
   ensureColumn('last_work');
   ensureColumn('last_trieuphu');
+  ensureColumn('cash', 'INTEGER NOT NULL DEFAULT 0'); // premium currency, unit = VND
+  ensureColumn('bank_balance', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('jail_until');
+  ensureColumn('last_rob');
+  ensureColumn('married_to');
+  ensureColumn('married_at');
 }

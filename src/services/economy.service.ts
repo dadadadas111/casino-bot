@@ -26,6 +26,21 @@ export const WORK_COOLDOWN_MS = 60 * 60 * 1000;
 export const WORK_MIN = 100;
 export const WORK_MAX = 300;
 
+export const ROB_COOLDOWN_MS = 60 * 60 * 1000;
+export const ROB_SUCCESS_RATE = 0.4;
+export const ROB_TAKE_RATE = 0.15;
+export const ROB_MIN_VICTIM_WALLET = 500;
+export const ROB_TAKE_CAP = 10_000;
+export const JAIL_MINUTES = 30;
+export const BAIL_COST = 2_000;
+export const DIVORCE_FEE = 1_000;
+
+export type RobOutcome =
+  | { result: 'cooldown'; retryAt: Date }
+  | { result: 'victim_poor' }
+  | { result: 'success'; amount: number }
+  | { result: 'jailed'; releaseAt: Date };
+
 export interface WorkResult {
   ok: boolean;
   amount: number;
@@ -282,6 +297,179 @@ export class EconomyService {
       return entry;
     });
     return { entries, total };
+  }
+
+  // ---- Bank: money in the vault is safe from thieves ----
+
+  getBank(userId: string): number {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT bank_balance FROM users WHERE user_id = ?').get(userId) as {
+      bank_balance: number;
+    };
+    return row.bank_balance;
+  }
+
+  depositBank(userId: string, amount: number): boolean {
+    if (!Number.isInteger(amount) || amount <= 0) return false;
+    this.ensureUser(userId);
+    const run = this.db.transaction(() => {
+      const debited = this.db
+        .prepare('UPDATE users SET balance = balance - ? WHERE user_id = ? AND balance >= ?')
+        .run(amount, userId, amount);
+      if (debited.changes === 0) throw new Error('insufficient');
+      this.db
+        .prepare('UPDATE users SET bank_balance = bank_balance + ? WHERE user_id = ?')
+        .run(amount, userId);
+      this.logTx(userId, -amount, 'bank_in', null);
+    });
+    try {
+      run();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  withdrawBank(userId: string, amount: number): boolean {
+    if (!Number.isInteger(amount) || amount <= 0) return false;
+    this.ensureUser(userId);
+    const run = this.db.transaction(() => {
+      const taken = this.db
+        .prepare(
+          'UPDATE users SET bank_balance = bank_balance - ? WHERE user_id = ? AND bank_balance >= ?',
+        )
+        .run(amount, userId, amount);
+      if (taken.changes === 0) throw new Error('insufficient');
+      this.db.prepare('UPDATE users SET balance = balance + ? WHERE user_id = ?').run(amount, userId);
+      this.logTx(userId, amount, 'bank_out', null);
+    });
+    try {
+      run();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ---- Jail ----
+
+  /** Release time when jailed, else null. */
+  jailedUntil(userId: string, now: Date = new Date()): Date | null {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT jail_until FROM users WHERE user_id = ?').get(userId) as {
+      jail_until: string | null;
+    };
+    if (!row.jail_until) return null;
+    const until = new Date(row.jail_until);
+    return until.getTime() > now.getTime() ? until : null;
+  }
+
+  jail(userId: string, minutes: number, now: Date = new Date()): Date {
+    this.ensureUser(userId);
+    const until = new Date(now.getTime() + minutes * 60 * 1000);
+    this.db
+      .prepare('UPDATE users SET jail_until = ? WHERE user_id = ?')
+      .run(until.toISOString(), userId);
+    return until;
+  }
+
+  bail(userId: string, now: Date = new Date()): 'ok' | 'not_jailed' | 'poor' {
+    if (!this.jailedUntil(userId, now)) return 'not_jailed';
+    if (!this.debit(userId, BAIL_COST, 'bail')) return 'poor';
+    this.db.prepare('UPDATE users SET jail_until = NULL WHERE user_id = ?').run(userId);
+    return 'ok';
+  }
+
+  // ---- Robbery: wallet coins only, the bank is untouchable ----
+
+  robCooldownRemaining(userId: string, now: Date = new Date()): number {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT last_rob FROM users WHERE user_id = ?').get(userId) as {
+      last_rob: string | null;
+    };
+    if (!row.last_rob) return 0;
+    const readyAt = Date.parse(row.last_rob) + ROB_COOLDOWN_MS;
+    return Math.max(0, readyAt - now.getTime());
+  }
+
+  /** roll is injectable for tests; < ROB_SUCCESS_RATE means success. */
+  tryRob(thiefId: string, victimId: string, now: Date = new Date(), roll = Math.random()): RobOutcome {
+    const remaining = this.robCooldownRemaining(thiefId, now);
+    if (remaining > 0) {
+      return { result: 'cooldown', retryAt: new Date(now.getTime() + remaining) };
+    }
+    const victimWallet = this.getBalance(victimId);
+    if (victimWallet < ROB_MIN_VICTIM_WALLET) return { result: 'victim_poor' };
+
+    this.db
+      .prepare('UPDATE users SET last_rob = ? WHERE user_id = ?')
+      .run(now.toISOString(), thiefId);
+
+    if (roll < ROB_SUCCESS_RATE) {
+      const amount = Math.min(
+        ROB_TAKE_CAP,
+        Math.max(100, Math.floor(victimWallet * ROB_TAKE_RATE)),
+      );
+      const run = this.db.transaction(() => {
+        const taken = this.db
+          .prepare('UPDATE users SET balance = balance - ? WHERE user_id = ? AND balance >= ?')
+          .run(amount, victimId, amount);
+        if (taken.changes === 0) throw new Error('race');
+        this.db
+          .prepare('UPDATE users SET balance = balance + ? WHERE user_id = ?')
+          .run(amount, thiefId);
+        this.logTx(victimId, -amount, 'rob_out', thiefId);
+        this.logTx(thiefId, amount, 'rob_in', victimId);
+      });
+      try {
+        run();
+        return { result: 'success', amount };
+      } catch {
+        return { result: 'victim_poor' };
+      }
+    }
+    return { result: 'jailed', releaseAt: this.jail(thiefId, JAIL_MINUTES, now) };
+  }
+
+  // ---- Marriage ----
+
+  spouseOf(userId: string): string | null {
+    this.ensureUser(userId);
+    const row = this.db.prepare('SELECT married_to FROM users WHERE user_id = ?').get(userId) as {
+      married_to: string | null;
+    };
+    return row.married_to;
+  }
+
+  marry(a: string, b: string, now: Date = new Date()): boolean {
+    this.ensureUser(a);
+    this.ensureUser(b);
+    if (this.spouseOf(a) || this.spouseOf(b)) return false;
+    const run = this.db.transaction(() => {
+      const stamp = now.toISOString();
+      this.db
+        .prepare('UPDATE users SET married_to = ?, married_at = ? WHERE user_id = ?')
+        .run(b, stamp, a);
+      this.db
+        .prepare('UPDATE users SET married_to = ?, married_at = ? WHERE user_id = ?')
+        .run(a, stamp, b);
+    });
+    run();
+    return true;
+  }
+
+  /** Divorce fee comes out of the initiator's wallet. */
+  divorce(userId: string): { ok: boolean; ex?: string; reason?: 'single' | 'poor' } {
+    const ex = this.spouseOf(userId);
+    if (!ex) return { ok: false, reason: 'single' };
+    if (!this.debit(userId, DIVORCE_FEE, 'divorce_fee')) return { ok: false, reason: 'poor' };
+    const run = this.db.transaction(() => {
+      this.db
+        .prepare('UPDATE users SET married_to = NULL, married_at = NULL WHERE user_id IN (?, ?)')
+        .run(userId, ex);
+    });
+    run();
+    return { ok: true, ex };
   }
 
   topByBalance(limit: number): Array<{ userId: string; balance: number }> {

@@ -18,6 +18,11 @@ import { helpCommand } from './help.command.js';
 import { adminCommand } from './admin.command.js';
 import { setprefixCommand } from './setprefix.command.js';
 import { bantinCommand } from './bantin.command.js';
+import { bankCommand } from './bank.command.js';
+import { nopphatCommand, tromCommand } from './trom.command.js';
+import { muaCommand, shopCommand, tuidoCommand } from './shop.command.js';
+import { cashCommand } from './cash.command.js';
+import { cauhonCommand, lyhonCommand } from './marry.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
@@ -51,6 +56,15 @@ const all: Command[] = [
   adminCommand,
   setprefixCommand,
   bantinCommand,
+  bankCommand,
+  tromCommand,
+  nopphatCommand,
+  shopCommand,
+  muaCommand,
+  tuidoCommand,
+  cashCommand,
+  cauhonCommand,
+  lyhonCommand,
   ...tuongtacCommands,
   alias(blackjackCommand, 'bj'),
   alias(taixiuCommand, 'tx'),

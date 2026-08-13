@@ -4,12 +4,14 @@ import { blackjackComponents } from '../commands/blackjack.command.js';
 import { keoComponents } from '../commands/keo.command.js';
 import { trieuphuComponents } from '../commands/trieuphu.command.js';
 import { duanguaComponents } from '../commands/duangua.command.js';
+import { weddingComponents } from '../commands/marry.command.js';
 
 const handlers: Record<string, ComponentHandler> = {
   bj: blackjackComponents,
   keo: keoComponents,
   tp: trieuphuComponents,
   dn: duanguaComponents,
+  wed: weddingComponents,
 };
 
 export async function routeComponent(

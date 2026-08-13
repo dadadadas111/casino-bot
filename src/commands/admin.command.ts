@@ -9,6 +9,10 @@ import { economy } from '../context.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
+// Anti-inflation caps: admins juice the economy in small doses only.
+export const ADMIN_ADD_CAP = 10_000;
+export const ADMIN_SET_CAP = 100_000;
+
 export const adminCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('casino-admin')
@@ -101,6 +105,21 @@ export const adminCommand: Command = {
     }
 
     const amount = interaction.options.getInteger('soxu', true);
+
+    if ((sub === 'cong' || sub === 'tru') && amount > ADMIN_ADD_CAP) {
+      await interaction.reply({
+        content: `Tối đa ${formatCoins(ADMIN_ADD_CAP)} mỗi lần cộng/trừ, để kinh tế server không vỡ trận.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    if (sub === 'dat' && amount > ADMIN_SET_CAP) {
+      await interaction.reply({
+        content: `Số dư đặt tối đa là ${formatCoins(ADMIN_SET_CAP)}.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
 
     let action: string;
     if (sub === 'cong') {

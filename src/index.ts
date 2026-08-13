@@ -6,7 +6,15 @@ import { tryUse } from './services/cooldown.service.js';
 import { handleTextCommand } from './text-commands.js';
 import { startLotteryScheduler } from './lottery-scheduler.js';
 import { startReportScheduler } from './report-scheduler.js';
-import { activity } from './context.js';
+import { activity, economy } from './context.js';
+import { BAIL_COST } from './services/economy.service.js';
+
+// While jailed, everything that moves money or plays games is off-limits.
+const JAIL_BLOCKED = new Set([
+  'blackjack', 'bj', 'taixiu', 'tx', 'baucua', 'bc', 'coinflip', 'cf', 'slots',
+  'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp',
+  'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon',
+]);
 
 // Message prefix commands need the privileged MessageContent intent (portal
 // toggle required), so they sit behind an env flag to avoid login crashes.
@@ -97,6 +105,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (interaction.inGuild() && interaction.channelId) {
         activity.recordUser(interaction.guildId, interaction.user.id);
         activity.recordChannel(interaction.guildId, interaction.channelId);
+      }
+      if (JAIL_BLOCKED.has(interaction.commandName)) {
+        const release = economy.jailedUntil(interaction.user.id);
+        if (release) {
+          await interaction.reply({
+            content: `🚔 Bạn đang ngồi tù, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Nộp phạt ${BAIL_COST.toLocaleString('vi-VN')} xu bằng \`/nopphat\` để ra sớm.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
       }
       const cooldown = COOLDOWNS[interaction.commandName];
       if (cooldown) {
