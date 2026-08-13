@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, luck } from '../context.js';
 import { DICE_EMOJI, rollTaiXiu, taiXiuPayout } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
 import { placeBetOrReply, resultLine } from './bet-helpers.js';
@@ -37,7 +37,11 @@ export const taixiuCommand: Command = {
     });
     await sleep(1500);
 
-    const result = rollTaiXiu();
+    const result = luck.favor(
+      interaction.user.id,
+      () => rollTaiXiu(),
+      (r) => taiXiuPayout(r, choice, bet) > 0,
+    );
     const payout = taiXiuPayout(result, choice, bet);
     economy.settleGame(interaction.user.id, bet, payout, 'taixiu');
 

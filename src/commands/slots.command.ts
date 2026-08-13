@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, luck } from '../context.js';
 import { SLOT_TRIPLE_PAYOUT, slotsPayout, spinSlots } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
 import { placeBetOrReply, resultLine } from './bet-helpers.js';
@@ -26,7 +26,11 @@ export const slotsCommand: Command = {
     });
     await sleep(1500);
 
-    const result = spinSlots();
+    const result = luck.favor(
+      interaction.user.id,
+      () => spinSlots(),
+      (r) => r.multiplier > 1,
+    );
     const payout = slotsPayout(result, bet);
     economy.settleGame(interaction.user.id, bet, payout, 'slots');
 

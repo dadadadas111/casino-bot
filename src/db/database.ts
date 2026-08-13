@@ -91,6 +91,11 @@ CREATE TABLE IF NOT EXISTS user_items (
   PRIMARY KEY (user_id, item)
 );
 
+CREATE TABLE IF NOT EXISTS user_luck (
+  user_id TEXT PRIMARY KEY,
+  factor REAL NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_buffs (
   user_id TEXT NOT NULL,
   buff TEXT NOT NULL,

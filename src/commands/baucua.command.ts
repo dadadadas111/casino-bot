@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, luck } from '../context.js';
 import {
   BAU_CUA_SYMBOLS,
   type BauCuaSymbol,
@@ -47,7 +47,11 @@ export const baucuaCommand: Command = {
     });
     await sleep(1500);
 
-    const result = rollBauCua(choice);
+    const result = luck.favor(
+      interaction.user.id,
+      () => rollBauCua(choice),
+      (r) => r.matches > 0,
+    );
     const payout = bauCuaPayout(result, bet);
     economy.settleGame(interaction.user.id, bet, payout, 'baucua');
 

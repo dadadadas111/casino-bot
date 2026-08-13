@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, luck } from '../context.js';
 import { coinflipPayout, flipCoin } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
 import { placeBetOrReply, resultLine } from './bet-helpers.js';
@@ -37,7 +37,11 @@ export const coinflipCommand: Command = {
     });
     await sleep(1200);
 
-    const result = flipCoin();
+    const result = luck.favor(
+      interaction.user.id,
+      () => flipCoin(),
+      (r) => r.side === choice,
+    );
     const payout = coinflipPayout(result, choice, bet);
     economy.settleGame(interaction.user.id, bet, payout, 'coinflip');
 

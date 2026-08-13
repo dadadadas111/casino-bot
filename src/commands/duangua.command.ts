@@ -14,7 +14,7 @@ import {
   type ModalSubmitInteraction,
   type SendableChannels,
 } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, luck } from '../context.js';
 import {
   HORSE_COUNT,
   NUM_EMOJI,
@@ -194,7 +194,15 @@ async function runRace(channelId: string): Promise<void> {
   }
 
   try {
-    const winner = pickWinner(session.horses);
+    // House-banked payouts, so a favoured punter's redo costs no other player.
+    const favoured = [...session.bets.values()].find((b) => luck.get(b.userId) > 0);
+    const winner = favoured
+      ? luck.favor(
+          favoured.userId,
+          () => pickWinner(session.horses),
+          (w) => w === favoured.horse,
+        )
+      : pickWinner(session.horses);
     const positions = Array<number>(HORSE_COUNT).fill(0);
 
     for (let frame = 1; frame <= FRAMES; frame++) {

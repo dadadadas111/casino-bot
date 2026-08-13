@@ -12,6 +12,7 @@ import { BuffService } from './services/buff.service.js';
 import { TopupService } from './services/topup.service.js';
 import { DashboardService } from './services/dashboard.service.js';
 import { ProfileService } from './services/profile.service.js';
+import { LuckService } from './services/luck.service.js';
 
 export const db = createDb(env.DB_PATH);
 export const buffs = new BuffService(db);
@@ -26,3 +27,4 @@ export const items = new ItemsService(db);
 export const topups = new TopupService(db, cash);
 export const dashboard = new DashboardService(db);
 export const profiles = new ProfileService(db);
+export const luck = new LuckService(db);
