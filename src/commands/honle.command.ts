@@ -38,12 +38,22 @@ interface Ceremony {
 const ceremonies = new Map<string, Ceremony>();
 
 function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBuilder {
-  const shown = [...c.guests.values()].slice(0, 15);
+  const all = [...c.guests.values()];
+  const shown = all.slice(0, closed ? 20 : 15);
+  const overflow = all.length - shown.length;
+  // While the party runs, keep it compact; at closing time read out the book.
   const guestList =
-    c.guests.size > 0
-      ? shown.map((g) => `${g.gifted ? '🎁' : '🥂'} ${g.name}`).join(', ') +
-        (c.guests.size > 15 ? ` và ${c.guests.size - 15} người nữa` : '')
-      : 'Chưa có khách nào tới dự.';
+    all.length === 0
+      ? closed
+        ? 'Không một ai tới. Buồn thật sự. 🥲'
+        : 'Chưa có khách nào tới dự.'
+      : closed
+        ? shown
+            .map((g) => (g.gifted ? `🎁 **${g.name}**` : `🥢 **${g.name}** (ăn chực)`))
+            .join('\n') + (overflow > 0 ? `\n… và ${overflow} người nữa` : '')
+        : shown.map((g) => `${g.gifted ? '🎁' : '🥢'} ${g.name}`).join(', ') +
+          (overflow > 0 ? ` và ${overflow} người nữa` : '');
+  const freeloaders = all.filter((g) => !g.gifted).length;
   const embed = new EmbedBuilder()
     .setColor(COLORS.gold)
     .setTitle(closed ? '💒 Hôn lễ đã kết thúc' : '💒 HÔN LỄ ĐANG DIỄN RA 💒')
@@ -52,14 +62,18 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
         `Hôm nay, <@${c.hostId}> và <@${c.spouseId}> tổ chức tiệc cưới tại sòng bạc!`,
         '',
         closed
-          ? `Cảm ơn **${c.guests.size}** vị khách đã tới chung vui.`
-          : `🎁 Mừng cưới ${formatCoins(GIFT_AMOUNT)}, hoặc 🥂 dự tiệc tay không cũng được, miễn là có mặt! Tiệc tan <t:${Math.floor(c.endsAt / 1000)}:R>.`,
+          ? `Tiệc tàn, cỗ hết. Cảm ơn **${c.guests.size}** vị khách đã tới chung vui (kể cả mấy người tới cho có mặt).`
+          : `🎁 Mừng cưới ${formatCoins(GIFT_AMOUNT)}, hoặc 🥢 bấm ăn chực nếu túi rỗng, miễn là có mặt! Tiệc tan <t:${Math.floor(c.endsAt / 1000)}:R>.`,
       ].join('\n'),
     )
     .addFields(
       { name: '🎁 Tiền mừng nhận được', value: formatCoins(c.giftTotal), inline: true },
-      { name: '👥 Khách dự', value: `${c.guests.size}`, inline: true },
-      { name: 'Danh sách khách', value: guestList },
+      {
+        name: '👥 Khách dự',
+        value: `${c.guests.size} (${freeloaders} ăn chực)`,
+        inline: true,
+      },
+      { name: closed ? '📖 Sổ ghi lễ' : 'Danh sách khách', value: guestList },
     );
   if (gif) embed.setImage(gif);
   return embed;
@@ -133,8 +147,8 @@ export const honleCommand: Command = {
             .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
             .setCustomId(componentId('hl', hostId, 'attend'))
-            .setLabel('Dự tiệc (miễn phí)')
-            .setEmoji('🥂')
+            .setLabel('Ăn chực')
+            .setEmoji('🥢')
             .setStyle(ButtonStyle.Secondary),
         ),
       ],
@@ -170,7 +184,9 @@ export const honleComponents: ComponentHandler = {
     // Attending first then gifting is fine; gifting twice is not.
     if (existing?.gifted || (existing && action === 'attend')) {
       await interaction.reply({
-        content: existing.gifted ? 'Bạn mừng cưới rồi, tham gì nữa!' : 'Bạn đang ở trong tiệc rồi!',
+        content: existing.gifted
+          ? 'Bạn mừng cưới rồi, tham gì nữa!'
+          : 'Đang ăn chực rồi còn đòi suất nữa à!',
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -186,7 +202,7 @@ export const honleComponents: ComponentHandler = {
 
     if (!economy.debit(guestId, GIFT_AMOUNT, 'wedding_gift', hostId)) {
       await interaction.reply({
-        content: `Không đủ ${formatCoins(GIFT_AMOUNT)} để mừng cưới. Bấm 🥂 dự tiệc tay không cũng được, cô dâu chú rể không giận đâu!`,
+        content: `Không đủ ${formatCoins(GIFT_AMOUNT)} để mừng cưới. Thôi bấm 🥢 **Ăn chực** đi, cô dâu chú rể không đuổi đâu!`,
         flags: MessageFlags.Ephemeral,
       });
       return;

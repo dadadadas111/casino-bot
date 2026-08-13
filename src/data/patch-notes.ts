@@ -13,7 +13,7 @@ export const PATCH_NOTES: PatchNote[] = [
     title: 'Sửa vặt sau ngày ra mắt',
     changes: [
       '💵 Nạp tiền xong bot báo ngay tại kênh bạn gõ `/nap`, không còn im lặng khi tài khoản chặn tin nhắn riêng',
-      '🥂 **Tiệc cưới**: thêm nút dự tiệc miễn phí, hết tiền vẫn vào ăn cỗ được',
+      '🥢 **Tiệc cưới**: thêm nút **Ăn chực** cho khách rỗng túi, cuối tiệc bot đọc sổ ghi lễ và bêu tên ai tới ăn chùa',
     ],
   },
   {
