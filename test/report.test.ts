@@ -95,6 +95,18 @@ describe('ReportService data', () => {
     expect(top.map((u) => u.userId)).toEqual(['rich', 'mid']);
   });
 
+  it('builds player profiles with salient facts', () => {
+    economy.credit('u1', 1_000_000, 'admin_add');
+    economy.debit('u1', 100, 'bet', 'taixiu');
+    economy.settleGame('u1', 100, 20_000, 'taixiu');
+    activity.recordUser('g1', 'u1');
+    const [profile] = reports.playerProfiles('g1', 10);
+    expect(profile.userId).toBe('u1');
+    expect(profile.facts.join(' | ')).toContain('Được admin bơm tổng 1.000.000 xu qua 1 lần');
+    expect(profile.facts.join(' | ')).toContain('+20.000 xu từ Tài xỉu');
+    expect(profile.facts.join(' | ')).toContain('Tổng lời cờ bạc +19.900 xu');
+  });
+
   it('summarizes 24h game stats and movers', () => {
     activity.recordUser('g1', 'u1');
     activity.recordUser('g1', 'u2');

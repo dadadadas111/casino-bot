@@ -1,6 +1,7 @@
 import type { Db } from '../db/database.js';
 import { vnDay } from './economy.service.js';
 import { vnHour } from './lottery.service.js';
+import { GAME_LABELS } from '../embeds/history-table.js';
 
 export interface ReportConfig {
   guildId: string;
@@ -20,6 +21,12 @@ export interface GameStat {
 export interface Mover {
   userId: string;
   net: number;
+}
+
+export interface PlayerProfile {
+  userId: string;
+  balance: number;
+  facts: string[]; // human-readable Vietnamese data points, most salient first
 }
 
 const DEFAULTS = { enabled: true, hour: 10, channelId: null, tagEveryone: true };
@@ -99,6 +106,69 @@ export class ReportService {
       )
       .all(guildId, limit) as Array<{ user_id: string; balance: number }>;
     return rows.map((r) => ({ userId: r.user_id, balance: r.balance }));
+  }
+
+  /** Top players with the raw material for witty per-player commentary. */
+  playerProfiles(guildId: string, limit: number): PlayerProfile[] {
+    const fmt = (n: number): string => n.toLocaleString('vi-VN');
+    return this.topUsers(guildId, limit).map(({ userId, balance }) => {
+      const facts: string[] = [`Số dư hiện tại ${fmt(balance)} xu`];
+
+      const user = this.db
+        .prepare('SELECT daily_streak, total_won, total_lost, games_played FROM users WHERE user_id = ?')
+        .get(userId) as {
+        daily_streak: number;
+        total_won: number;
+        total_lost: number;
+        games_played: number;
+      };
+
+      const admin = this.db
+        .prepare(
+          `SELECT COUNT(*) AS n, SUM(amount) AS s FROM transactions
+           WHERE user_id = ? AND type IN ('admin_add', 'admin_set') AND amount > 0`,
+        )
+        .get(userId) as { n: number; s: number | null };
+      if (admin.n > 0 && (admin.s ?? 0) > 0) {
+        facts.push(`Được admin bơm tổng ${fmt(admin.s!)} xu qua ${admin.n} lần`);
+      }
+
+      if (user.daily_streak >= 2) {
+        facts.push(`Chuỗi điểm danh ${user.daily_streak} ngày liên tục`);
+      }
+
+      const biggest = this.db
+        .prepare(
+          `SELECT amount, meta FROM transactions
+           WHERE user_id = ? AND type = 'payout' ORDER BY amount DESC LIMIT 1`,
+        )
+        .get(userId) as { amount: number; meta: string | null } | undefined;
+      if (biggest && biggest.amount > 0) {
+        facts.push(
+          `Cú thắng đậm nhất: +${fmt(biggest.amount)} xu từ ${GAME_LABELS[biggest.meta ?? ''] ?? biggest.meta ?? 'trò bí ẩn'}`,
+        );
+      }
+
+      const favorite = this.db
+        .prepare(
+          `SELECT meta, COUNT(*) AS n FROM transactions
+           WHERE user_id = ? AND type = 'bet' GROUP BY meta ORDER BY n DESC LIMIT 1`,
+        )
+        .get(userId) as { meta: string; n: number } | undefined;
+      if (favorite && favorite.n >= 3) {
+        facts.push(`Chơi ${GAME_LABELS[favorite.meta] ?? favorite.meta} nhiều nhất (${favorite.n} lượt)`);
+      }
+
+      const net = user.total_won - user.total_lost;
+      if (net !== 0) {
+        facts.push(
+          net > 0 ? `Tổng lời cờ bạc +${fmt(net)} xu` : `Tổng lỗ cờ bạc -${fmt(-net)} xu`,
+        );
+      }
+      facts.push(`Đã chơi ${user.games_played} ván`);
+
+      return { userId, balance, facts };
+    });
   }
 
   guildPlayerCount(guildId: string): number {

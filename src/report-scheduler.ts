@@ -1,25 +1,52 @@
 import { EmbedBuilder, type Client } from 'discord.js';
 import { activity, lottery, reports } from './context.js';
+import { env } from './config/env.js';
+import { vnDay } from './services/economy.service.js';
+import { generateComments } from './services/commentary.service.js';
 import { GAME_LABELS } from './embeds/history-table.js';
 import { COLORS, formatCoins } from './embeds/format.js';
 
 const CHECK_INTERVAL_MS = 60_000;
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export function buildReportEmbed(guildId: string, guildName: string): EmbedBuilder {
-  const top = reports.topUsers(guildId, 10);
+// One AI commentary generation per guild per day; /bantin xem reuses it.
+const commentCache = new Map<string, string[]>();
+
+async function commentsFor(guildId: string, facts: string[][]): Promise<string[]> {
+  const fallback = facts.map((f) => f[1] ?? f[0] ?? '');
+  if (!env.DEEPSEEK_API_KEY || facts.length === 0) return fallback;
+  const cacheKey = `${guildId}:${vnDay(new Date())}:${facts.length}`;
+  const cached = commentCache.get(cacheKey);
+  if (cached) return cached;
+  const generated = await generateComments(
+    env.DEEPSEEK_API_KEY,
+    facts.map((f) => ({ facts: f })),
+  );
+  const comments = generated ?? fallback;
+  commentCache.set(cacheKey, comments);
+  if (commentCache.size > 200) commentCache.clear();
+  return comments;
+}
+
+export async function buildReportEmbed(guildId: string, guildName: string): Promise<EmbedBuilder> {
+  const top = reports.playerProfiles(guildId, 10);
   const players = reports.guildPlayerCount(guildId);
   const games = reports.gameStats24h();
   const movers = reports.topMovers24h(guildId);
   const jackpot = lottery.getJackpot();
 
+  const comments = await commentsFor(
+    guildId,
+    top.map((p) => p.facts),
+  );
   const topText =
     top.length > 0
       ? top
-          .map(
-            (u, i) =>
-              `${MEDALS[i] ?? `**${i + 1}.**`} <@${u.userId}> : ${formatCoins(u.balance)}`,
-          )
+          .map((u, i) => {
+            const line = `${MEDALS[i] ?? `**${i + 1}.**`} <@${u.userId}> : ${formatCoins(u.balance)}`;
+            const comment = comments[i];
+            return comment ? `${line}\n-# ${comment}` : line;
+          })
           .join('\n')
       : 'Chưa có ai chơi. Gõ `/help` để bắt đầu!';
 
@@ -46,12 +73,15 @@ export function buildReportEmbed(guildId: string, guildName: string): EmbedBuild
     month: '2-digit',
   }).format(new Date());
 
+  // Top-10 with commentary can exceed the 1024-char field cap, so it lives
+  // in the description (4096).
   return new EmbedBuilder()
     .setColor(COLORS.gold)
     .setTitle(`📰 Bản tin sòng bạc ${today} · ${guildName}`)
-    .setDescription(`👥 Người chơi trong server: **${players}**`)
+    .setDescription(
+      `👥 Người chơi trong server: **${players}**\n\n🏆 **Top 10 đại gia**\n${topText}`,
+    )
     .addFields(
-      { name: '🏆 Top 10 đại gia', value: topText },
       {
         name: `🎮 24h qua: ${totalBets} lượt cược (toàn sòng)`,
         value: [gamesText, ...moverLines].join('\n'),
@@ -82,7 +112,7 @@ async function sendReport(client: Client, guildId: string): Promise<boolean> {
       if (!channel?.isSendable()) continue;
       await channel.send({
         content: config.tagEveryone ? '@everyone Bản tin sòng bạc hôm nay đã ra lò! 📰' : undefined,
-        embeds: [buildReportEmbed(guildId, guild.name)],
+        embeds: [await buildReportEmbed(guildId, guild.name)],
         allowedMentions: config.tagEveryone ? { parse: ['everyone'] } : { parse: [] },
       });
       return true;

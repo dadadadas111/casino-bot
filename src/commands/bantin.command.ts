@@ -65,8 +65,10 @@ export const bantinCommand: Command = {
     }
 
     if (interaction.options.getSubcommand() === 'xem') {
-      await interaction.reply({
-        embeds: [buildReportEmbed(interaction.guildId, interaction.guild.name)],
+      // AI commentary can take a few seconds on the first build of the day.
+      await interaction.deferReply();
+      await interaction.editReply({
+        embeds: [await buildReportEmbed(interaction.guildId, interaction.guild.name)],
       });
       return;
     }
