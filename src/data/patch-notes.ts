@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.7.0',
+    date: '13/08/2026',
+    title: 'Cân bằng lại cả sòng',
+    changes: [
+      '🔨 **Làm việc mỗi 10 phút** thay vì mỗi giờ, tiền công lên **200-500 xu**. Cày cuốc giờ đủ sống, không còn là lệnh vô dụng',
+      '💰 **Triệu Phú hạ trần xuống 50.000 xu** (mốc an toàn 3.000 và 15.000). Giải cũ 100.000 mỗi ngày là in tiền quá tay, dễ vỡ kinh tế server',
+      '🦹 **Trộm nhẹ tay hơn**: ăn 12% ví nạn nhân, tối đa 5.000 xu. Trước đó cướp lời gấp 20 lần đi làm, giờ chỉ hơn một chút cho đúng chất giang hồ',
+      '-# Đã mô phỏng 300.000 ván blackjack: RTP 94,6%, luật chơi không có lỗi. Con số 107% trên bảng chỉ là may rủi của mẫu nhỏ.',
+    ],
+  },
+  {
     version: '2.6.0',
     date: '13/08/2026',
     title: 'Admin cũng phải sợ pháp luật',

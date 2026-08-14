@@ -73,7 +73,7 @@ describe('ProfileService', () => {
     economy.tryRob('thief', 'victim', t0, 0.1);
     const p = profiles.get('thief');
     expect(p.robsWon).toBe(1);
-    expect(p.robLoot).toBe(1_500);
+    expect(p.robLoot).toBe(1_200);
     expect(profiles.get('victim').robsSuffered).toBe(1);
   });
 

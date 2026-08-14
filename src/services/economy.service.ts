@@ -23,15 +23,17 @@ export interface DailyResult {
   alreadyClaimed: boolean;
 }
 
-export const WORK_COOLDOWN_MS = 60 * 60 * 1000;
-export const WORK_MIN = 100;
-export const WORK_MAX = 300;
+// Work is the anti-bankruptcy floor: frequent, small, and safe.
+export const WORK_COOLDOWN_MS = 10 * 60 * 1000;
+export const WORK_MIN = 200;
+export const WORK_MAX = 500;
 
+// Crime should pay a little more than honest work, not twenty times more.
 export const ROB_COOLDOWN_MS = 60 * 60 * 1000;
 export const ROB_SUCCESS_RATE = 0.4;
-export const ROB_TAKE_RATE = 0.15;
+export const ROB_TAKE_RATE = 0.12;
 export const ROB_MIN_VICTIM_WALLET = 500;
-export const ROB_TAKE_CAP = 10_000;
+export const ROB_TAKE_CAP = 5_000;
 export const JAIL_DURATION_MS = 5 * 60_000; // 5 phút
 export const HOSPITAL_DURATION_MS = 3 * 60_000 + 36_000; // 3 phút 36 giây
 /** Release fees scale with how often you reoffend; the tally clears after a day. */

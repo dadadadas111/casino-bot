@@ -277,7 +277,7 @@ export const blackjackComponents: ComponentHandler = {
         });
         return;
       }
-      if (!economy.debit(session.userId, session.bet, 'bet', 'blackjack_double')) {
+      if (!economy.debit(session.userId, session.bet, 'bet', 'blackjack')) {
         await interaction.reply({
           content: 'Không đủ xu để gấp đôi tiền cược.',
           flags: MessageFlags.Ephemeral,

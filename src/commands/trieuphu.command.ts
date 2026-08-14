@@ -171,7 +171,7 @@ function armTimer(session: QuizSession): void {
 export const trieuphuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('trieuphu')
-    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 100.000 xu, miễn phí 1 lần mỗi ngày'),
+    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 50.000 xu, miễn phí 1 lần mỗi ngày'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const userId = interaction.user.id;
 

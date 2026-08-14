@@ -128,9 +128,9 @@ describe('robbery', () => {
     const outcome = economy.tryRob('thief', 'victim', t0, 0.1);
     expect(outcome.result).toBe('success');
     if (outcome.result === 'success') {
-      expect(outcome.amount).toBe(1_500); // 15% of 10.000
-      expect(economy.getBalance('thief')).toBe(STARTING_BALANCE + 1_500);
-      expect(economy.getBalance('victim')).toBe(8_500);
+      expect(outcome.amount).toBe(1_200); // 12% of 10.000
+      expect(economy.getBalance("thief")).toBe(STARTING_BALANCE + 1_200);
+      expect(economy.getBalance("victim")).toBe(8_800);
     }
   });
 

@@ -34,7 +34,7 @@ const PAGES: HelpPage[] = [
         '',
         '**Ba lệnh sống còn**',
         '`/daily` : điểm danh nhận 500 xu mỗi ngày, chăm thì lên 1.000',
-        '`/lamviec` : cày 100-300 xu mỗi giờ, hết vốn thì đi làm chứ sao giờ',
+        '`/lamviec` : cày 200-500 xu mỗi 10 phút, hết vốn thì đi làm chứ sao giờ',
         '`/sodu` : xem ví, két, tình duyên và án tù của bạn',
         '',
         '**Cháy túi rồi?** `/xoso mua` vé 100 xu ôm mộng jackpot, hoặc ngửa tay xin `/chuyentien` từ bạn bè.',
@@ -57,7 +57,7 @@ const PAGES: HelpPage[] = [
         '`/keo nguoi cuoc` : thách solo 1v1, ai thắng ăn cả',
         '`/coquay cuoc` : cò quay Nga từ 2 người, ai dính đạn thì nằm viện, người sống chia tiền',
         '`/duangua` : mở trường đua, cả kênh đặt cửa theo tỷ lệ, ngựa chạy trực tiếp',
-        '`/trieuphu` : 15 câu hỏi, 30 giây mỗi câu, tối đa 100.000 xu, ngày một lần',
+        '`/trieuphu` : 15 câu hỏi, 30 giây mỗi câu, tối đa 50.000 xu, ngày một lần',
         '`/xoso mua so` : vé số 00-99, quay 21h mỗi tối, không ai trúng thì hũ dồn',
         '',
         '-# Viết tắt cho người bận rộn: `/bj` `/tx` `/bc` `/cf`',
@@ -72,7 +72,7 @@ const PAGES: HelpPage[] = [
       [
         '**Kiếm**',
         '`/daily` : điểm danh, chuỗi liên tục càng dài thưởng càng cao (tối đa 1.000)',
-        '`/lamviec` : mỗi giờ một ca, 100-300 xu',
+        '`/lamviec` : mỗi 10 phút một ca, 200-500 xu',
         '',
         '**Giữ**',
         '`/bank gui|rut|xem` : tiền trong két trộm không đụng được, nhưng muốn cược phải rút ra',
@@ -99,7 +99,7 @@ const PAGES: HelpPage[] = [
     body: () =>
       [
         '**Làm ăn phi pháp**',
-        '`/trom nguoi` : móc ví người khác, 40% ăn 15% ví họ',
+        '`/trom nguoi` : móc ví người khác, 40% ăn 12% ví họ (tối đa 5.000)',
         '`/nopphat` `/vienphi` : chuộc thân ra sớm, 1.000 xu cho lần đầu',
         '-# Ngồi tù 5 phút, nằm viện 3 phút 36 giây, lúc đó cấm tiệt chơi game và tiêu tiền.',
         '-# Tái phạm trong ngày thì phí nhân lên: lần 2 gấp đôi, lần 3 gấp ba... reset sau 24 giờ.',

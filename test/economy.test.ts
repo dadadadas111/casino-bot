@@ -90,9 +90,9 @@ describe('work', () => {
     expect(result.retryAt.getTime()).toBe(t0.getTime() + WORK_COOLDOWN_MS);
   });
 
-  it('blocks a second shift inside the hour and allows one after', () => {
+  it('blocks a second shift inside the cooldown and allows one after', () => {
     economy.work('u1', t0);
-    const blocked = economy.work('u1', new Date(t0.getTime() + 30 * 60 * 1000));
+    const blocked = economy.work('u1', new Date(t0.getTime() + WORK_COOLDOWN_MS / 2));
     expect(blocked.ok).toBe(false);
     expect(blocked.retryAt.getTime()).toBe(t0.getTime() + WORK_COOLDOWN_MS);
     const later = economy.work('u1', new Date(t0.getTime() + WORK_COOLDOWN_MS + 1000));

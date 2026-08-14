@@ -28,7 +28,7 @@ function pick<T>(items: T[]): T {
 export const lamviecCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('lamviec')
-    .setDescription('Làm việc kiếm 100-300 xu, mỗi giờ một lần'),
+    .setDescription('Làm việc kiếm 200-500 xu, mỗi 10 phút một lần'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const result = economy.work(interaction.user.id);
     const retryUnix = Math.floor(result.retryAt.getTime() / 1000);
