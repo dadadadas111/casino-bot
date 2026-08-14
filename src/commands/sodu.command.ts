@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { buffs, economy } from '../context.js';
+import { buffs, economy, figurines } from '../context.js';
 import { BUFFS } from '../services/buff.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -24,6 +24,7 @@ export const soduCommand: Command = {
     const net = profile.totalWon - profile.totalLost;
     const netText = net >= 0 ? `+${formatCoins(net)}` : `-${formatCoins(-net)}`;
     const spouse = economy.spouseOf(target.id);
+    const figurine = figurines.get(target.id);
     const jailed = economy.jailedUntil(target.id);
     const hospitalized = economy.hospitalizedUntil(target.id);
 
@@ -41,7 +42,11 @@ export const soduCommand: Command = {
         {
           name: 'Tình trạng',
           value: [
-            spouse ? `💍 Đã kết hôn với <@${spouse}>` : '🕊️ Độc thân vui tính',
+            spouse
+              ? `💍 Đã kết hôn với <@${spouse}>`
+              : figurine?.married
+                ? `💍 Đã kết hôn với **${figurine.emoji} ${figurine.name}**`
+                : '🕊️ Độc thân vui tính',
             jailed ? `🚔 Đang ngồi tù, ra tù <t:${Math.floor(jailed.getTime() / 1000)}:R>` : null,
             hospitalized
               ? `🏥 Đang nằm viện, xuất viện <t:${Math.floor(hospitalized.getTime() / 1000)}:R>`

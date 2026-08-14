@@ -29,6 +29,8 @@ import { patchnoteCommand } from './patchnote.command.js';
 import { coquayCommand, vienphiCommand } from './coquay.command.js';
 import { doitenCommand } from './doiten.command.js';
 import { luckCommand } from './luck.command.js';
+import { hinhnomCommand } from './hinhnom.command.js';
+import { tangCommand } from './tang.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
@@ -80,6 +82,8 @@ const all: Command[] = [
   vienphiCommand,
   doitenCommand,
   luckCommand,
+  hinhnomCommand,
+  tangCommand,
   ...tuongtacCommands,
   alias(blackjackCommand, 'bj'),
   alias(taixiuCommand, 'tx'),

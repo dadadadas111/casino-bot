@@ -91,6 +91,14 @@ CREATE TABLE IF NOT EXISTS user_items (
   PRIMARY KEY (user_id, item)
 );
 
+CREATE TABLE IF NOT EXISTS figurines (
+  user_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '🎎',
+  married INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS user_luck (
   user_id TEXT PRIMARY KEY,
   factor REAL NOT NULL

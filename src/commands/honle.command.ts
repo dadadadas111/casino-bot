@@ -9,7 +9,7 @@ import {
   type ChatInputCommandInteraction,
   type Message,
 } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, figurines } from '../context.js';
 import { fetchActionGif } from '../services/gif.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
@@ -27,7 +27,9 @@ interface Guest {
 interface Ceremony {
   hostId: string;
   hostName: string;
-  spouseId: string;
+  /** A real player's id, or null when the partner is a figurine. */
+  spouseId: string | null;
+  spouseLabel: string;
   guests: Map<string, Guest>;
   giftTotal: number;
   message: Message | null;
@@ -59,7 +61,7 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
     .setTitle(closed ? '💒 Hôn lễ đã kết thúc' : '💒 HÔN LỄ ĐANG DIỄN RA 💒')
     .setDescription(
       [
-        `Hôm nay, <@${c.hostId}> và <@${c.spouseId}> tổ chức tiệc cưới tại sòng bạc!`,
+        `Hôm nay, <@${c.hostId}> và ${c.spouseLabel} tổ chức tiệc cưới tại sòng bạc!`,
         '',
         closed
           ? `Tiệc tàn, cỗ hết. Cảm ơn **${c.guests.size}** vị khách đã tới chung vui (kể cả mấy người tới cho có mặt).`
@@ -99,14 +101,17 @@ export const honleCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const hostId = interaction.user.id;
     const spouseId = economy.spouseOf(hostId);
+    const figurine = spouseId ? null : figurines.spouse(hostId);
 
-    if (!spouseId) {
+    if (!spouseId && !figurine) {
       await interaction.reply({
-        content: 'Chưa cưới ai mà đòi làm đám cưới? Dùng `/cauhon` trước đã!',
+        content:
+          'Chưa cưới ai mà đòi làm đám cưới? Dùng `/cauhon`, hoặc `/hinhnom cuoi` nếu bạn thích tự lực cánh sinh!',
         flags: MessageFlags.Ephemeral,
       });
       return;
     }
+    const spouseLabel = spouseId ? `<@${spouseId}>` : `**${figurine!.emoji} ${figurine!.name}**`;
     if (ceremonies.has(hostId)) {
       await interaction.reply({
         content: 'Tiệc cưới của bạn đang diễn ra mà!',
@@ -126,6 +131,7 @@ export const honleCommand: Command = {
       hostId,
       hostName: interaction.user.displayName,
       spouseId,
+      spouseLabel,
       guests: new Map(),
       giftTotal: 0,
       message: null,
@@ -136,7 +142,7 @@ export const honleCommand: Command = {
     await interaction.deferReply();
     const gif = await fetchActionGif('dance');
     await interaction.editReply({
-      content: `@here Tiệc cưới của <@${hostId}> và <@${spouseId}>! 🎉`,
+      content: `@here Tiệc cưới của <@${hostId}> và ${spouseLabel}! 🎉`,
       embeds: [ceremonyEmbed(ceremony, gif)],
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -152,7 +158,10 @@ export const honleCommand: Command = {
             .setStyle(ButtonStyle.Secondary),
         ),
       ],
-      allowedMentions: { parse: ['everyone'], users: [hostId, spouseId] },
+      allowedMentions: {
+        parse: ['everyone'],
+        users: spouseId ? [hostId, spouseId] : [hostId],
+      },
     });
     ceremony.message = await interaction.fetchReply();
     setTimeout(() => void closeCeremony(hostId), CEREMONY_MS);
@@ -211,7 +220,12 @@ export const honleComponents: ComponentHandler = {
     // Split the gift between the couple, host keeps the odd xu.
     const half = Math.floor(GIFT_AMOUNT / 2);
     economy.credit(ceremony.hostId, GIFT_AMOUNT - half, 'wedding_gift', guestId);
-    economy.credit(ceremony.spouseId, half, 'wedding_gift', guestId);
+    // A figurine has no wallet, so the whole gift goes to the host.
+    if (ceremony.spouseId) {
+      economy.credit(ceremony.spouseId, half, 'wedding_gift', guestId);
+    } else {
+      economy.credit(ceremony.hostId, half, 'wedding_gift', guestId);
+    }
     ceremony.guests.set(guestId, { name: interaction.user.displayName, gifted: true });
     ceremony.giftTotal += GIFT_AMOUNT;
 

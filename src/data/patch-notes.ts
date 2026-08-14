@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.8.0',
+    date: '13/08/2026',
+    title: 'Hình nộm, thẻ tên và tặng quà',
+    changes: [
+      '🎎 **Hình nộm** (1.000 xu): tạo người bạn tưởng tượng, tự đặt tên và chọn hình trong 10 kiểu, thích thì `/hinhnom cuoi` luôn. Không cần ai đồng ý, không sợ bị từ chối',
+      '🏷️ **Thẻ đổi tên** (200 xu): đổi tên hoặc đổi hình cho hình nộm',
+      '🎁 **`/tang nguoi mon`**: tặng đồ trong túi cho người khác, khỏi phải mua hộ',
+      '-# Cưới hình nộm vẫn mở tiệc `/honle` bình thường, khách vẫn mừng tiền như thường. Toàn bộ tiền mừng về tay bạn vì hình nộm làm gì có ví.',
+    ],
+  },
+  {
     version: '2.7.0',
     date: '13/08/2026',
     title: 'Cân bằng lại cả sòng',

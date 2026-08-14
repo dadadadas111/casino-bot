@@ -8,7 +8,7 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { economy, items } from '../context.js';
+import { economy, figurines, items } from '../context.js';
 import { DIVORCE_FEE } from '../services/economy.service.js';
 import { fetchActionGif } from '../services/gif.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
@@ -42,6 +42,21 @@ export const cauhonCommand: Command = {
       });
       return;
     }
+    const ownFigurine = figurines.spouse(proposer.id);
+    if (ownFigurine) {
+      await interaction.reply({
+        content: `Bạn đang là vợ/chồng của **${ownFigurine.emoji} ${ownFigurine.name}** rồi. Chia tay bằng \`/hinhnom bo\` trước đã!`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    if (figurines.spouse(target.id)) {
+      await interaction.reply({
+        content: `**${target.displayName}** đã kết hôn với hình nộm của họ rồi, khó chen chân lắm!`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
     if (economy.spouseOf(target.id)) {
       await interaction.reply({
         content: `**${target.displayName}** đã có chủ rồi, đừng phá hoại hạnh phúc gia đình người ta!`,
@@ -51,7 +66,7 @@ export const cauhonCommand: Command = {
     }
     if (items.count(proposer.id, 'nhan') < 1) {
       await interaction.reply({
-        content: 'Cầu hôn tay không à? Mua 💍 Nhẫn cầu hôn trong `/shop` (10.000 xu) trước đã!',
+        content: 'Cầu hôn tay không à? Mua 💍 Nhẫn cầu hôn trong `/shop` (1.000 xu) trước đã!',
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -90,6 +105,22 @@ export const lyhonCommand: Command = {
     .setName('lyhon')
     .setDescription(`Ly hôn (phí ${DIVORCE_FEE.toLocaleString('vi-VN')} xu, nghĩ kỹ đi)`),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    const figurine = figurines.spouse(interaction.user.id);
+    if (figurine) {
+      figurines.setMarried(interaction.user.id, false);
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.push)
+            .setTitle('💔 Đường ai nấy đi')
+            .setDescription(
+              `**${interaction.user.displayName}** đã ly hôn với **${figurine.emoji} ${figurine.name}**. Hình nộm vẫn nằm trong tủ, chỉ là hết duyên thôi.`,
+            ),
+        ],
+      });
+      return;
+    }
+
     const result = economy.divorce(interaction.user.id);
     if (!result.ok) {
       await interaction.reply({

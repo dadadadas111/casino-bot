@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { buffs, economy, profiles } from '../context.js';
+import { buffs, economy, figurines, profiles } from '../context.js';
 import { BUFFS } from '../services/buff.service.js';
 import { GAME_LABELS } from '../embeds/history-table.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
@@ -103,9 +103,15 @@ export const hosoCommand: Command = {
 
     embed.addFields({
       name: '💍 Gia đình',
-      value: p.spouse
-        ? `Đã kết hôn với <@${p.spouse}>${p.marriedAt ? ` từ <t:${unix(p.marriedAt)}:D> (<t:${unix(p.marriedAt)}:R>)` : ''}`
-        : 'Độc thân vui tính 🕊️',
+      value: (() => {
+        if (p.spouse) {
+          return `Đã kết hôn với <@${p.spouse}>${p.marriedAt ? ` từ <t:${unix(p.marriedAt)}:D> (<t:${unix(p.marriedAt)}:R>)` : ''}`;
+        }
+        const fig = figurines.get(target.id);
+        if (fig?.married) return `Đã kết hôn với **${fig.emoji} ${fig.name}** (hình nộm)`;
+        if (fig) return `Đang có bạn tưởng tượng **${fig.emoji} ${fig.name}**, chưa cưới`;
+        return 'Độc thân vui tính 🕊️';
+      })(),
     });
 
     if (p.items.length > 0) {

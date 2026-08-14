@@ -63,6 +63,20 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     desc: 'Dùng để thoát tù hoặc trốn viện ngay, khỏi tốn tiền chuộc',
     usable: true,
   },
+  hinhnom: {
+    key: 'hinhnom',
+    name: 'Hình nộm',
+    emoji: '🎎',
+    price: 1_000,
+    desc: 'Người bạn tưởng tượng: tự đặt tên, chọn hình, cưới luôn cũng được (`/hinhnom`)',
+  },
+  theten: {
+    key: 'theten',
+    name: 'Thẻ đổi tên',
+    emoji: '🏷️',
+    price: 200,
+    desc: 'Đổi tên hoặc đổi hình cho hình nộm của bạn',
+  },
 };
 
 export const USABLE_ITEMS = Object.values(SHOP_ITEMS).filter((i) => i.usable);
@@ -92,6 +106,24 @@ export class ItemsService {
       .prepare('SELECT qty FROM user_items WHERE user_id = ? AND item = ?')
       .get(userId, item) as { qty: number } | undefined;
     return row?.qty ?? 0;
+  }
+
+  /** Hand items to another player; false when the giver is short. */
+  transfer(fromId: string, toId: string, item: string, qty: number): boolean {
+    if (!Number.isInteger(qty) || qty <= 0) return false;
+    const run = this.db.transaction(() => {
+      const taken = this.db
+        .prepare('UPDATE user_items SET qty = qty - ? WHERE user_id = ? AND item = ? AND qty >= ?')
+        .run(qty, fromId, item, qty);
+      if (taken.changes === 0) throw new Error('insufficient');
+      this.add(toId, item, qty);
+    });
+    try {
+      run();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   inventory(userId: string): Array<{ item: string; qty: number }> {
