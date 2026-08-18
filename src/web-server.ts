@@ -15,6 +15,7 @@ import {
   verifySession,
 } from './web/auth.js';
 import { DASHBOARD_PAGE, LOGIN_PAGE } from './web/dashboard-page.js';
+import { PRIVACY_PAGE, TERMS_PAGE, landingPage } from './web/landing-page.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const throttle = new LoginThrottle();
@@ -232,10 +233,6 @@ async function handleDashboard(req: IncomingMessage, res: ServerResponse, url: U
 // ---- Server ----
 
 export function startWebServer(client: Client): void {
-  if (!env.SEPAY_API_KEY && !dashboardEnabled()) {
-    console.log('[web] No SePay key or dashboard credentials, HTTP server disabled');
-    return;
-  }
 
   const server = createServer((req, res) => {
     void (async () => {
@@ -243,6 +240,26 @@ export function startWebServer(client: Client): void {
         const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
         if (url.pathname === '/health') {
           send(res, 200, { ok: true });
+          return;
+        }
+        // Public pages: what the bot is, plus the legal pages Discord asks
+        // for when a bot takes payments.
+        if (url.pathname === '/' || url.pathname === '/index.html') {
+          send(res, 200, landingPage(env.DISCORD_CLIENT_ID));
+          return;
+        }
+        if (url.pathname === '/terms') {
+          send(res, 200, TERMS_PAGE);
+          return;
+        }
+        if (url.pathname === '/privacy') {
+          send(res, 200, PRIVACY_PAGE);
+          return;
+        }
+        if (url.pathname === '/invite' && env.DISCORD_CLIENT_ID) {
+          send(res, 302, '', {
+            Location: `https://discord.com/oauth2/authorize?client_id=${env.DISCORD_CLIENT_ID}&scope=bot%20applications.commands&permissions=277025508352`,
+          });
           return;
         }
         if (url.pathname.startsWith('/webhook/sepay') && req.method === 'POST') {
@@ -263,7 +280,7 @@ export function startWebServer(client: Client): void {
 
   server.listen(env.SEPAY_PORT, () => {
     console.log(
-      `[web] Listening on :${env.SEPAY_PORT} (sepay webhook${dashboardEnabled() ? ' + dashboard' : ''})`,
+      `[web] Listening on :${env.SEPAY_PORT} (landing${env.SEPAY_API_KEY ? ' + sepay webhook' : ''}${dashboardEnabled() ? ' + dashboard' : ''})`,
     );
   });
 }
