@@ -13,7 +13,7 @@ import {
 export const QUIZ_RESET_PRICE_VND = 500;
 import { cash, economy, quizPool } from '../context.js';
 import { env } from '../config/env.js';
-import { formatVnd } from './cash.command.js';
+import { formatVnd } from '../embeds/topup.js';
 import {
   type GameQuestion,
   LADDER,
@@ -261,7 +261,7 @@ export const trieuphuComponents: ComponentHandler = {
       }
       if (!cash.spend(ownerId, QUIZ_RESET_PRICE_VND, 'trieuphu_reset')) {
         await interaction.reply({
-          content: `Không đủ tiền nạp (cần ${formatVnd(QUIZ_RESET_PRICE_VND)}, bạn có ${formatVnd(cash.get(ownerId))}). Xem cách nạp: \`/cash xem\``,
+          content: `Không đủ tiền nạp (cần ${formatVnd(QUIZ_RESET_PRICE_VND)}, bạn có ${formatVnd(cash.get(ownerId))}). Nạp thêm bằng \`/nap\``,
           flags: MessageFlags.Ephemeral,
         });
         return;

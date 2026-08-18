@@ -8,6 +8,23 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '4.0.0',
+    date: '18/08/2026',
+    title: 'Dọn lại toàn bộ danh sách lệnh',
+    changes: [
+      '🧹 **Từ 53 lệnh xuống còn 33.** Các lệnh nhỏ cùng chủ đề gom vào một bảng có nút, không còn lệnh con lồng nhau',
+      '👛 **`/vi`** thay cho `/bank` `/cash` `/lichsu`: ví, két và tiền nạp chung một bảng, bấm nút để gửi két, rút két, đổi ra xu, xem lịch sử. Nhập số hiểu cả `1k`, `all`, `half`',
+      '🎒 **`/tuido`** thay cho `/shop` `/mua` `/dungdo` `/tang`: đổi qua lại hai thẻ Túi đồ và Cửa hàng, chọn món rồi Mua, Dùng hoặc Tặng',
+      '💍 **`/cuoi`** thay cho `/cauhon` `/lyhon` `/honle`: có tên người là cầu hôn luôn, bỏ trống thì mở bảng gia đình',
+      '🎎 **`/hinhnom`** giờ là một bảng nút, không phải nhớ `tao` `xem` `doiten` `cuoi` `bo` nữa. Đổi cả tên lẫn hình vẫn chỉ tốn một 🏷️ Thẻ đổi tên',
+      '🔓 **Bỏ `/nopphat` và `/vienphi`.** Đang ở tù hay nằm viện thì nút chuộc thân nằm ngay trong tin nhắn chặn bạn, khỏi phải nhớ tên lệnh',
+      '⚙️ **`/caidat`** gom hết phần của admin server: bản tin, thông báo cập nhật, prefix, tên bot',
+      '🛡️ **Admin server không còn thấy các lệnh chỉnh xu nữa.** Trước đây `/casino-admin`, `/luck`, `/backup`, `/duyetcau` vẫn hiện trong danh sách của mọi server dù bấm vào là bị từ chối. Xu dùng chung cho mọi server nên chỉ chủ bot chỉnh được, giờ mấy lệnh đó biến khỏi danh sách luôn cho đỡ gây hiểu nhầm',
+      '🎫 `/xoso so:42` mua vé thẳng, bỏ trống `so` thì xem jackpot',
+      '-# `/sodu` và `/shop` vẫn dùng được, chúng mở thẳng vào bảng tương ứng. Các lệnh gõ tắt `!tx` `!bc` `!cf` `!sl` `!dn` `!xs` `!work` không đổi gì.',
+    ],
+  },
+  {
     version: '3.1.0',
     date: '18/08/2026',
     title: 'Câu hỏi hết trùng lặp',

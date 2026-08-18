@@ -4,16 +4,14 @@ import {
   ButtonStyle,
   EmbedBuilder,
   MessageFlags,
-  SlashCommandBuilder,
+  type BaseMessageOptions,
   type ButtonInteraction,
-  type ChatInputCommandInteraction,
   type Message,
 } from 'discord.js';
 import { economy, figurines } from '../context.js';
 import { gifs } from '../context.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import type { Command } from './types.js';
 
 export const CEREMONY_COST = 5_000;
 export const GIFT_AMOUNT = 500;
@@ -92,79 +90,60 @@ async function closeCeremony(hostId: string): Promise<void> {
   }
 }
 
-export const honleCommand: Command = {
-  data: new SlashCommandBuilder()
-    .setName('honle')
-    .setDescription(
-      `Tổ chức hôn lễ cho hai vợ chồng (phí ${CEREMONY_COST.toLocaleString('vi-VN')} xu, khách mừng tiền)`,
-    ),
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const hostId = interaction.user.id;
-    const spouseId = economy.spouseOf(hostId);
-    const figurine = spouseId ? null : figurines.spouse(hostId);
+export type CeremonyOutcome = 'ok' | 'single' | 'busy' | 'poor';
 
-    if (!spouseId && !figurine) {
-      await interaction.reply({
-        content:
-          'Chưa cưới ai mà đòi làm đám cưới? Dùng `/cauhon`, hoặc `/hinhnom cuoi` nếu bạn thích tự lực cánh sinh!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    const spouseLabel = spouseId ? `<@${spouseId}>` : `**${figurine!.emoji} ${figurine!.name}**`;
-    if (ceremonies.has(hostId)) {
-      await interaction.reply({
-        content: 'Tiệc cưới của bạn đang diễn ra mà!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    if (!economy.debit(hostId, CEREMONY_COST, 'wedding_cost')) {
-      await interaction.reply({
-        content: `Không đủ ${formatCoins(CEREMONY_COST)} để đặt tiệc. Cưới xin tốn kém lắm!`,
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+/**
+ * Book and open a wedding party. The caller supplies `send` so the party can
+ * be launched from a slash command or from a button on an ephemeral panel.
+ */
+export async function startCeremony(
+  hostId: string,
+  hostName: string,
+  send: (payload: BaseMessageOptions) => Promise<Message>,
+): Promise<CeremonyOutcome> {
+  const spouseId = economy.spouseOf(hostId);
+  const figurine = spouseId ? null : figurines.spouse(hostId);
+  if (!spouseId && !figurine) return 'single';
+  if (ceremonies.has(hostId)) return 'busy';
+  if (!economy.debit(hostId, CEREMONY_COST, 'wedding_cost')) return 'poor';
 
-    const ceremony: Ceremony = {
-      hostId,
-      hostName: interaction.user.displayName,
-      spouseId,
-      spouseLabel,
-      guests: new Map(),
-      giftTotal: 0,
-      message: null,
-      endsAt: Date.now() + CEREMONY_MS,
-    };
-    ceremonies.set(hostId, ceremony);
+  const spouseLabel = spouseId ? `<@${spouseId}>` : `**${figurine!.emoji} ${figurine!.name}**`;
+  const ceremony: Ceremony = {
+    hostId,
+    hostName,
+    spouseId,
+    spouseLabel,
+    guests: new Map(),
+    giftTotal: 0,
+    message: null,
+    endsAt: Date.now() + CEREMONY_MS,
+  };
+  ceremonies.set(hostId, ceremony);
 
-    await interaction.deferReply();
-    const gif = await gifs.get('dance');
-    await interaction.editReply({
-      // No @here: a 5.000 xu command must not be able to ping the whole server.
-      content: `🎉 Tiệc cưới của <@${hostId}> và ${spouseLabel}!`,
-      embeds: [ceremonyEmbed(ceremony, gif)],
-      components: [
-        new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setCustomId(componentId('hl', hostId, 'gift'))
-            .setLabel(`Mừng cưới ${GIFT_AMOUNT.toLocaleString('vi-VN')} xu`)
-            .setEmoji('🎁')
-            .setStyle(ButtonStyle.Success),
-          new ButtonBuilder()
-            .setCustomId(componentId('hl', hostId, 'attend'))
-            .setLabel('Ăn chực')
-            .setEmoji('🥢')
-            .setStyle(ButtonStyle.Secondary),
-        ),
-      ],
-      allowedMentions: { users: spouseId ? [hostId, spouseId] : [hostId] },
-    });
-    ceremony.message = await interaction.fetchReply();
-    setTimeout(() => void closeCeremony(hostId), CEREMONY_MS);
-  },
-};
+  const gif = await gifs.get('dance');
+  ceremony.message = await send({
+    // No @here: a 5.000 xu command must not be able to ping the whole server.
+    content: `🎉 Tiệc cưới của <@${hostId}> và ${spouseLabel}!`,
+    embeds: [ceremonyEmbed(ceremony, gif)],
+    components: [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(componentId('hl', hostId, 'gift'))
+          .setLabel(`Mừng cưới ${GIFT_AMOUNT.toLocaleString('vi-VN')} xu`)
+          .setEmoji('🎁')
+          .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+          .setCustomId(componentId('hl', hostId, 'attend'))
+          .setLabel('Ăn chực')
+          .setEmoji('🥢')
+          .setStyle(ButtonStyle.Secondary),
+      ),
+    ],
+    allowedMentions: { users: spouseId ? [hostId, spouseId] : [hostId] },
+  });
+  setTimeout(() => void closeCeremony(hostId), CEREMONY_MS);
+  return 'ok';
+}
 
 export const honleComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

@@ -6,7 +6,7 @@ export interface ShopItem {
   emoji: string;
   price: number; // xu
   desc: string;
-  usable?: boolean; // consumed on demand via /dungdo
+  usable?: boolean; // consumed on demand from the /tuido panel
 }
 
 /** Everything in the shop stays at or under 1.000 xu. */
@@ -30,7 +30,7 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     name: 'Nhẫn cầu hôn',
     emoji: '💍',
     price: 1_000,
-    desc: 'Vật phẩm bắt buộc để /cauhon ai đó',
+    desc: 'Vật phẩm bắt buộc để /cuoi ai đó',
   },
   hopqua: {
     key: 'hopqua',
@@ -68,7 +68,7 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
     name: 'Hình nộm',
     emoji: '🎎',
     price: 1_000,
-    desc: 'Người bạn tưởng tượng: tự đặt tên, chọn hình, cưới luôn cũng được (`/hinhnom`)',
+    desc: 'Người bạn tưởng tượng: tự đặt tên, chọn hình, cưới luôn cũng được (/hinhnom)',
   },
   theten: {
     key: 'theten',
@@ -80,6 +80,29 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
 };
 
 export const USABLE_ITEMS = Object.values(SHOP_ITEMS).filter((i) => i.usable);
+
+function normalize(raw: string): string {
+  return raw
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * Loose lookup for typed commands: `!mua bua`, `!mua buamayman` and
+ * `!mua bùa may mắn` all land on the same item. An ambiguous prefix resolves
+ * to nothing rather than guessing, so nobody buys the wrong thing.
+ */
+export function findShopItem(raw: string, pool: ShopItem[] = Object.values(SHOP_ITEMS)): ShopItem | null {
+  const needle = normalize(raw);
+  if (!needle) return null;
+  const exact = pool.find((i) => i.key === needle || normalize(i.name) === needle);
+  if (exact) return exact;
+  const partial = pool.filter((i) => i.key.startsWith(needle) || normalize(i.name).includes(needle));
+  return partial.length === 1 ? partial[0] : null;
+}
 
 export class ItemsService {
   constructor(private db: Db) {}

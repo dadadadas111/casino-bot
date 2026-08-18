@@ -1,8 +1,16 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   EmbedBuilder,
   MessageFlags,
+  ModalBuilder,
   SlashCommandBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type ModalSubmitInteraction,
 } from 'discord.js';
 import { economy, lottery } from '../context.js';
 import {
@@ -12,6 +20,8 @@ import {
   TICKET_PRICE,
 } from '../services/lottery.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import { componentId, type ComponentHandler } from '../interactions/ids.js';
+import { refuseIfDown } from '../interactions/downtime.js';
 import type { Command } from './types.js';
 
 export function drawTimeUnix(drawDay: string): number {
@@ -32,22 +42,16 @@ export function buyErrorText(error: BuyError, userId: string): string {
 export const xosoCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('xoso')
-    .setDescription(`Xổ số: vé ${TICKET_PRICE} xu chọn số 00-99, quay ${DRAW_HOUR}h mỗi tối, jackpot dồn`)
-    .addSubcommand((sc) =>
-      sc
-        .setName('mua')
-        .setDescription(`Mua 1 vé (${TICKET_PRICE} xu, tối đa ${MAX_TICKETS_PER_DAY} vé/kỳ)`)
-        .addIntegerOption((o) =>
-          o
-            .setName('so')
-            .setDescription('Số may mắn của bạn (0-99)')
-            .setRequired(true)
-            .setMinValue(0)
-            .setMaxValue(99),
-        ),
+    .setDescription(
+      `Xổ số: vé ${TICKET_PRICE} xu chọn số 00-99, quay ${DRAW_HOUR}h mỗi tối, jackpot dồn`,
     )
-    .addSubcommand((sc) =>
-      sc.setName('info').setDescription('Xem jackpot hiện tại, vé của bạn và giờ quay'),
+    .addIntegerOption((o) =>
+      o
+        .setName('so')
+        .setDescription('Số may mắn của bạn (0-99). Bỏ trống để xem jackpot và vé đang giữ')
+        .setRequired(false)
+        .setMinValue(0)
+        .setMaxValue(99),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     if (!interaction.inGuild() || !interaction.channelId) {
@@ -58,58 +62,107 @@ export const xosoCommand: Command = {
       return;
     }
 
-    if (interaction.options.getSubcommand() === 'mua') {
-      const number = interaction.options.getInteger('so', true);
-      const result = lottery.buy(
-        interaction.user.id,
-        number,
-        interaction.guildId,
-        interaction.channelId,
-      );
-      if (!result.ok) {
-        await interaction.reply({
-          content: buyErrorText(result.error!, interaction.user.id),
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-      await interaction.reply({
-        embeds: [
-          new EmbedBuilder()
-            .setColor(COLORS.gold)
-            .setDescription(
-              [
-                `🎫 **${interaction.user.displayName}** vừa mua vé số **${String(number).padStart(2, '0')}** (vé thứ ${result.myTickets}/${MAX_TICKETS_PER_DAY})`,
-                `💰 Jackpot hiện tại: **${formatCoins(result.jackpot!)}** · Quay số <t:${drawTimeUnix(result.drawDay!)}:R>`,
-              ].join('\n'),
-            ),
-        ],
-      });
+    // A number means "buy that ticket"; no number opens the jackpot board.
+    const number = interaction.options.getInteger('so');
+    if (number !== null) {
+      await buyTicket(interaction, number);
       return;
     }
 
-    // info
     const info = lottery.info(interaction.user.id);
-    const myText =
-      info.myNumbers.length > 0
-        ? info.myNumbers.map((n) => `\`${String(n).padStart(2, '0')}\``).join(' ')
-        : 'Chưa có vé nào. Mua bằng `/xoso mua so:<0-99>`';
     await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(COLORS.gold)
-          .setTitle('🎱 Xổ số hằng ngày')
-          .setDescription(
-            [
-              `💰 Jackpot: **${formatCoins(info.jackpot)}**`,
-              `⏰ Quay số kỳ này: <t:${drawTimeUnix(info.drawDay)}:R> (${DRAW_HOUR}h giờ VN)`,
-              `🎫 Tổng vé kỳ này: ${info.totalTickets}`,
-              `Vé của bạn: ${myText}`,
-              '',
-              `Vé ${formatCoins(TICKET_PRICE)}, trúng số chia cả jackpot, không ai trúng thì hũ dồn sang mai!`,
-            ].join('\n'),
-          ),
+      embeds: [infoEmbed(interaction.user.id, info)],
+      components: [
+        new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId(componentId('xs', 'buy'))
+            .setLabel(`Mua vé ${TICKET_PRICE} xu`)
+            .setEmoji('🎫')
+            .setStyle(ButtonStyle.Success),
+        ),
       ],
     });
+  },
+};
+
+function infoEmbed(userId: string, info: ReturnType<typeof lottery.info>): EmbedBuilder {
+  const myText =
+    info.myNumbers.length > 0
+      ? info.myNumbers.map((n) => `\`${String(n).padStart(2, '0')}\``).join(' ')
+      : 'Chưa có vé nào.';
+  return new EmbedBuilder()
+    .setColor(COLORS.gold)
+    .setTitle('🎱 Xổ số hằng ngày')
+    .setDescription(
+      [
+        `💰 Jackpot: **${formatCoins(info.jackpot)}**`,
+        `⏰ Quay số kỳ này: <t:${drawTimeUnix(info.drawDay)}:R> (${DRAW_HOUR}h giờ VN)`,
+        `🎫 Tổng vé kỳ này: ${info.totalTickets}`,
+        `Vé của bạn: ${myText}`,
+        '',
+        `Vé ${formatCoins(TICKET_PRICE)}, trúng số chia cả jackpot, không ai trúng thì hũ dồn sang mai!`,
+        `Mua nhanh: \`/xoso so:42\``,
+      ].join('\n'),
+    );
+}
+
+async function buyTicket(
+  interaction: ChatInputCommandInteraction | ModalSubmitInteraction,
+  number: number,
+): Promise<void> {
+  if (!interaction.inGuild() || !interaction.channelId) return;
+  const result = lottery.buy(interaction.user.id, number, interaction.guildId, interaction.channelId);
+  if (!result.ok) {
+    await interaction.reply({
+      content: buyErrorText(result.error!, interaction.user.id),
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  await interaction.reply({
+    embeds: [
+      new EmbedBuilder()
+        .setColor(COLORS.gold)
+        .setDescription(
+          [
+            `🎫 **${interaction.user.displayName}** vừa mua vé số **${String(number).padStart(2, '0')}** (vé thứ ${result.myTickets}/${MAX_TICKETS_PER_DAY})`,
+            `💰 Jackpot hiện tại: **${formatCoins(result.jackpot!)}** · Quay số <t:${drawTimeUnix(result.drawDay!)}:R>`,
+          ].join('\n'),
+        ),
+    ],
+  });
+}
+
+export const lotteryComponents: ComponentHandler = {
+  async handleButton(interaction: ButtonInteraction): Promise<void> {
+    if (await refuseIfDown(interaction)) return;
+    await interaction.showModal(
+      new ModalBuilder()
+        .setCustomId(componentId('xs', 'pick'))
+        .setTitle('Mua vé xổ số')
+        .addComponents(
+          new ActionRowBuilder<TextInputBuilder>().addComponents(
+            new TextInputBuilder()
+              .setCustomId('so')
+              .setLabel('Số may mắn (0-99)')
+              .setStyle(TextInputStyle.Short)
+              .setRequired(true)
+              .setMaxLength(2),
+          ),
+        ),
+    );
+  },
+
+  async handleModal(interaction: ModalSubmitInteraction): Promise<void> {
+    const raw = interaction.fields.getTextInputValue('so').trim();
+    const number = Number(raw);
+    if (!/^\d{1,2}$/.test(raw) || !Number.isInteger(number) || number < 0 || number > 99) {
+      await interaction.reply({
+        content: 'Số phải từ 0 đến 99 thôi nhé.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    await buyTicket(interaction, number);
   },
 };

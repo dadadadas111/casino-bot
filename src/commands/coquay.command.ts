@@ -170,7 +170,7 @@ async function runGame(channelId: string): Promise<void> {
               `🎉 Người sống sót nhận thêm **${formatCoins(share)}** mỗi người: ${survivors.map((s) => s.name).join(', ')}`,
               '',
               release
-                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(economy.releaseFee(victim.id, 'hospital'))} bằng \`/vienphi\` để ra sớm.`
+                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(economy.releaseFee(victim.id, 'hospital'))} trong \`/hoso\` để ra sớm.`
                 : '-# Mua mũ mới trong `/shop` trước khi cầm súng lần nữa nhé.',
             ].join('\n'),
           ),
@@ -313,42 +313,6 @@ export const coquayComponents: ComponentHandler = {
     }
     table.players.push({ id: userId, name: interaction.user.displayName });
     await interaction.update({ embeds: [lobbyEmbed(table)], components: lobbyButtons(table) });
-  },
-};
-
-export const vienphiCommand: Command = {
-  data: new SlashCommandBuilder()
-    .setName('vienphi')
-    .setDescription(
-      `Trả viện phí để xuất viện ngay (${MEDICAL_BASE_FEE.toLocaleString('vi-VN')} xu, nhập viện lại trong ngày thì nhân lên)`,
-    ),
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const fee = economy.releaseFee(interaction.user.id, 'hospital');
-    const result = economy.payMedicalBill(interaction.user.id);
-    if (result === 'not_admitted') {
-      await interaction.reply({
-        content: 'Bạn khỏe như vâm, nằm viện gì đâu!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    if (result === 'poor') {
-      await interaction.reply({
-        content: `Không đủ ${formatCoins(fee)} trả viện phí. Nằm chờ hồi phục tự nhiên vậy!`,
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    const times = economy.offenseCount(interaction.user.id, 'hospital');
-    await interaction.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setColor(COLORS.win)
-          .setDescription(
-            `🏥 **${interaction.user.displayName}** đã trả ${formatCoins(fee)} viện phí và xuất viện.${times > 1 ? ` Vào viện lần thứ ${times} trong ngày, mua mũ bảo hiểm đi cho đỡ tốn!` : ' Giữ gìn sức khỏe nhé!'}`,
-          ),
-      ],
-    });
   },
 };
 

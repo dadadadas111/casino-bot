@@ -4,17 +4,13 @@ import {
   ButtonStyle,
   EmbedBuilder,
   MessageFlags,
-  PermissionFlagsBits,
-  SlashCommandBuilder,
   type ButtonInteraction,
-  type ChatInputCommandInteraction,
 } from 'discord.js';
 import { quizReview } from '../context.js';
 import { env } from '../config/env.js';
 import type { PendingReview } from '../services/quiz-pool.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS } from '../embeds/format.js';
-import type { Command } from './types.js';
 
 const LETTERS = ['🇦', '🇧', '🇨', '🇩'];
 
@@ -61,7 +57,7 @@ function ownerOnly(userId: string): boolean {
   return Boolean(env.BOT_OWNER_ID) && userId === env.BOT_OWNER_ID;
 }
 
-async function showNext(
+export async function showNext(
   respond: (payload: {
     embeds?: EmbedBuilder[];
     components?: ActionRowBuilder<ButtonBuilder>[];
@@ -82,32 +78,6 @@ async function showNext(
   const remaining = await quizReview.count();
   await respond({ embeds: [reviewEmbed(next, remaining)], components: reviewButtons(next.key) });
 }
-
-export const duyetcauCommand: Command = {
-  data: new SlashCommandBuilder()
-    .setName('duyetcau')
-    .setDescription('Duyệt các câu hỏi bị nghi trùng (chỉ chủ bot)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!ownerOnly(interaction.user.id)) {
-      await interaction.reply({
-        content: 'Lệnh này chỉ chủ bot dùng được.',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    if (!quizReview.available()) {
-      await interaction.reply({
-        content: 'Kho câu hỏi đang không kết nối được, thử lại sau.',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    await showNext((payload) => interaction.editReply(payload));
-  },
-};
 
 export const reviewComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

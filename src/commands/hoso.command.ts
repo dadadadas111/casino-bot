@@ -1,4 +1,7 @@
 import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   EmbedBuilder,
   MessageFlags,
   SlashCommandBuilder,
@@ -8,8 +11,10 @@ import { buffs, economy, figurines, profiles } from '../context.js';
 import { BUFFS } from '../services/buff.service.js';
 import { GAME_LABELS } from '../embeds/history-table.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
-import { formatVnd } from './cash.command.js';
+import { formatVnd } from '../embeds/topup.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import { componentId } from '../interactions/ids.js';
+import { currentDowntime, releaseRow } from '../interactions/downtime.js';
 import type { Command } from './types.js';
 
 const unix = (iso: string): number => Math.floor(Date.parse(iso.replace(' ', 'T') + 'Z') / 1000);
@@ -123,6 +128,23 @@ export const hosoCommand: Command = {
       });
     }
 
-    await interaction.reply({ embeds: [embed], allowedMentions: { parse: [] } });
+    const rows: ActionRowBuilder<ButtonBuilder>[] = [
+      new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(componentId('vi', 'lichsu', target.id))
+          .setLabel('Lịch sử giao dịch')
+          .setEmoji('📜')
+          .setStyle(ButtonStyle.Secondary),
+      ),
+    ];
+    // Buying your way out only makes sense on your own card.
+    const downtime = target.id === interaction.user.id ? currentDowntime(target.id) : null;
+    if (downtime) rows.push(releaseRow(downtime.kind, downtime.fee));
+
+    await interaction.reply({
+      embeds: [embed],
+      components: rows,
+      allowedMentions: { parse: [] },
+    });
   },
 };

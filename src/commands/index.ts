@@ -8,31 +8,23 @@ import { keoCommand } from './keo.command.js';
 import { duanguaCommand } from './duangua.command.js';
 import { xosoCommand } from './xoso.command.js';
 import { trieuphuCommand } from './trieuphu.command.js';
-import { soduCommand } from './sodu.command.js';
+import { coquayCommand } from './coquay.command.js';
+import { viCommand, soduCommand } from './vi.command.js';
+import { napCommand } from './nap.command.js';
 import { hosoCommand } from './hoso.command.js';
 import { dailyCommand } from './daily.command.js';
 import { lamviecCommand } from './lamviec.command.js';
 import { chuyentienCommand } from './chuyentien.command.js';
-import { lichsuCommand } from './lichsu.command.js';
 import { topCommand } from './top.command.js';
 import { helpCommand } from './help.command.js';
-import { adminCommand } from './admin.command.js';
-import { setprefixCommand } from './setprefix.command.js';
 import { bantinCommand } from './bantin.command.js';
-import { bankCommand } from './bank.command.js';
-import { nopphatCommand, tromCommand } from './trom.command.js';
-import { dungdoCommand, muaCommand, shopCommand, tuidoCommand } from './shop.command.js';
-import { cashCommand, napCommand } from './cash.command.js';
-import { cauhonCommand, lyhonCommand } from './marry.command.js';
-import { honleCommand } from './honle.command.js';
 import { patchnoteCommand } from './patchnote.command.js';
-import { coquayCommand, vienphiCommand } from './coquay.command.js';
-import { doitenCommand } from './doiten.command.js';
-import { luckCommand } from './luck.command.js';
+import { caidatCommand } from './caidat.command.js';
+import { chubotCommand } from './chubot.command.js';
+import { tromCommand } from './trom.command.js';
+import { shopCommand, tuidoCommand } from './tuido.command.js';
+import { cuoiCommand } from './cuoi.command.js';
 import { hinhnomCommand } from './hinhnom.command.js';
-import { tangCommand } from './tang.command.js';
-import { duyetcauCommand } from './duyetcau.command.js';
-import { backupCommand } from './backup.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
@@ -46,7 +38,16 @@ function alias(command: Command, name: string): Command {
   };
 }
 
+/**
+ * Owner tooling is registered to the home guild only. Elsewhere it used to
+ * show up greyed out for every server admin, which was both clutter and a
+ * needless advertisement that the bot has a back door.
+ */
+export const OWNER_ONLY_COMMANDS = new Set(['chubot']);
+
 const all: Command[] = [
+  // Games keep their own top-level names: this is the shortest path to the
+  // thing people open the bot for, and a picker would only lengthen it.
   blackjackCommand,
   taixiuCommand,
   baucuaCommand,
@@ -56,46 +57,33 @@ const all: Command[] = [
   duanguaCommand,
   xosoCommand,
   trieuphuCommand,
+  coquayCommand,
+  // Money.
+  viCommand,
   soduCommand,
+  napCommand,
+  chuyentienCommand,
+  topCommand,
   hosoCommand,
   dailyCommand,
   lamviecCommand,
-  chuyentienCommand,
-  lichsuCommand,
-  topCommand,
-  helpCommand,
-  adminCommand,
-  setprefixCommand,
-  bantinCommand,
-  bankCommand,
-  tromCommand,
-  nopphatCommand,
-  shopCommand,
-  muaCommand,
+  // Life.
   tuidoCommand,
-  dungdoCommand,
-  cashCommand,
-  napCommand,
-  cauhonCommand,
-  lyhonCommand,
-  honleCommand,
-  patchnoteCommand,
-  coquayCommand,
-  vienphiCommand,
-  doitenCommand,
-  luckCommand,
+  shopCommand,
+  cuoiCommand,
   hinhnomCommand,
-  tangCommand,
-  duyetcauCommand,
-  backupCommand,
+  tromCommand,
   ...tuongtacCommands,
+  // Meta.
+  helpCommand,
+  bantinCommand,
+  patchnoteCommand,
+  caidatCommand,
+  chubotCommand,
+  // Blackjack is button-driven, so the typed layer cannot stand in for it.
+  // Every other short form lives on there instead (!tx, !bc, !cf, !sl, !dn,
+  // !xs, !work) and no longer takes up a slot in the slash list.
   alias(blackjackCommand, 'bj'),
-  alias(taixiuCommand, 'tx'),
-  alias(baucuaCommand, 'bc'),
-  alias(coinflipCommand, 'cf'),
-  alias(lamviecCommand, 'work'),
-  alias(duanguaCommand, 'dn'),
-  alias(xosoCommand, 'xs'),
 ];
 
 export const commands = new Map<string, Command>(all.map((c) => [c.data.name, c]));

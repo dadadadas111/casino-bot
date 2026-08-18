@@ -1,5 +1,5 @@
 import { EmbedBuilder, type Message } from 'discord.js';
-import { activity, economy, lottery, prefixes } from './context.js';
+import { activity, buffs, economy, items, lottery, prefixes } from './context.js';
 import { tryUse } from './services/cooldown.service.js';
 import {
   BAU_CUA_SYMBOLS,
@@ -15,6 +15,8 @@ import {
   taiXiuPayout,
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
+import { SHOP_ITEMS, USABLE_ITEMS, findShopItem } from './services/items.service.js';
+import { BUFFS } from './services/buff.service.js';
 import { openRace, placeRaceBet } from './commands/duangua.command.js';
 import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
 import { MAX_TICKETS_PER_DAY } from './services/lottery.service.js';
@@ -71,7 +73,29 @@ const SLASH_ONLY = new Set([
   'lichsu',
   'chuyentien',
   'setprefix',
+  'caidat',
+  'shop',
+  'vi',
+  'bank',
+  'cash',
+  'nap',
+  'cuoi',
+  'hinhnom',
 ]);
+
+/** Where a typed name now lives as a slash command. */
+const SLASH_TARGET: Record<string, string> = {
+  bj: 'blackjack',
+  tp: 'trieuphu',
+  lichsu: 'vi',
+  bank: 'vi',
+  cash: 'vi',
+  setprefix: 'caidat',
+  shop: 'tuido',
+};
+
+/** Typed commands that still work while jailed or hospitalised. */
+const DOWNTIME_EXEMPT = new Set(['help', 'sodu', 'xu', 'tui', 'tuido', 'dung', 'dungdo']);
 
 // Every name the text layer reacts to; used for channel activity scoring.
 const KNOWN_TEXT_COMMANDS = new Set([
@@ -95,6 +119,20 @@ const KNOWN_TEXT_COMMANDS = new Set([
   'coinflip',
   'sl',
   'slots',
+  'mua',
+  'dung',
+  'dungdo',
+  'tui',
+  'shop',
+  'mua',
+  'tuido',
+  'vi',
+  'bank',
+  'cash',
+  'nap',
+  'cuoi',
+  'hinhnom',
+  'caidat',
 ]);
 
 /**
@@ -134,6 +172,14 @@ function gameEmbed(title: string, lines: string[], win: boolean): EmbedBuilder {
     .setDescription(lines.join('\n'));
 }
 
+
+// Kept below twice the box price so opening boxes stays a losing habit.
+const GIFT_BOX_MAX = 900;
+
+function itemMenu(pool: Array<{ key: string; emoji: string; name: string }>): string {
+  return pool.map((i) => `${i.emoji} \`${i.key}\``).join(' · ');
+}
+
 export async function handleTextCommand(message: Message): Promise<void> {
   if (message.author.bot || !message.inGuild()) return;
   const prefix = prefixes.get(message.guildId);
@@ -146,25 +192,27 @@ export async function handleTextCommand(message: Message): Promise<void> {
   // Only real bot commands score the channel for the daily report.
   if (KNOWN_TEXT_COMMANDS.has(name)) {
     activity.recordChannel(message.guildId, message.channelId);
-    const exempt = name === 'help' || name === 'sodu' || name === 'xu';
+    // Checking your own things is always allowed, and the 🗝️ key exists
+    // precisely to be used from inside a cell.
+    const exempt = DOWNTIME_EXEMPT.has(name);
     const release = economy.jailedUntil(userId);
     if (release && !exempt) {
       await message.reply(
-        `🚔 Đang ngồi tù thì gõ lệnh gì cũng vô ích, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Dùng \`/nopphat\` để ra sớm.`,
+        `🚔 Đang ngồi tù thì gõ lệnh gì cũng vô ích, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Mở \`/hoso\` rồi bấm **Nộp phạt** để ra sớm.`,
       );
       return;
     }
     const discharge = economy.hospitalizedUntil(userId);
     if (discharge && !exempt) {
       await message.reply(
-        `🏥 Đang nằm viện thì nghỉ ngơi đi, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Dùng \`/vienphi\` để ra sớm.`,
+        `🏥 Đang nằm viện thì nghỉ ngơi đi, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Mở \`/hoso\` rồi bấm **Trả viện phí** để ra sớm.`,
       );
       return;
     }
   }
 
   if (SLASH_ONLY.has(name)) {
-    await message.reply(`Lệnh này dùng bản slash nhé: \`/${name === 'bj' ? 'blackjack' : name === 'tp' ? 'trieuphu' : name}\``);
+    await message.reply(`Lệnh này dùng bản slash nhé: \`/${SLASH_TARGET[name] ?? name}\``);
     return;
   }
 
@@ -239,15 +287,97 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}dn\` : Mở trường đua ngựa, \`${prefix}dn <cược> <1-4>\` : vào kèo`,
               `\`${prefix}xs <số 0-99>\` : Mua vé xổ số, quay 21h mỗi tối`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
+              `\`${prefix}mua <món>\` · \`${prefix}dung <món>\` · \`${prefix}tui\` : mua bán không cần mở bảng`,
               '',
               '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
               `💡 Bỏ trống tiền cược thì lặp lại mức trước: \`${prefix}tx tai\`, \`${prefix}sl\`. Thứ tự tham số tùy ý.`,
               '',
-              'Các trò có nút bấm (blackjack, kèo, triệu phú) dùng lệnh slash: `/help`',
+              'Các trò có nút bấm (blackjack, kèo, triệu phú) và mọi bảng điều khiển (`/vi`, `/tuido`, `/caidat`) dùng lệnh slash: `/help`',
             ].join('\n'),
           ),
       ],
     });
+    return;
+  }
+
+  // ---- shop shortcuts ----
+  if (name === 'mua') {
+    const item = findShopItem(args.join(' '));
+    if (!item) {
+      await message.reply(
+        `Mua gì? \`${prefix}mua <món>\`\n${itemMenu(Object.values(SHOP_ITEMS))}\nXem giá và mô tả: \`/tuido\``,
+      );
+      return;
+    }
+    if (!economy.debit(userId, item.price, 'item', item.key)) {
+      await message.reply(
+        `Không đủ xu! Cần ${formatCoins(item.price)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`,
+      );
+      return;
+    }
+    if (item.key === 'hopqua') {
+      const reward = Math.floor(Math.random() * (GIFT_BOX_MAX + 1));
+      if (reward > 0) economy.credit(userId, reward, 'gift_box');
+      await message.reply(
+        reward > 0
+          ? `📦 **${username}** mở hộp quà và nhận được **${formatCoins(reward)}**!${reward > item.price ? ' Lời rồi! 🎉' : ''}`
+          : `📦 **${username}** mở hộp quà và bên trong... trống trơn 💨`,
+      );
+      return;
+    }
+    items.add(userId, item.key);
+    await message.reply(
+      `${item.emoji} Đã mua **${item.name}** với giá ${formatCoins(item.price)}. Đang có ${items.count(userId, item.key)} cái.`,
+    );
+    return;
+  }
+
+  if (name === 'dung' || name === 'dungdo') {
+    const item = findShopItem(args.join(' '), USABLE_ITEMS);
+    if (!item) {
+      await message.reply(`Dùng gì? \`${prefix}dung <món>\`\n${itemMenu(USABLE_ITEMS)}`);
+      return;
+    }
+    const jailed = economy.jailedUntil(userId);
+    const hospitalized = economy.hospitalizedUntil(userId);
+    if (item.key === 'chiakhoa' && !jailed && !hospitalized) {
+      await message.reply('Bạn đang tự do mà, cần phá khóa gì!');
+      return;
+    }
+    if (!items.consume(userId, item.key)) {
+      await message.reply(`Bạn không có ${item.emoji} **${item.name}** nào. Ghé \`/tuido\` mua nhé!`);
+      return;
+    }
+    if (item.key === 'buamayman') {
+      const until = buffs.activate(userId, 'mayman');
+      await message.reply(
+        `🍀 **${username}** kích hoạt **${BUFFS.mayman.name}**! Thắng ván nào cũng +10% tiền lời đến <t:${Math.floor(until.getTime() / 1000)}:R>.`,
+      );
+    } else if (item.key === 'caphe') {
+      economy.resetCooldown(userId, 'work');
+      await message.reply(`☕ **${username}** làm một ly cà phê, tỉnh cả người! Đi \`${prefix}work\` ngay được rồi.`);
+    } else {
+      economy.release(userId);
+      economy.discharge(userId);
+      await message.reply(
+        jailed
+          ? `🗝️ **${username}** phá khóa vượt ngục thành công, không tốn một xu nộp phạt!`
+          : `🗝️ **${username}** lẻn khỏi bệnh viện, quên luôn hóa đơn viện phí!`,
+      );
+    }
+    return;
+  }
+
+  if (name === 'tui' || name === 'tuido') {
+    const inv = items.inventory(userId);
+    await message.reply(
+      inv.length > 0
+        ? `🎒 **${username}**: ` +
+            inv
+              .map((row) => `${SHOP_ITEMS[row.item]?.emoji ?? '❔'} ${SHOP_ITEMS[row.item]?.name ?? row.item} x${row.qty}`)
+              .join(' · ')
+        : `🎒 Túi rỗng tuếch. Sắm đồ bằng \`${prefix}mua <món>\` hoặc \`/tuido\`.`,
+    );
     return;
   }
 

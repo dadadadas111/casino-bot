@@ -3,7 +3,7 @@ import { EmbedBuilder, type Client } from 'discord.js';
 import { env } from './config/env.js';
 import { dashboard, quizPool, quizReview, topups } from './context.js';
 import { COLORS } from './embeds/format.js';
-import { formatVnd } from './commands/cash.command.js';
+import { formatVnd } from './embeds/topup.js';
 import {
   LoginThrottle,
   SESSION_COOKIE,
@@ -59,7 +59,7 @@ function receiptEmbed(amount: number, code: string): EmbedBuilder {
     .setDescription(
       [
         `Đã nhận **${formatVnd(amount)}** cho mã \`${code}\`.`,
-        '`/cash xem` để kiểm tra ví, `/cash doixu` để đổi sang xu, `/trieuphu` để reset ghế nóng.',
+        '`/vi` để kiểm tra ví và đổi sang xu, `/trieuphu` để reset ghế nóng.',
       ].join('\n'),
     );
 }

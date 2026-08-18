@@ -36,7 +36,7 @@ async function checkDraw(client: Client): Promise<void> {
           '',
           ...winnerLines,
           '',
-          `💰 Jackpot kỳ tới: **${formatCoins(result.jackpotAfter)}** · Mua vé: \`/xoso mua\``,
+          `💰 Jackpot kỳ tới: **${formatCoins(result.jackpotAfter)}** · Mua vé: \`/xoso so:42\``,
         ].join('\n'),
       );
 

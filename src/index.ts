@@ -1,7 +1,9 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, REST, Routes } from 'discord.js';
 import { env } from './config/env.js';
-import { commands } from './commands/index.js';
+import { OWNER_ONLY_COMMANDS, commands } from './commands/index.js';
 import { routeComponent } from './interactions/registry.js';
+import { currentDowntime, downtimeReply } from './interactions/downtime.js';
+import { commandsForGuild } from './services/registration.service.js';
 import { tryUse } from './services/cooldown.service.js';
 import { handleTextCommand } from './text-commands.js';
 import { startLotteryScheduler } from './lottery-scheduler.js';
@@ -15,16 +17,15 @@ import { refundPendingRaces } from './commands/duangua.command.js';
 import { refundPendingRoulette } from './commands/coquay.command.js';
 import { refundPendingWeddings } from './commands/honle.command.js';
 import { refundPendingQuizzes } from './commands/trieuphu.command.js';
-import { activity, cache, connectExternalServices, economy, mongo } from './context.js';
-import { formatCoins } from './embeds/format.js';
+import { activity, cache, connectExternalServices, mongo } from './context.js';
 
 // While jailed or hospitalised, everything that moves money or plays games
 // is off-limits.
 const DOWNTIME_BLOCKED = new Set([
-  'blackjack', 'bj', 'taixiu', 'tx', 'baucua', 'bc', 'coinflip', 'cf', 'slots',
-  'keo', 'duangua', 'dn', 'xoso', 'xs', 'trieuphu', 'tp', 'coquay',
-  'daily', 'lamviec', 'work', 'chuyentien', 'trom', 'bank', 'mua', 'cauhon', 'honle',
-  'casino-admin', // no editing the books from behind bars
+  'blackjack', 'bj', 'taixiu', 'baucua', 'coinflip', 'slots',
+  'keo', 'duangua', 'xoso', 'trieuphu', 'coquay',
+  'daily', 'lamviec', 'chuyentien', 'trom', 'cuoi',
+  'chubot', // no editing the books from behind bars
 ]);
 
 // Message prefix commands need the privileged MessageContent intent (portal
@@ -40,17 +41,12 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   blackjack: GAME_CD,
   bj: GAME_CD,
   taixiu: GAME_CD,
-  tx: GAME_CD,
   baucua: GAME_CD,
-  bc: GAME_CD,
   coinflip: GAME_CD,
-  cf: GAME_CD,
   slots: GAME_CD,
   keo: { key: 'keo', ms: 30_000 },
   duangua: GAME_CD,
-  dn: GAME_CD,
   xoso: GAME_CD,
-  xs: GAME_CD,
   om: TUONGTAC_CD,
   hon: TUONGTAC_CD,
   danh: TUONGTAC_CD,
@@ -86,7 +82,12 @@ if (prefixCommandsEnabled) {
 async function registerGuildCommands(guildId: string, guildName: string): Promise<void> {
   try {
     const rest = new REST().setToken(env.DISCORD_TOKEN);
-    const body = [...commands.values()].map((cmd) => cmd.data.toJSON());
+    const body = commandsForGuild(
+      [...commands.values()].map((cmd) => ({ name: cmd.data.name, json: cmd.data.toJSON() })),
+      guildId,
+      env.DISCORD_GUILD_ID,
+      OWNER_ONLY_COMMANDS,
+    ).map((cmd) => cmd.json);
     await rest.put(Routes.applicationGuildCommands(client.application!.id, guildId), { body });
     console.log(`[bot] Registered ${body.length} commands to guild ${guildName} (${guildId})`);
   } catch (error) {
@@ -126,20 +127,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
         activity.recordChannel(interaction.guildId, interaction.channelId);
       }
       if (DOWNTIME_BLOCKED.has(interaction.commandName)) {
-        const release = economy.jailedUntil(interaction.user.id);
-        if (release) {
-          await interaction.reply({
-            content: `🚔 Bạn đang ngồi tù, ra tù <t:${Math.floor(release.getTime() / 1000)}:R>! Nộp phạt ${formatCoins(economy.releaseFee(interaction.user.id, 'jail'))} bằng \`/nopphat\` để ra sớm.`,
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
-        }
-        const discharge = economy.hospitalizedUntil(interaction.user.id);
-        if (discharge) {
-          await interaction.reply({
-            content: `🏥 Bạn đang nằm viện, xuất viện <t:${Math.floor(discharge.getTime() / 1000)}:R>! Trả viện phí ${formatCoins(economy.releaseFee(interaction.user.id, 'hospital'))} bằng \`/vienphi\` để ra sớm.`,
-            flags: MessageFlags.Ephemeral,
-          });
+        const downtime = currentDowntime(interaction.user.id);
+        if (downtime) {
+          await interaction.reply(downtimeReply(downtime));
           return;
         }
       }
@@ -155,7 +145,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
         }
       }
       await command.execute(interaction);
-    } else if (interaction.isButton() || interaction.isModalSubmit()) {
+    } else if (
+      interaction.isButton() ||
+      interaction.isModalSubmit() ||
+      interaction.isAnySelectMenu()
+    ) {
       await routeComponent(interaction);
     }
   } catch (error) {

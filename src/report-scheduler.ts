@@ -89,7 +89,7 @@ export async function buildReportEmbed(guildId: string, guildName: string): Prom
       },
       {
         name: '🎱 Xổ số',
-        value: `Jackpot đang là **${formatCoins(jackpot)}**, quay 21h tối nay. Mua vé: \`/xoso mua\``,
+        value: `Jackpot đang là **${formatCoins(jackpot)}**, quay 21h tối nay. Mua vé: \`/xoso so:42\``,
       },
     )
     .setFooter({ text: 'Xem lại: /bantin xem · Cấu hình: /bantin config' });
