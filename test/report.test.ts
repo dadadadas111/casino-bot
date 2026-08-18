@@ -51,7 +51,7 @@ describe('ReportService config', () => {
       enabled: true,
       hour: 10,
       channelId: null,
-      tagEveryone: true,
+      tagEveryone: false, // opt-in since v2.9
     });
   });
 

@@ -85,6 +85,15 @@ export class LoginThrottle {
     const entry = this.attempts.get(ip);
     const count = entry && entry.until > now ? entry.count + 1 : 1;
     this.attempts.set(ip, { count, until: now + this.lockoutMs });
+    this.prune(now);
+  }
+
+  /** Drop expired entries so a spray of source addresses cannot exhaust memory. */
+  private prune(now: number): void {
+    if (this.attempts.size < 1_000) return;
+    for (const [ip, entry] of this.attempts) {
+      if (entry.until <= now) this.attempts.delete(ip);
+    }
   }
 
   reset(ip: string): void {

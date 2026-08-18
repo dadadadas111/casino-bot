@@ -357,3 +357,16 @@ export const duanguaComponents: ComponentHandler = {
     await interaction.reply({ content: result.text, flags: MessageFlags.Ephemeral });
   },
 };
+
+/** Refund every open race bet on shutdown. */
+export function refundPendingRaces(): number {
+  let refunded = 0;
+  for (const session of races.values()) {
+    for (const bet of session.bets.values()) {
+      economy.credit(bet.userId, bet.amount, 'refund', 'duangua');
+      refunded++;
+    }
+  }
+  races.clear();
+  return refunded;
+}

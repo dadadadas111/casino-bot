@@ -6,6 +6,7 @@ import {
   type ChatInputCommandInteraction,
 } from 'discord.js';
 import { economy } from '../context.js';
+import { env } from '../config/env.js';
 import { JAIL_DURATION_MS } from '../services/economy.service.js';
 import {
   ADMIN_ADD_CAP as ADD_CAP,
@@ -54,6 +55,16 @@ export const adminCommand: Command = {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
       await interaction.reply({
         content: 'Lệnh này chỉ dành cho admin.',
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    // The economy is shared across every server, so minting coins cannot be
+    // delegated to whoever happens to be admin of some guild the bot joined.
+    if (!env.BOT_OWNER_ID || interaction.user.id !== env.BOT_OWNER_ID) {
+      await interaction.reply({
+        content:
+          'Xu dùng chung cho mọi server nên chỉ chủ bot mới chỉnh được số dư. Admin server không có quyền này.',
         flags: MessageFlags.Ephemeral,
       });
       return;

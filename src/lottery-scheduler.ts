@@ -1,5 +1,6 @@
 import { EmbedBuilder, type Client } from 'discord.js';
 import { lottery } from './context.js';
+import { findAnnounceChannel } from './utils/announce.js';
 import { COLORS, formatCoins } from './embeds/format.js';
 
 const CHECK_INTERVAL_MS = 60_000;
@@ -42,8 +43,11 @@ async function checkDraw(client: Client): Promise<void> {
     const mentions = result.winners.map((w) => `<@${w.userId}>`).join(' ');
     for (const target of result.announceTargets) {
       try {
-        const channel = await client.channels.fetch(target.channelId);
-        if (channel?.isSendable()) {
+        const guild = client.guilds.cache.get(target.guildId);
+        const channel = guild
+          ? await findAnnounceChannel(guild, [target.channelId])
+          : null;
+        if (channel) {
           await channel.send({
             content: mentions || undefined,
             embeds: [embed],

@@ -43,13 +43,14 @@ export const tromCommand: Command = {
       return;
     }
     if (items.consume(victim.id, 'khien')) {
-      economy.tryRob(thief.id, victim.id, new Date(), 1); // burn the attempt, guaranteed no-steal
+      // Spend the attempt but do NOT jail: the shield stopped the crime, it did not report it.
+      economy.startRobCooldown(thief.id);
       await interaction.reply({
         embeds: [
           new EmbedBuilder()
             .setColor(COLORS.push)
             .setDescription(
-              `🛡️ **${thief.displayName}** mò vào túi **${victim.displayName}** nhưng bị khiên chống trộm chặn đứng! Khiên đã vỡ.`,
+              `🛡️ **${thief.displayName}** mò vào túi **${victim.displayName}** nhưng bị khiên chống trộm chặn đứng! Khiên đã vỡ.\n-# Không bị bắt, nhưng lượt trộm giờ này coi như đã dùng.`,
             ),
         ],
       });

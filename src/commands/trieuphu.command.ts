@@ -340,3 +340,19 @@ export const trieuphuComponents: ComponentHandler = {
     await interaction.update({ embeds: [questionEmbed(session)], components: buttons(session) });
   },
 };
+
+/**
+ * A quiz interrupted by a restart costs no prize, but the player already
+ * spent their one game of the day, so hand the daily attempt back.
+ */
+export function refundPendingQuizzes(): number {
+  let restored = 0;
+  for (const session of sessions.values()) {
+    clearTimeout(session.timeout);
+    economy.resetCooldown(session.userId, 'trieuphu');
+    restored++;
+  }
+  sessions.clear();
+  pending.clear();
+  return restored;
+}

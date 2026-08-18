@@ -38,7 +38,7 @@ const DEFAULTS = {
   enabled: true,
   hour: 10,
   channelId: null,
-  tagEveryone: true,
+  tagEveryone: false, // opt-in: a daily @everyone is a fast way to get a bot kicked
   patchEnabled: true,
   patchChannelId: null,
 };

@@ -482,6 +482,12 @@ export class EconomyService {
     return Math.max(0, readyAt - now.getTime());
   }
 
+  /** Spend the hourly attempt without rolling for it (used when a shield eats the try). */
+  startRobCooldown(userId: string, now: Date = new Date()): void {
+    this.ensureUser(userId);
+    this.db.prepare('UPDATE users SET last_rob = ? WHERE user_id = ?').run(now.toISOString(), userId);
+  }
+
   /** roll is injectable for tests; < ROB_SUCCESS_RATE means success. */
   tryRob(thiefId: string, victimId: string, now: Date = new Date(), roll = Math.random()): RobOutcome {
     const remaining = this.robCooldownRemaining(thiefId, now);

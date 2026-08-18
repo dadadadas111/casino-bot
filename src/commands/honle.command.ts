@@ -142,7 +142,8 @@ export const honleCommand: Command = {
     await interaction.deferReply();
     const gif = await fetchActionGif('dance');
     await interaction.editReply({
-      content: `@here Tiệc cưới của <@${hostId}> và ${spouseLabel}! 🎉`,
+      // No @here: a 5.000 xu command must not be able to ping the whole server.
+      content: `🎉 Tiệc cưới của <@${hostId}> và ${spouseLabel}!`,
       embeds: [ceremonyEmbed(ceremony, gif)],
       components: [
         new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -158,10 +159,7 @@ export const honleCommand: Command = {
             .setStyle(ButtonStyle.Secondary),
         ),
       ],
-      allowedMentions: {
-        parse: ['everyone'],
-        users: spouseId ? [hostId, spouseId] : [hostId],
-      },
+      allowedMentions: { users: spouseId ? [hostId, spouseId] : [hostId] },
     });
     ceremony.message = await interaction.fetchReply();
     setTimeout(() => void closeCeremony(hostId), CEREMONY_MS);
@@ -232,3 +230,14 @@ export const honleComponents: ComponentHandler = {
     await interaction.update({ embeds: [ceremonyEmbed(ceremony, interaction.message.embeds[0]?.image?.url ?? null)] });
   },
 };
+
+/** A party cut short by a restart gets its booking fee back. */
+export function refundPendingWeddings(): number {
+  let refunded = 0;
+  for (const ceremony of ceremonies.values()) {
+    economy.credit(ceremony.hostId, CEREMONY_COST, 'refund', 'honle');
+    refunded++;
+  }
+  ceremonies.clear();
+  return refunded;
+}

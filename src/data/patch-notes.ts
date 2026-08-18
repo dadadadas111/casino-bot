@@ -8,6 +8,19 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '2.9.0',
+    date: '18/08/2026',
+    title: 'Rà soát trước khi phát hành',
+    changes: [
+      '🛡️ Bị khiên chặn khi đi trộm thì **không còn bị tống vào tù oan** nữa, chỉ mất lượt',
+      '🏆 **`/top` giờ chỉ tính người trong server này**, không lẫn người lạ từ server khác',
+      '💰 Tiền cược đang dở khi bot cập nhật/restart giờ **được hoàn lại tự động**, không mất trắng',
+      '🔒 Chỉnh số dư bằng `/casino-admin` giờ chỉ chủ bot làm được, vì xu dùng chung cho mọi server',
+      '🔕 Bản tin hằng ngày **không còn tự ping @everyone**, muốn thì bật bằng `/bantin config`',
+      '💒 Tiệc cưới thôi ping cả kênh, đỡ làm phiền người không quan tâm',
+    ],
+  },
+  {
     version: '2.8.0',
     date: '13/08/2026',
     title: 'Hình nộm, thẻ tên và tặng quà',

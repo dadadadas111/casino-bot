@@ -8,6 +8,12 @@ import { startLotteryScheduler } from './lottery-scheduler.js';
 import { startReportScheduler } from './report-scheduler.js';
 import { startWebServer } from './web-server.js';
 import { announcePatchNotes } from './patch-announcer.js';
+import { refundPendingBlackjack } from './commands/blackjack.command.js';
+import { refundPendingKeo } from './commands/keo.command.js';
+import { refundPendingRaces } from './commands/duangua.command.js';
+import { refundPendingRoulette } from './commands/coquay.command.js';
+import { refundPendingWeddings } from './commands/honle.command.js';
+import { refundPendingQuizzes } from './commands/trieuphu.command.js';
 import { activity, economy } from './context.js';
 import { formatCoins } from './embeds/format.js';
 
@@ -163,6 +169,46 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
   }
+});
+
+/**
+ * Games hold staked coins in memory until they settle, so a deploy or crash
+ * would otherwise pocket every open bet. Refund them before the process dies.
+ */
+let shuttingDown = false;
+function refundEverything(reason: string): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  try {
+    const refunds =
+      refundPendingBlackjack() +
+      refundPendingKeo() +
+      refundPendingRaces() +
+      refundPendingRoulette() +
+      refundPendingWeddings() +
+      refundPendingQuizzes();
+    console.log(`[bot] ${reason}: refunded ${refunds} open stake(s)`);
+  } catch (error) {
+    console.error('[bot] Refund on shutdown failed:', error);
+  }
+}
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.on(signal, () => {
+    refundEverything(signal);
+    void client.destroy().finally(() => process.exit(0));
+  });
+}
+
+// A stray rejection must not take the whole casino down mid-game.
+process.on('unhandledRejection', (reason) => {
+  console.error('[bot] Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[bot] Uncaught exception, shutting down:', error);
+  refundEverything('uncaughtException');
+  process.exit(1);
 });
 
 client.login(env.DISCORD_TOKEN).catch((error) => {

@@ -304,3 +304,19 @@ export const blackjackComponents: ComponentHandler = {
     }
   },
 };
+
+/**
+ * Refund every stake still sitting in memory. Called on shutdown so a deploy
+ * never swallows a bet that was debited but never settled.
+ */
+export function refundPendingBlackjack(): number {
+  let refunded = 0;
+  for (const session of sessions.values()) {
+    clearTimeout(session.timeout);
+    const totalBet = session.doubled ? session.bet * 2 : session.bet;
+    economy.credit(session.userId, totalBet, 'refund', 'blackjack');
+    refunded++;
+  }
+  sessions.clear();
+  return refunded;
+}

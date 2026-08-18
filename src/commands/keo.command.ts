@@ -239,3 +239,15 @@ export const keoComponents: ComponentHandler = {
     });
   },
 };
+
+/** Refund escrowed challenge stakes on shutdown. */
+export function refundPendingKeo(): number {
+  let refunded = 0;
+  for (const duel of duels.values()) {
+    clearTimeout(duel.timeout);
+    economy.credit(duel.challengerId, duel.bet, 'refund', 'keo');
+    refunded++;
+  }
+  duels.clear();
+  return refunded;
+}

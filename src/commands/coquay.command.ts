@@ -351,3 +351,16 @@ export const vienphiCommand: Command = {
     });
   },
 };
+
+/** Refund every seated ante on shutdown. */
+export function refundPendingRoulette(): number {
+  let refunded = 0;
+  for (const table of tables.values()) {
+    for (const player of table.players) {
+      economy.credit(player.id, table.bet, 'refund', 'coquay');
+      refunded++;
+    }
+  }
+  tables.clear();
+  return refunded;
+}
