@@ -91,6 +91,11 @@ CREATE TABLE IF NOT EXISTS user_items (
   PRIMARY KEY (user_id, item)
 );
 
+CREATE TABLE IF NOT EXISTS bot_meta (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS figurines (
   user_id TEXT PRIMARY KEY,
   name TEXT NOT NULL,

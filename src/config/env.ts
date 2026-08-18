@@ -30,6 +30,9 @@ const envSchema = z.object({
   MONGO_DB: z.string().default('casino'),
   // Daily newsletter costs one AI call per guild per day; off while we watch spend.
   ENABLE_DAILY_REPORT: z.string().default('false'),
+  // Nightly database backup posted to a private Discord channel.
+  BACKUP_CHANNEL_ID: z.string().optional(),
+  BACKUP_HOUR: z.coerce.number().default(3),
 });
 
 const parsed = envSchema.safeParse(process.env);

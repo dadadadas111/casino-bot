@@ -32,6 +32,7 @@ import { luckCommand } from './luck.command.js';
 import { hinhnomCommand } from './hinhnom.command.js';
 import { tangCommand } from './tang.command.js';
 import { duyetcauCommand } from './duyetcau.command.js';
+import { backupCommand } from './backup.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
@@ -86,6 +87,7 @@ const all: Command[] = [
   hinhnomCommand,
   tangCommand,
   duyetcauCommand,
+  backupCommand,
   ...tuongtacCommands,
   alias(blackjackCommand, 'bj'),
   alias(taixiuCommand, 'tx'),

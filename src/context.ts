@@ -18,6 +18,7 @@ import { CacheService } from './services/redis.service.js';
 import { MongoService } from './services/mongo.service.js';
 import { QuizPoolService, QuizReviewQueue } from './services/quiz-pool.service.js';
 import { GifCache } from './services/gif-cache.service.js';
+import { BackupService } from './services/backup.service.js';
 
 export const db = createDb(env.DB_PATH);
 export const buffs = new BuffService(db);
@@ -34,6 +35,7 @@ export const dashboard = new DashboardService(db);
 export const profiles = new ProfileService(db);
 export const luck = new LuckService(db);
 export const figurines = new FigurineService(db);
+export const backups = new BackupService(db);
 
 // External services connect lazily at startup; every consumer treats them as
 // optional so the bot boots fine when they are unreachable.

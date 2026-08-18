@@ -7,6 +7,7 @@ import { handleTextCommand } from './text-commands.js';
 import { startLotteryScheduler } from './lottery-scheduler.js';
 import { startReportScheduler } from './report-scheduler.js';
 import { startWebServer } from './web-server.js';
+import { startBackupScheduler } from './backup-scheduler.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { refundPendingBlackjack } from './commands/blackjack.command.js';
 import { refundPendingKeo } from './commands/keo.command.js';
@@ -103,6 +104,7 @@ client.once(Events.ClientReady, async (c) => {
     console.log('[bantin] Daily newsletter disabled (ENABLE_DAILY_REPORT)');
   }
   startWebServer(client);
+  startBackupScheduler(client);
   // Re-register on every boot so command changes ship with each deploy.
   for (const guild of c.guilds.cache.values()) {
     await registerGuildCommands(guild.id, guild.name);
