@@ -16,7 +16,7 @@ import { LuckService } from './services/luck.service.js';
 import { FigurineService } from './services/figurine.service.js';
 import { CacheService } from './services/redis.service.js';
 import { MongoService } from './services/mongo.service.js';
-import { QuizPoolService } from './services/quiz-pool.service.js';
+import { QuizPoolService, QuizReviewQueue } from './services/quiz-pool.service.js';
 import { GifCache } from './services/gif-cache.service.js';
 
 export const db = createDb(env.DB_PATH);
@@ -41,6 +41,7 @@ export const cache = new CacheService();
 export const mongo = new MongoService();
 export const quizPool = new QuizPoolService(mongo, cache, env.DEEPSEEK_API_KEY);
 export const gifs = new GifCache(cache);
+export const quizReview = new QuizReviewQueue(mongo);
 
 export async function connectExternalServices(): Promise<void> {
   await Promise.all([cache.connect(env.REDIS_URL), mongo.connect(env.MONGO_URI, env.MONGO_DB)]);

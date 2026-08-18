@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { EmbedBuilder, type Client } from 'discord.js';
 import { env } from './config/env.js';
-import { dashboard, quizPool, topups } from './context.js';
+import { dashboard, quizPool, quizReview, topups } from './context.js';
 import { COLORS } from './embeds/format.js';
 import { formatVnd } from './commands/cash.command.js';
 import {
@@ -172,7 +172,8 @@ async function handleLogin(req: IncomingMessage, res: ServerResponse): Promise<v
 
 async function handleDashboardApi(res: ServerResponse, resource: string): Promise<void> {
   if (resource === 'quizpool') {
-    send(res, 200, (await quizPool.stats()) ?? { total: 0, byTier: {} });
+    const stats = (await quizPool.stats()) ?? { total: 0, byTier: {} };
+    send(res, 200, { ...stats, pendingReview: await quizReview.count() });
     return;
   }
   switch (resource) {

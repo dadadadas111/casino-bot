@@ -10,6 +10,18 @@ export interface PoolQuestion {
   timesServed: number;
 }
 
+/** A candidate the filter could not judge; waits for the bot owner. */
+export interface QuizReview {
+  key: string;
+  question: string;
+  answers: string[];
+  correct: number;
+  tier: 'easy' | 'medium' | 'hard';
+  matchedQuestion: string;
+  score: number;
+  createdAt: Date;
+}
+
 export interface QuizUsage {
   guildId: string;
   key: string;
@@ -69,11 +81,16 @@ export class MongoService {
     return this.db!.collection<QuizUsage>('quiz_usage');
   }
 
+  review(): Collection<QuizReview> {
+    return this.db!.collection<QuizReview>('quiz_review');
+  }
+
   private async ensureIndexes(): Promise<void> {
     await this.questions().createIndex({ key: 1 }, { unique: true });
     await this.questions().createIndex({ tier: 1 });
     await this.usage().createIndex({ guildId: 1, key: 1 }, { unique: true });
     await this.usage().createIndex({ guildId: 1, lastUsedAt: 1 });
+    await this.review().createIndex({ key: 1 }, { unique: true });
   }
 
   async close(): Promise<void> {

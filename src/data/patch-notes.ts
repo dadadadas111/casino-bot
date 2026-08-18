@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '3.1.0',
+    date: '18/08/2026',
+    title: 'Câu hỏi hết trùng lặp',
+    changes: [
+      '🔍 Bot giờ nhận ra hai câu hỏi **cùng một ý nhưng khác cách diễn đạt**, không chỉ trùng y hệt. Đã dọn 49 câu trùng khỏi kho',
+      '⚖️ Câu nào khó phân định thì để dành cho chủ bot duyệt tay thay vì vứt đi',
+      '-# Ví dụ bị bắt: "Loài hoa nào là quốc hoa Việt Nam?" và "Quốc hoa Việt Nam là loài hoa nào?".',
+    ],
+  },
+  {
     version: '3.0.0',
     date: '18/08/2026',
     title: 'Kho câu hỏi dùng chung',

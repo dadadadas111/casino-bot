@@ -221,9 +221,30 @@ export class QuizPoolService {
       .questions()
       .find({}, { projection: { question: 1, answers: 1, correct: 1, _id: 0 } })
       .toArray();
-    const { kept, dropped } = rejectDuplicates(generated, existing);
+    const { kept, dropped, borderline } = rejectDuplicates(generated, existing);
     if (dropped.length > 0) {
       console.log(`[quiz-pool] bỏ ${dropped.length}/${generated.length} câu trùng ý với kho`);
+    }
+    // Unclear cases were already paid for; queue them for a human rather
+    // than throwing the money away.
+    if (borderline.length > 0) {
+      await this.mongo
+        .review()
+        .insertMany(
+          borderline.map((b) => ({
+            key: questionKey(b.candidate.question),
+            question: b.candidate.question,
+            answers: b.candidate.answers,
+            correct: b.candidate.correct,
+            tier: b.candidate.tier,
+            matchedQuestion: b.matched,
+            score: b.score,
+            createdAt: new Date(),
+          })),
+          { ordered: false },
+        )
+        .catch(() => undefined);
+      console.log(`[quiz-pool] ${borderline.length} câu nghi ngờ, chờ chủ bot duyệt`);
     }
     if (kept.length === 0) return 0;
 
@@ -255,5 +276,63 @@ export class QuizPoolService {
       byTier[tier] = await this.mongo.questions().countDocuments({ tier });
     }
     return { total: await this.mongo.questions().countDocuments(), byTier };
+  }
+}
+
+export interface PendingReview {
+  key: string;
+  question: string;
+  answers: string[];
+  correct: number;
+  tier: QuizTier;
+  matchedQuestion: string;
+  score: number;
+}
+
+/** Review queue operations, used by the owner-only approval command. */
+export class QuizReviewQueue {
+  constructor(private mongo: MongoService) {}
+
+  available(): boolean {
+    return this.mongo.available();
+  }
+
+  async count(): Promise<number> {
+    if (!this.available()) return 0;
+    return this.mongo.review().countDocuments();
+  }
+
+  async next(): Promise<PendingReview | null> {
+    if (!this.available()) return null;
+    const doc = await this.mongo.review().findOne({}, { sort: { createdAt: 1 } });
+    return doc ? (doc as unknown as PendingReview) : null;
+  }
+
+  /** Move an approved question into the live pool. */
+  async approve(key: string): Promise<boolean> {
+    if (!this.available()) return false;
+    const doc = await this.mongo.review().findOne({ key });
+    if (!doc) return false;
+    try {
+      await this.mongo.questions().insertOne({
+        key: doc.key,
+        question: doc.question,
+        answers: doc.answers,
+        correct: doc.correct,
+        tier: doc.tier,
+        createdAt: new Date(),
+        timesServed: 0,
+      });
+    } catch {
+      // Already present: nothing to add, but the queue entry still goes.
+    }
+    await this.mongo.review().deleteOne({ key });
+    return true;
+  }
+
+  async reject(key: string): Promise<boolean> {
+    if (!this.available()) return false;
+    const res = await this.mongo.review().deleteOne({ key });
+    return res.deletedCount > 0;
   }
 }

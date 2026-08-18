@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  classify,
   contentTokens,
   fingerprint,
   isNearDuplicate,
@@ -141,5 +142,69 @@ describe('rejectDuplicates', () => {
     );
     expect(result.kept).toHaveLength(1);
     expect(result.dropped).toHaveLength(1);
+  });
+});
+
+describe('classify: ba mức phán quyết', () => {
+  // Synthetic tokens keep the overlap exact, so the test pins the thresholds
+  // themselves rather than the quirks of one Vietnamese sentence.
+  const print = (words: string, answer: string) =>
+    fingerprint({ question: words, answers: [answer, 'x', 'y', 'z'], correct: 0 });
+
+  it('same answer with light overlap goes to review, not the bin', () => {
+    // 2 shared of 8 distinct = 0.25, inside the 0.20 to 0.35 review band.
+    const a = print('alpha beta gamma delta epsilon', 'Sao Mộc');
+    const b = print('alpha beta zeta eta theta', 'Sao Mộc');
+    expect(jaccard(a.tokens, b.tokens)).toBeCloseTo(0.25, 2);
+    expect(classify(a, b)).toBe('borderline');
+  });
+
+  it('same answer with heavy overlap is a duplicate', () => {
+    // 3 shared of 7 distinct = 0.43, past the 0.35 same-answer threshold.
+    const a = print('alpha beta gamma delta', 'Hoa sen');
+    const b = print('alpha beta gamma zeta eta', 'Hoa sen');
+    expect(classify(a, b)).toBe('duplicate');
+  });
+
+  it('different answers need near-verbatim wording to count as duplicate', () => {
+    const a = print('alpha beta gamma delta', 'Đáp án A');
+    const b = print('alpha beta gamma zeta', 'Đáp án B');
+    expect(classify(a, b)).toBe('borderline');
+    expect(classify(print('alpha beta gamma delta', 'A'), print('alpha beta gamma delta', 'B'))).toBe(
+      'duplicate',
+    );
+  });
+
+  it('leaves unrelated questions alone', () => {
+    expect(
+      classify(
+        print('Ai là tác giả Truyện Kiều?', 'Nguyễn Du'),
+        print('Sông nào dài nhất thế giới?', 'Sông Nin'),
+      ),
+    ).toBe('distinct');
+  });
+});
+
+describe('rejectDuplicates triage', () => {
+  const q = (question: string, answer: string) => ({
+    question,
+    answers: [answer, 'a', 'b', 'c'],
+    correct: 0,
+  });
+
+  it('splits candidates into kept, dropped and queued for review', () => {
+    const existing = [q('alpha beta gamma delta epsilon', 'Hoa sen')];
+    const result = rejectDuplicates(
+      [
+        q('alpha beta gamma delta zeta', 'Hoa sen'), // heavy overlap -> duplicate
+        q('alpha beta zeta eta theta', 'Hoa sen'), // light overlap -> review
+        q('Thành phố nào đông dân nhất Việt Nam?', 'TP. Hồ Chí Minh'), // unrelated
+      ],
+      existing,
+    );
+    expect(result.dropped).toHaveLength(1);
+    expect(result.borderline).toHaveLength(1);
+    expect(result.kept).toHaveLength(1);
+    expect(result.borderline[0].score).toBeGreaterThan(0);
   });
 });

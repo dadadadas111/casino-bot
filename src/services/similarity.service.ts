@@ -74,34 +74,76 @@ export function fingerprint(q: ComparableQuestion): Fingerprint {
   };
 }
 
+/**
+ * Below the confident thresholds sits a band where the call is genuinely
+ * unclear. Discarding those wastes questions we already paid for, so they go
+ * to a review queue instead of the bin.
+ */
+export const BORDERLINE_SAME_ANSWER = 0.2;
+export const BORDERLINE_SIMILARITY = 0.6;
+
+export type Verdict = 'duplicate' | 'borderline' | 'distinct';
+
+export function classify(a: Fingerprint, b: Fingerprint): Verdict {
+  const score = jaccard(a.tokens, b.tokens);
+  const sameAnswer = a.answer.length > 0 && a.answer === b.answer;
+
+  if (sameAnswer && score >= SAME_ANSWER_THRESHOLD) return 'duplicate';
+  if (score >= SIMILARITY_THRESHOLD) return 'duplicate';
+  if (sameAnswer && score >= BORDERLINE_SAME_ANSWER) return 'borderline';
+  if (score >= BORDERLINE_SIMILARITY) return 'borderline';
+  return 'distinct';
+}
+
 /** True when the two questions are effectively asking the same thing. */
 export function isNearDuplicate(a: Fingerprint, b: Fingerprint): boolean {
-  const score = jaccard(a.tokens, b.tokens);
-  if (a.answer.length > 0 && a.answer === b.answer && score >= SAME_ANSWER_THRESHOLD) return true;
-  return score >= SIMILARITY_THRESHOLD;
+  return classify(a, b) === 'duplicate';
 }
 
 /**
  * Filter candidates against what already exists and against each other, so a
  * single batch cannot smuggle in its own internal repeats.
  */
+export interface TriageResult<T> {
+  kept: T[];
+  dropped: Array<{ candidate: T; matched: string }>;
+  borderline: Array<{ candidate: T; matched: string; score: number }>;
+}
+
 export function rejectDuplicates<T extends ComparableQuestion>(
   candidates: T[],
   existing: ComparableQuestion[],
-): { kept: T[]; dropped: Array<{ candidate: T; matched: string }> } {
+): TriageResult<T> {
   const known = existing.map((q) => ({ print: fingerprint(q), text: q.question }));
   const kept: T[] = [];
   const dropped: Array<{ candidate: T; matched: string }> = [];
+  const borderline: Array<{ candidate: T; matched: string; score: number }> = [];
 
   for (const candidate of candidates) {
     const print = fingerprint(candidate);
-    const clash = known.find((k) => isNearDuplicate(print, k.print));
-    if (clash) {
-      dropped.push({ candidate, matched: clash.text });
+    let verdictMatch: { text: string; verdict: Verdict; score: number } | null = null;
+    for (const k of known) {
+      const verdict = classify(print, k.print);
+      if (verdict === 'distinct') continue;
+      const score = jaccard(print.tokens, k.print.tokens);
+      // A confident duplicate settles it; keep looking only while unsure.
+      if (verdict === 'duplicate') {
+        verdictMatch = { text: k.text, verdict, score };
+        break;
+      }
+      if (!verdictMatch) verdictMatch = { text: k.text, verdict, score };
+    }
+
+    if (verdictMatch?.verdict === 'duplicate') {
+      dropped.push({ candidate, matched: verdictMatch.text });
+      continue;
+    }
+    if (verdictMatch?.verdict === 'borderline') {
+      borderline.push({ candidate, matched: verdictMatch.text, score: verdictMatch.score });
       continue;
     }
     kept.push(candidate);
     known.push({ print, text: candidate.question });
   }
-  return { kept, dropped };
+  return { kept, dropped, borderline };
 }
