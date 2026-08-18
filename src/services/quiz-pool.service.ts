@@ -1,6 +1,7 @@
 import type { CacheService } from './redis.service.js';
 import { type MongoService, type PoolQuestion, questionKey } from './mongo.service.js';
 import { generateQuestionBatch } from './quiz-ai.service.js';
+import { rejectDuplicates } from './similarity.service.js';
 import { type GameQuestion, toGameQuestions } from './trieuphu.service.js';
 import type { QuizTier } from '../data/trieuphu-questions.js';
 
@@ -214,7 +215,19 @@ export class QuizPoolService {
     );
     if (!generated) return 0;
 
-    const docs: PoolQuestion[] = generated.map((q) => ({
+    // The unique index only stops identical text; a reworded repeat of the
+    // same fact needs comparing content words against the whole pool.
+    const existing = await this.mongo
+      .questions()
+      .find({}, { projection: { question: 1, answers: 1, correct: 1, _id: 0 } })
+      .toArray();
+    const { kept, dropped } = rejectDuplicates(generated, existing);
+    if (dropped.length > 0) {
+      console.log(`[quiz-pool] bỏ ${dropped.length}/${generated.length} câu trùng ý với kho`);
+    }
+    if (kept.length === 0) return 0;
+
+    const docs: PoolQuestion[] = kept.map((q) => ({
       key: questionKey(q.question),
       question: q.question,
       answers: q.answers,

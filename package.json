@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "clean": "rm -rf dist",
-    "seed-quiz": "tsx --env-file-if-exists=.env src/seed-quiz-pool.ts"
+    "seed-quiz": "tsx --env-file-if-exists=.env src/seed-quiz-pool.ts",
+    "dedupe-quiz": "tsx --env-file-if-exists=.env src/dedupe-quiz-pool.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
