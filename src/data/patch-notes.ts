@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '3.0.0',
+    date: '18/08/2026',
+    title: 'Kho câu hỏi dùng chung',
+    changes: [
+      '💰 **Ai Là Triệu Phú giờ rút câu hỏi từ kho chung** thay vì nhờ AI soạn mới mỗi ván. Bot nhớ server bạn đã gặp câu nào, chỉ đưa câu mới, sắp hết thì tự nạp thêm',
+      '⚡ Vào ván **nhanh hơn hẳn**, không còn phải chờ soạn đề',
+      '🔕 Bản tin hằng ngày tạm tắt để tiết kiệm chi phí, bật lại bất cứ lúc nào',
+      '-# Kho khởi điểm 150 câu, mỗi server chơi được 8 ván trước khi bot tự bổ sung.',
+    ],
+  },
+  {
     version: '2.9.0',
     date: '18/08/2026',
     title: 'Rà soát trước khi phát hành',

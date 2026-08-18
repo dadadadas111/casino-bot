@@ -14,7 +14,7 @@ import { refundPendingRaces } from './commands/duangua.command.js';
 import { refundPendingRoulette } from './commands/coquay.command.js';
 import { refundPendingWeddings } from './commands/honle.command.js';
 import { refundPendingQuizzes } from './commands/trieuphu.command.js';
-import { activity, economy } from './context.js';
+import { activity, cache, connectExternalServices, economy, mongo } from './context.js';
 import { formatCoins } from './embeds/format.js';
 
 // While jailed or hospitalised, everything that moves money or plays games
@@ -95,8 +95,13 @@ async function registerGuildCommands(guildId: string, guildName: string): Promis
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] Logged in as ${c.user.tag} (${commands.size} commands loaded)`);
+  await connectExternalServices();
   startLotteryScheduler(client);
-  startReportScheduler(client);
+  if (env.ENABLE_DAILY_REPORT === 'true') {
+    startReportScheduler(client);
+  } else {
+    console.log('[bantin] Daily newsletter disabled (ENABLE_DAILY_REPORT)');
+  }
   startWebServer(client);
   // Re-register on every boot so command changes ship with each deploy.
   for (const guild of c.guilds.cache.values()) {
@@ -196,7 +201,9 @@ function refundEverything(reason: string): void {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     refundEverything(signal);
-    void client.destroy().finally(() => process.exit(0));
+    void Promise.allSettled([client.destroy(), cache.close(), mongo.close()]).finally(() =>
+      process.exit(0),
+    );
   });
 }
 

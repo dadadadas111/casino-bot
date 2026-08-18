@@ -10,7 +10,7 @@ import {
 } from 'discord.js';
 import { economy, figurines, items } from '../context.js';
 import { DIVORCE_FEE } from '../services/economy.service.js';
-import { fetchActionGif } from '../services/gif.service.js';
+import { gifs } from '../context.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -210,7 +210,7 @@ export const weddingComponents: ComponentHandler = {
     }
 
     await interaction.deferUpdate();
-    const gif = await fetchActionGif('dance');
+    const gif = await gifs.get('dance');
     const embed = new EmbedBuilder()
       .setColor(COLORS.gold)
       .setTitle('💒 HÔN LỄ TRĂM NĂM 💒')

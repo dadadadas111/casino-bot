@@ -3,7 +3,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { fetchActionGif } from '../services/gif.service.js';
+import { gifs } from '../context.js';
 import { COLORS } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -93,7 +93,7 @@ function buildCommand(def: ActionDef): Command {
 
       // GIF fetch can take a moment; defer to stay inside the 3s window.
       await interaction.deferReply();
-      const gif = await fetchActionGif(def.category);
+      const gif = await gifs.get(def.category);
 
       const template = isSelf ? def.selfText : pick(def.templates);
       const text = template

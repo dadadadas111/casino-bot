@@ -23,6 +23,13 @@ const envSchema = z.object({
   DASHBOARD_EMAIL: z.string().optional(),
   DASHBOARD_PASSWORD_HASH: z.string().optional(),
   DASHBOARD_SESSION_SECRET: z.string().optional(),
+  // Optional external services. Both fail open: without them the bot runs on
+  // SQLite alone, using the built-in question bank and no cache.
+  REDIS_URL: z.string().optional(),
+  MONGO_URI: z.string().optional(),
+  MONGO_DB: z.string().default('casino'),
+  // Daily newsletter costs one AI call per guild per day; off while we watch spend.
+  ENABLE_DAILY_REPORT: z.string().default('false'),
 });
 
 const parsed = envSchema.safeParse(process.env);

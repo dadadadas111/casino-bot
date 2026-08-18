@@ -10,7 +10,7 @@ import {
   type Message,
 } from 'discord.js';
 import { economy, figurines } from '../context.js';
-import { fetchActionGif } from '../services/gif.service.js';
+import { gifs } from '../context.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -140,7 +140,7 @@ export const honleCommand: Command = {
     ceremonies.set(hostId, ceremony);
 
     await interaction.deferReply();
-    const gif = await fetchActionGif('dance');
+    const gif = await gifs.get('dance');
     await interaction.editReply({
       // No @here: a 5.000 xu command must not be able to ping the whole server.
       content: `🎉 Tiệc cưới của <@${hostId}> và ${spouseLabel}!`,

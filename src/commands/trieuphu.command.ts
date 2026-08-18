@@ -11,7 +11,7 @@ import {
 } from 'discord.js';
 
 export const QUIZ_RESET_PRICE_VND = 500;
-import { cash, economy, quizHistory } from '../context.js';
+import { cash, economy, quizPool } from '../context.js';
 import { env } from '../config/env.js';
 import { formatVnd } from './cash.command.js';
 import {
@@ -21,10 +21,8 @@ import {
   buildGameQuestions,
   safeAmount,
   stopPrize,
-  toGameQuestions,
   wrongPrize,
 } from '../services/trieuphu.service.js';
-import { generateQuizQuestions } from '../services/quiz-ai.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -48,20 +46,14 @@ const sessions = new Map<string, QuizSession>();
 const pending = new Set<string>();
 
 /**
- * Fresh questions from DeepSeek when configured, avoiding recently asked
- * ones; the static bank is the fallback so the game always starts.
+ * Draw from the shared pool, which hands out questions this server has not
+ * seen and refills itself in the background. Generating per game was the
+ * single largest running cost; the static bank still covers a pool outage.
  */
-async function prepareQuestions(): Promise<GameQuestion[]> {
-  if (env.DEEPSEEK_API_KEY) {
-    const recent = quizHistory.recent(40);
-    const generated = await generateQuizQuestions(env.DEEPSEEK_API_KEY, recent);
-    if (generated) {
-      const recentSet = new Set(recent);
-      if (generated.every((q) => !recentSet.has(q.question))) {
-        return toGameQuestions(generated);
-      }
-      console.warn('[trieuphu] AI returned repeated questions, using the bank');
-    }
+async function prepareQuestions(guildId: string | null): Promise<GameQuestion[]> {
+  if (guildId) {
+    const fromPool = await quizPool.drawGame(guildId);
+    if (fromPool) return fromPool;
   }
   return buildGameQuestions();
 }
@@ -213,8 +205,7 @@ export const trieuphuCommand: Command = {
         ],
       });
 
-      const questions = await prepareQuestions();
-      quizHistory.record(questions.map((q) => q.question));
+      const questions = await prepareQuestions(interaction.inGuild() ? interaction.guildId : null);
 
       const session: QuizSession = {
         userId,

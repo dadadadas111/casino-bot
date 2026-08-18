@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { EmbedBuilder, type Client } from 'discord.js';
 import { env } from './config/env.js';
-import { dashboard, topups } from './context.js';
+import { dashboard, quizPool, topups } from './context.js';
 import { COLORS } from './embeds/format.js';
 import { formatVnd } from './commands/cash.command.js';
 import {
@@ -170,7 +170,11 @@ async function handleLogin(req: IncomingMessage, res: ServerResponse): Promise<v
   });
 }
 
-function handleDashboardApi(res: ServerResponse, resource: string): void {
+async function handleDashboardApi(res: ServerResponse, resource: string): Promise<void> {
+  if (resource === 'quizpool') {
+    send(res, 200, (await quizPool.stats()) ?? { total: 0, byTier: {} });
+    return;
+  }
   switch (resource) {
     case 'overview':
       send(res, 200, dashboard.overview());
@@ -220,7 +224,7 @@ async function handleDashboard(req: IncomingMessage, res: ServerResponse, url: U
       send(res, 401, { error: 'unauthorised' });
       return;
     }
-    handleDashboardApi(res, path.slice('/dashboard/api/'.length));
+    await handleDashboardApi(res, path.slice('/dashboard/api/'.length));
     return;
   }
   if (path === '/dashboard') {
