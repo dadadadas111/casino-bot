@@ -2,7 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { questionKey } from '../src/services/mongo.service';
 import { buildBatchPrompt, parseTieredQuestions } from '../src/services/quiz-ai.service';
 import { CacheService } from '../src/services/redis.service';
-import { PER_GAME, REFILL_BATCH, REFILL_GAMES_LEFT } from '../src/services/quiz-pool.service';
+import {
+  CANDIDATE_WINDOW,
+  PER_GAME,
+  POOL_MAX,
+  REFILL_BATCH,
+  REFILL_COOLDOWN_SECONDS,
+  REFILL_GAMES_LEFT,
+} from '../src/services/quiz-pool.service';
 
 describe('questionKey (chống trùng lặp)', () => {
   it('treats punctuation, case and spacing differences as the same question', () => {
@@ -84,5 +91,19 @@ describe('pool sizing rules', () => {
   it('refills in batches far larger than one game, which is the whole saving', () => {
     expect(REFILL_BATCH).toBeGreaterThanOrEqual(50);
     expect(REFILL_GAMES_LEFT).toBeGreaterThanOrEqual(1);
+  });
+
+  it('keeps a candidate window wide enough that consecutive games differ', () => {
+    // With a window of N times the needed count, the odds of two games in a
+    // row drawing the same five questions from a tier are negligible.
+    expect(CANDIDATE_WINDOW).toBeGreaterThanOrEqual(2);
+  });
+
+  it('bounds spend: refills are rate limited and stop at a full pool', () => {
+    expect(REFILL_COOLDOWN_SECONDS).toBeGreaterThanOrEqual(60 * 30);
+    expect(POOL_MAX).toBeGreaterThanOrEqual(500);
+    // A pool at the ceiling must still cover many games per tier.
+    const perTierAtCeiling = POOL_MAX / 3;
+    expect(perTierAtCeiling / PER_GAME.easy).toBeGreaterThan(50);
   });
 });

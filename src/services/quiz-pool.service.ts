@@ -9,8 +9,27 @@ export const PER_GAME: Record<QuizTier, number> = { easy: 5, medium: 5, hard: 5 
 /** Refill once a tier can serve fewer than this many further games. */
 export const REFILL_GAMES_LEFT = 2;
 export const REFILL_BATCH = 50;
+/**
+ * Spend guards. Recycling means a game never fails for lack of questions, so
+ * refills are a quality nicety, not a necessity: at most one per hour across
+ * the whole bot, and none at all once the pool is comfortably large.
+ */
+export const REFILL_COOLDOWN_SECONDS = 60 * 60;
+export const POOL_MAX = 1_000;
+const REFILL_RECENT = 'casino:quiz:refill:recent';
+/** How many times the needed count to consider before shuffling. */
+export const CANDIDATE_WINDOW = 3;
 const REFILL_LOCK = 'casino:quiz:refill';
 const REFILL_LOCK_TTL = 300;
+
+function shuffled<T>(items: T[]): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 export interface PoolStats {
   total: number;
@@ -47,35 +66,70 @@ export class QuizPoolService {
   }
 
   /**
-   * Draw a full game for a guild, or null when the pool cannot cover it and
-   * the caller should fall back to the static bank.
+   * Candidates for one tier, stalest first: questions this guild has never
+   * seen sort ahead of ones it has, and among those seen the oldest wins.
+   * A window of several times the needed count keeps successive games from
+   * being identical while still respecting the ordering.
+   */
+  private async staleCandidates(
+    guildId: string,
+    tier: QuizTier,
+    count: number,
+  ): Promise<PoolQuestion[]> {
+    return this.mongo
+      .questions()
+      .aggregate<PoolQuestion>([
+        { $match: { tier } },
+        {
+          $lookup: {
+            from: 'quiz_usage',
+            let: { k: '$key' },
+            pipeline: [
+              { $match: { $expr: { $and: [{ $eq: ['$key', '$$k'] }, { $eq: ['$guildId', guildId] }] } } },
+              { $project: { lastUsedAt: 1, _id: 0 } },
+            ],
+            as: 'seen',
+          },
+        },
+        // Never-seen questions get epoch 0 so they always sort first.
+        { $addFields: { lastUsedAt: { $ifNull: [{ $first: '$seen.lastUsedAt' }, new Date(0)] } } },
+        { $sort: { lastUsedAt: 1 } },
+        { $limit: count * CANDIDATE_WINDOW },
+        { $project: { seen: 0 } },
+      ])
+      .toArray();
+  }
+
+  /**
+   * Draw a full game for a guild. Questions are recycled rather than burned:
+   * once the pool has been through, the ones untouched longest come back.
+   * Returns null only when the pool genuinely cannot fill a tier.
    */
   async drawGame(guildId: string): Promise<GameQuestion[] | null> {
     if (!this.available()) return null;
     try {
-      const seen = await this.seenKeys(guildId);
       const picked: PoolQuestion[] = [];
 
       for (const [tier, count] of Object.entries(PER_GAME) as Array<[QuizTier, number]>) {
-        const docs = await this.mongo
-          .questions()
-          .aggregate<PoolQuestion>([
-            { $match: { tier, key: { $nin: seen } } },
-            { $sample: { size: count } },
-          ])
-          .toArray();
-        if (docs.length < count) return null; // not enough fresh material
-        picked.push(...docs);
+        const candidates = await this.staleCandidates(guildId, tier, count);
+        if (candidates.length < count) return null;
+        picked.push(...shuffled(candidates).slice(0, count));
       }
 
-      const keys = picked.map((q) => q.key);
-      await this.mongo.usage().insertMany(
-        keys.map((key) => ({ guildId, key, usedAt: new Date() })),
+      const now = new Date();
+      await this.mongo.usage().bulkWrite(
+        picked.map((q) => ({
+          updateOne: {
+            filter: { guildId, key: q.key },
+            update: { $set: { lastUsedAt: now }, $inc: { timesUsed: 1 } },
+            upsert: true,
+          },
+        })),
         { ordered: false },
       );
       await this.mongo
         .questions()
-        .updateMany({ key: { $in: keys } }, { $inc: { timesServed: 1 } });
+        .updateMany({ key: { $in: picked.map((q) => q.key) } }, { $inc: { timesServed: 1 } });
 
       // Check supply after serving, never before: the game must not wait.
       void this.refillIfLow(guildId).catch((e) => console.warn('[quiz-pool] refill:', String(e)));
@@ -97,9 +151,21 @@ export class QuizPoolService {
     return out;
   }
 
-  /** Generate a batch when any tier is nearly exhausted for this guild. */
+  /**
+   * Top the pool up when a guild is close to seeing repeats. Guarded three
+   * ways so a guild that has exhausted the pool cannot trigger a purchase on
+   * every single game.
+   */
   async refillIfLow(guildId: string): Promise<boolean> {
     if (!this.available() || !this.apiKey) return false;
+
+    // 1. Big enough pools recycle comfortably; stop buying.
+    const total = await this.mongo.questions().countDocuments();
+    if (total >= POOL_MAX) return false;
+
+    // 2. At most one refill per hour, bot-wide.
+    if (await this.cache.get<number>(REFILL_RECENT)) return false;
+
     const unseen = await this.unseenByTier(guildId);
     // Buy only the difficulty that is running out, not a balanced batch we
     // partly do not need.
@@ -109,11 +175,13 @@ export class QuizPoolService {
     if (!shortest) return false;
     const focusTier = shortest[0];
 
+    // 3. And only one generation running at a time.
     if (!(await this.cache.acquireLock(REFILL_LOCK, REFILL_LOCK_TTL))) {
       console.log('[quiz-pool] refill already running elsewhere, skipping');
       return false;
     }
     try {
+      await this.cache.set(REFILL_RECENT, Date.now(), REFILL_COOLDOWN_SECONDS);
       const added = await this.generateAndStore(REFILL_BATCH, focusTier);
       console.log(
         `[quiz-pool] refilled ${added} "${focusTier}" question(s) (guild ${guildId} was low)`,

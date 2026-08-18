@@ -13,7 +13,9 @@ export interface PoolQuestion {
 export interface QuizUsage {
   guildId: string;
   key: string;
-  usedAt: Date;
+  /** Drives least-recently-used ordering when the pool has to recycle. */
+  lastUsedAt: Date;
+  timesUsed: number;
 }
 
 /** Normalized form used as the dedup key. */
@@ -71,7 +73,7 @@ export class MongoService {
     await this.questions().createIndex({ key: 1 }, { unique: true });
     await this.questions().createIndex({ tier: 1 });
     await this.usage().createIndex({ guildId: 1, key: 1 }, { unique: true });
-    await this.usage().createIndex({ guildId: 1 });
+    await this.usage().createIndex({ guildId: 1, lastUsedAt: 1 });
   }
 
   async close(): Promise<void> {
