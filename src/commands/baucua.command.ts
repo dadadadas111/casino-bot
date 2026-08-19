@@ -7,7 +7,7 @@ import {
   rollBauCua,
 } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
-import { placeBetOrReply, resultLine } from './bet-helpers.js';
+import { placeBetOrReply, resultLine, type PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 export const baucuaCommand: Command = {
@@ -32,6 +32,12 @@ export const baucuaCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const bet = interaction.options.getInteger('cuoc', true);
     const choice = interaction.options.getString('chon', true) as BauCuaSymbol;
+    await runBauCua(interaction, interaction.options.getInteger('cuoc', true), interaction.options.getString('chon', true) as BauCuaSymbol);
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runBauCua(interaction: PlayInteraction, bet: number, choice: BauCuaSymbol): Promise<void> {
     if (!(await placeBetOrReply(interaction, bet, 'baucua'))) return;
 
     const chosen = BAU_CUA_SYMBOLS[choice];
@@ -81,5 +87,6 @@ export const baucuaCommand: Command = {
           .setFooter({ text: interaction.user.displayName }),
       ],
     });
-  },
-};
+  
+}
+

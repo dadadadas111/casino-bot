@@ -2,7 +2,7 @@ import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } f
 import { economy, luck } from '../context.js';
 import { DICE_EMOJI, rollTaiXiu, taiXiuPayout } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
-import { placeBetOrReply, resultLine } from './bet-helpers.js';
+import { placeBetOrReply, resultLine, type PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 export const taixiuCommand: Command = {
@@ -22,6 +22,12 @@ export const taixiuCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const bet = interaction.options.getInteger('cuoc', true);
     const choice = interaction.options.getString('chon', true) as 'tai' | 'xiu';
+    await runTaiXiu(interaction, interaction.options.getInteger('cuoc', true), interaction.options.getString('chon', true) as 'tai' | 'xiu');
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runTaiXiu(interaction: PlayInteraction, bet: number, choice: 'tai' | 'xiu'): Promise<void> {
     if (!(await placeBetOrReply(interaction, bet, 'taixiu'))) return;
 
     const choiceLabel = choice === 'tai' ? 'Tài' : 'Xỉu';
@@ -66,5 +72,6 @@ export const taixiuCommand: Command = {
           .setFooter({ text: interaction.user.displayName }),
       ],
     });
-  },
-};
+  
+}
+

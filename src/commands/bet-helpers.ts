@@ -1,10 +1,24 @@
-import { MessageFlags, type ChatInputCommandInteraction } from 'discord.js';
+import {
+  MessageFlags,
+  type ButtonInteraction,
+  type ChatInputCommandInteraction,
+  type ModalSubmitInteraction,
+} from 'discord.js';
 import { economy } from '../context.js';
 import { formatCoins } from '../embeds/format.js';
 
+/**
+ * Anything a game can be started from: a slash command, a button on the
+ * pinned lobby, or the modal that button opens.
+ */
+export type PlayInteraction =
+  | ChatInputCommandInteraction
+  | ButtonInteraction
+  | ModalSubmitInteraction;
+
 /** Debit the bet or reply with an ephemeral error. Returns true when the bet was placed. */
 export async function placeBetOrReply(
-  interaction: ChatInputCommandInteraction,
+  interaction: PlayInteraction,
   bet: number,
   game: string,
 ): Promise<boolean> {

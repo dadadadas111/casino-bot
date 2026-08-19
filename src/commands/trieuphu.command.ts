@@ -166,6 +166,14 @@ export const trieuphuCommand: Command = {
     .setName('trieuphu')
     .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 50.000 xu, miễn phí 1 lần mỗi ngày'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await runTrieuPhu(interaction);
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runTrieuPhu(
+  interaction: ChatInputCommandInteraction | ButtonInteraction,
+): Promise<void> {
     const userId = interaction.user.id;
 
     if (sessions.has(userId) || pending.has(userId)) {
@@ -229,8 +237,7 @@ export const trieuphuCommand: Command = {
     } finally {
       pending.delete(userId);
     }
-  },
-};
+}
 
 export const trieuphuComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

@@ -14,6 +14,7 @@ import { helpComponents } from '../commands/help.command.js';
 import { coquayComponents } from '../commands/coquay.command.js';
 import { hiloComponents } from '../commands/hilo.command.js';
 import { minesComponents } from '../commands/domin.command.js';
+import { lobbyComponents } from '../commands/sanh.command.js';
 import { reviewComponents } from '../commands/duyetcau.command.js';
 import { walletComponents } from '../commands/vi.command.js';
 import { bagComponents } from '../commands/tuido.command.js';
@@ -29,6 +30,7 @@ const handlers: Record<string, ComponentHandler> = {
   bj: blackjackComponents,
   hilo: hiloComponents,
   min: minesComponents,
+  sanh: lobbyComponents,
   tp: trieuphuComponents,
   dn: duanguaComponents,
   wed: weddingComponents,

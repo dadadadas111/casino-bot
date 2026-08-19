@@ -20,6 +20,8 @@ import { openRace, placeRaceBet } from './commands/duangua.command.js';
 import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
 import { MAX_TICKETS_PER_DAY } from './services/lottery.service.js';
 import { parseTextCommand } from './services/prefix.service.js';
+import { closestCommand } from './services/suggest.service.js';
+import { lobbyRows } from './commands/sanh.command.js';
 import { extractBetAndChoice, parseBetToken } from './services/bet-parse.js';
 import { COLORS, formatCoins, sleep } from './embeds/format.js';
 
@@ -72,6 +74,9 @@ const SLASH_ONLY = new Set([
   'hinhnom',
   'doino',
   'vay',
+  'hilo',
+  'domin',
+  'sanh',
 ]);
 
 /** Where a typed name now lives as a slash command. */
@@ -181,6 +186,32 @@ function itemMenu(pool: Array<{ key: string; emoji: string; name: string }>): st
 export async function handleTextCommand(message: Message): Promise<void> {
   if (message.author.bot || !message.inGuild()) return;
   const prefix = prefixes.get(message.guildId);
+
+  // The bare prefix is the menu key: typing just "!" opens the lobby, which
+  // is the whole point when the slash picker is buried under other apps.
+  if (message.content.trim() === prefix) {
+    if (tryUse(message.author.id, 'sanh', 30_000) > 0) return;
+    activity.recordChannel(message.guildId, message.channelId);
+    await message.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setColor(COLORS.gold)
+          .setTitle('🎰 Sảnh sòng bạc')
+          .setDescription(
+            [
+              'Bấm nút là chơi, khỏi phải lục trong đống lệnh gạch chéo của cả server.',
+              '',
+              `🎱 Hũ xổ số đang có **${formatCoins(lottery.getJackpot())}**, quay 21h mỗi tối.`,
+              '',
+              `-# Gõ \`${prefix}\` bất cứ lúc nào để mở lại bảng này.`,
+            ].join('\n'),
+          ),
+      ],
+      components: lobbyRows(),
+    });
+    return;
+  }
+
   const parsed = parseTextCommand(message.content, prefix);
   if (!parsed) return;
   const { name, args } = parsed;
@@ -457,7 +488,20 @@ export async function handleTextCommand(message: Message): Promise<void> {
 
   // ---- one-shot games ----
   const isGame = ['tx', 'taixiu', 'bc', 'baucua', 'sl', 'slots'].includes(name);
-  if (!isGame) return; // unknown text command: stay silent
+  if (!isGame) {
+    // Unknown word. The bot shares "!" with other apps here, so only speak up
+    // when the input is unmistakably a typo of one of our own commands.
+    const guess = closestCommand(name, KNOWN_TEXT_COMMANDS);
+    if (guess) {
+      const where = SLASH_ONLY.has(guess)
+        ? `\`/${SLASH_TARGET[guess] ?? guess}\``
+        : `\`${prefix}${guess}\``;
+      await message.reply(
+        `Không có lệnh \`${prefix}${name}\`. Ý bạn là ${where}? Gõ \`${prefix}\` để mở bảng chọn.`,
+      );
+    }
+    return;
+  }
 
   const remaining = tryUse(userId, 'game', 5_000);
   if (remaining > 0) {

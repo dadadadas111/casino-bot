@@ -39,6 +39,8 @@ const PAGES: HelpPage[] = [
         '',
         '**Cháy túi rồi?** `/xoso so:42` mua vé 100 xu ôm mộng jackpot, hoặc ngửa tay xin `/chuyentien` từ bạn bè.',
         '',
+        '**Ngại lục lệnh?** `/sanh` mở một bảng nút cho mọi trò. Ghim nó vào kênh là cả server khỏi gõ lệnh nữa.',
+        '',
         'Bấm các nút bên dưới để xem chi tiết từng mảng.',
       ].join('\n'),
   },
@@ -158,7 +160,7 @@ const PAGES: HelpPage[] = [
         '-# Chỉnh xu của người chơi là việc của chủ bot, admin server không có quyền này. Xu dùng chung cho mọi server nên không thể để mỗi nơi tự in tiền.',
         '',
         env.ENABLE_PREFIX_COMMANDS === 'true'
-          ? `**Gõ nhanh không cần slash**\n\`${prefix}tx 1k tai\` · \`${prefix}sl all\` · \`${prefix}dn\` · \`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\`\n-# Mẹo: \`1k\`=1.000, \`all\`=tất tay, \`half\`=nửa ví. Bỏ trống tiền cược thì lặp lại lần trước.`
+          ? `**Gõ nhanh không cần slash**\nGõ mỗi \`${prefix}\` là mở bảng chọn. Hoặc: \`${prefix}tx 1k tai\` · \`${prefix}sl all\` · \`${prefix}dn\` · \`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\`\n-# Mẹo: \`1k\`=1.000, \`all\`=tất tay, \`half\`=nửa ví. Bỏ trống tiền cược thì lặp lại lần trước.`
           : '',
       ]
         .filter(Boolean)
@@ -193,15 +195,22 @@ function prefixFor(guildId: string | null): string {
   return guildId ? prefixes.get(guildId) : '!';
 }
 
+/** The first help page plus its tab buttons, reusable from the lobby. */
+export function helpPanel(guildId: string | null): {
+  embeds: EmbedBuilder[];
+  components: ActionRowBuilder<ButtonBuilder>[];
+} {
+  const prefix = prefixFor(guildId);
+  return { embeds: [pageEmbed(PAGES[0], prefix)], components: pageButtons(PAGES[0].key) };
+}
+
 export const helpCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('help')
     .setDescription('Hướng dẫn chơi và danh sách lệnh'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const prefix = prefixFor(interaction.inGuild() ? interaction.guildId : null);
     await interaction.reply({
-      embeds: [pageEmbed(PAGES[0], prefix)],
-      components: pageButtons(PAGES[0].key),
+      ...helpPanel(interaction.inGuild() ? interaction.guildId : null),
       flags: MessageFlags.Ephemeral,
     });
   },

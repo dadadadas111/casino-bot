@@ -24,6 +24,7 @@ import {
 } from '../services/blackjack.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import type { PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 const GAME_TIMEOUT_MS = 120_000;
@@ -181,8 +182,13 @@ export const blackjackCommand: Command = {
         .setMinValue(10),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await runBlackjack(interaction, interaction.options.getInteger('cuoc', true));
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runBlackjack(interaction: PlayInteraction, bet: number): Promise<void> {
     const userId = interaction.user.id;
-    const bet = interaction.options.getInteger('cuoc', true);
 
     if (sessions.has(userId)) {
       await interaction.reply({
@@ -225,8 +231,9 @@ export const blackjackCommand: Command = {
 
     await interaction.reply({ embeds: [playingEmbed(session)], components: buttons(session) });
     session.message = await interaction.fetchReply();
-  },
-};
+  
+}
+
 
 export const blackjackComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

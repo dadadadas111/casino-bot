@@ -19,7 +19,7 @@ import {
 } from '../services/mines.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import { placeBetOrReply } from './bet-helpers.js';
+import { placeBetOrReply, type PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 const IDLE_MS = 3 * 60 * 1000;
@@ -134,6 +134,12 @@ export const dominCommand: Command = {
       o.setName('cuoc').setDescription('Số xu muốn cược').setRequired(true).setMinValue(10),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await runDoMin(interaction, interaction.options.getInteger('cuoc', true));
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runDoMin(interaction: PlayInteraction, bet: number): Promise<void> {
     if (sessions.has(interaction.user.id)) {
       await interaction.reply({
         content: 'Bạn đang có một bãi mìn dở dang, dò nốt đã!',
@@ -141,7 +147,6 @@ export const dominCommand: Command = {
       });
       return;
     }
-    const bet = interaction.options.getInteger('cuoc', true);
     if (!(await placeBetOrReply(interaction, bet, 'domin'))) return;
 
     const session: Session = {
@@ -161,8 +166,7 @@ export const dominCommand: Command = {
     });
     session.message = await interaction.fetchReply();
     arm(session);
-  },
-};
+}
 
 export const minesComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

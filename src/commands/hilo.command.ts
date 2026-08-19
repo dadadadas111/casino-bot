@@ -21,7 +21,7 @@ import {
 } from '../services/hilo.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import { placeBetOrReply } from './bet-helpers.js';
+import { placeBetOrReply, type PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 /** Walk away automatically rather than let a stake sit abandoned. */
@@ -126,6 +126,12 @@ export const hiloCommand: Command = {
       o.setName('cuoc').setDescription('Số xu muốn cược').setRequired(true).setMinValue(10),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await runHiLo(interaction, interaction.options.getInteger('cuoc', true));
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runHiLo(interaction: PlayInteraction, bet: number): Promise<void> {
     if (sessions.has(interaction.user.id)) {
       await interaction.reply({
         content: 'Bạn đang có một ván Cao Thấp dở dang, chơi nốt đã!',
@@ -133,7 +139,6 @@ export const hiloCommand: Command = {
       });
       return;
     }
-    const bet = interaction.options.getInteger('cuoc', true);
     if (!(await placeBetOrReply(interaction, bet, 'hilo'))) return;
 
     const session: Session = {
@@ -154,8 +159,7 @@ export const hiloCommand: Command = {
     });
     session.message = await interaction.fetchReply();
     arm(session);
-  },
-};
+}
 
 export const hiloComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

@@ -5,6 +5,7 @@ import { baucuaCommand } from './baucua.command.js';
 import { slotsCommand } from './slots.command.js';
 import { hiloCommand } from './hilo.command.js';
 import { dominCommand } from './domin.command.js';
+import { sanhCommand } from './sanh.command.js';
 import { duanguaCommand } from './duangua.command.js';
 import { xosoCommand } from './xoso.command.js';
 import { trieuphuCommand } from './trieuphu.command.js';
@@ -47,6 +48,8 @@ function alias(command: Command, name: string): Command {
 export const OWNER_ONLY_COMMANDS = new Set(['chubot']);
 
 const all: Command[] = [
+  // The lobby comes first: it is the answer to a crowded slash picker.
+  sanhCommand,
   // Games keep their own top-level names: this is the shortest path to the
   // thing people open the bot for, and a picker would only lengthen it.
   blackjackCommand,

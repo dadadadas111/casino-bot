@@ -8,6 +8,18 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.2.0',
+    date: '19/08/2026',
+    title: 'Sảnh sòng bạc, khỏi lục lệnh gạch chéo',
+    changes: [
+      '🎰 **`/sanh` mở một bảng nút cho cả sòng bạc.** Ghim tin nhắn đó vào kênh là xong: từ đó bấm nút mà chơi, không phải gõ `/` rồi lạc trong danh sách lệnh của mấy chục app khác nữa',
+      '-# Nút sống mãi, bot restart cũng không hỏng. Trò nào cần tiền cược thì bấm vào hiện ô nhập, gõ được cả `1k`, `all`, `half`.',
+      '⌨️ **Gõ mỗi dấu prefix là mở bảng đó.** Mặc định là `!`, tức là gõ đúng một ký tự `!` rồi Enter',
+      '🔤 **Gõ sai tên lệnh thì bot đoán hộ.** `!dail` sẽ được hỏi lại có phải ý bạn là `!daily` không. Gõ chữ chẳng liên quan thì bot vẫn im, để không giẫm chân các bot khác cùng dùng dấu `!`',
+      '-# Lệnh nhắn tin không bao giờ có gợi ý tự động được, đó là giới hạn của Discord chứ không phải bot làm thiếu. Hai thứ trên là cách bù lại.',
+    ],
+  },
+  {
     version: '5.1.0',
     date: '19/08/2026',
     title: 'Cao hay Thấp, Dò mìn, và dọn hai trò ế',

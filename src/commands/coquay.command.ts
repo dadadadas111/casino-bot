@@ -20,6 +20,7 @@ import {
 } from '../services/roulette.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
+import type { PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 const JOIN_MS = 45_000;
@@ -193,6 +194,12 @@ export const coquayCommand: Command = {
       o.setName('cuoc').setDescription('Số xu mỗi người cược').setRequired(true).setMinValue(100),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    await runCoQuay(interaction, interaction.options.getInteger('cuoc', true));
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runCoQuay(interaction: PlayInteraction, bet: number): Promise<void> {
     const channel = interaction.channel;
     if (!channel?.isSendable() || !interaction.inGuild()) {
       await interaction.reply({
@@ -209,7 +216,6 @@ export const coquayCommand: Command = {
       return;
     }
 
-    const bet = interaction.options.getInteger('cuoc', true);
     if (!economy.debit(interaction.user.id, bet, 'bet', 'coquay')) {
       await interaction.reply({
         content: `Không đủ xu! Ví của bạn: ${formatCoins(economy.getBalance(interaction.user.id))}`,
@@ -232,8 +238,9 @@ export const coquayCommand: Command = {
     await interaction.reply({ embeds: [lobbyEmbed(table)], components: lobbyButtons(table) });
     table.message = await interaction.fetchReply();
     setTimeout(() => void runGame(channel.id), JOIN_MS);
-  },
-};
+  
+}
+
 
 export const coquayComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {

@@ -7,7 +7,7 @@ import {
   spinSlots,
 } from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
-import { placeBetOrReply, resultLine } from './bet-helpers.js';
+import { placeBetOrReply, resultLine, type PlayInteraction } from './bet-helpers.js';
 import type { Command } from './types.js';
 
 export const slotsCommand: Command = {
@@ -18,7 +18,12 @@ export const slotsCommand: Command = {
       o.setName('cuoc').setDescription('Số xu muốn cược').setRequired(true).setMinValue(10),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const bet = interaction.options.getInteger('cuoc', true);
+    await runSlots(interaction, interaction.options.getInteger('cuoc', true));
+  },
+};
+
+/** Shared by the slash command and the lobby button. */
+export async function runSlots(interaction: PlayInteraction, bet: number): Promise<void> {
     if (!(await placeBetOrReply(interaction, bet, 'slots'))) return;
 
     await interaction.reply({
@@ -73,5 +78,4 @@ export const slotsCommand: Command = {
           }),
       ],
     });
-  },
-};
+}
