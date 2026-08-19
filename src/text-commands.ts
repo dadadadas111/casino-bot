@@ -222,7 +222,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
 
   // ---- economy quick commands ----
   if (name === 'sodu' || name === 'xu') {
-    const profile = economy.getProfile(userId);
+    const profile = economy.getProfile(userId, message.guildId);
     await message.reply({
       embeds: [
         new EmbedBuilder()

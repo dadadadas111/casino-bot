@@ -30,7 +30,6 @@ export const topCommand: Command = {
         new EmbedBuilder()
           .setColor(COLORS.gold)
           .setTitle('🏆 Bảng xếp hạng sòng bạc')
-          .setFooter({ text: 'Chỉ tính người chơi trong server này' })
           .setDescription(lines.join('\n')),
       ],
       allowedMentions: { parse: [] },

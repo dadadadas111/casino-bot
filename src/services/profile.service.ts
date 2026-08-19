@@ -36,7 +36,7 @@ export interface FullProfile {
 export class ProfileService {
   constructor(private db: Db) {}
 
-  get(userId: string): FullProfile {
+  get(userId: string, guildId: string | null = null): FullProfile {
     this.db.prepare('INSERT OR IGNORE INTO users (user_id, balance) VALUES (?, 1000)').run(userId);
 
     const user = this.db
@@ -45,10 +45,14 @@ export class ProfileService {
                 total_won AS won, total_lost AS lost, created_at AS joined,
                 jail_total AS jailTotal, hospital_total AS hospitalTotal,
                 married_to AS spouse, married_at AS marriedAt,
-                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.balance > u.balance) AS rank
+                (SELECT COUNT(*) + 1 FROM users u2
+                  WHERE u2.balance > u.balance
+                    AND (? IS NULL OR EXISTS (
+                          SELECT 1 FROM user_guilds g2
+                          WHERE g2.user_id = u2.user_id AND g2.guild_id = ?))) AS rank
          FROM users u WHERE user_id = ?`,
       )
-      .get(userId) as {
+      .get(guildId, guildId, userId) as {
       balance: number;
       bank: number;
       cash: number;

@@ -37,7 +37,7 @@ export const hosoCommand: Command = {
       return;
     }
 
-    const p = profiles.get(target.id);
+    const p = profiles.get(target.id, interaction.inGuild() ? interaction.guildId : null);
     const net = p.totalWon - p.totalLost;
     const jailed = economy.jailedUntil(target.id);
     const hospitalized = economy.hospitalizedUntil(target.id);

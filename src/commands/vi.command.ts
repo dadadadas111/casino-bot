@@ -33,8 +33,13 @@ const HISTORY_ROWS = 10;
  * One panel for every pocket the player owns: wallet, vault and top-up
  * balance. Replaces the old /sodu, /bank, /cash and /lichsu spread.
  */
-function walletEmbed(userId: string, displayName: string, avatar: string): EmbedBuilder {
-  const profile = economy.getProfile(userId);
+function walletEmbed(
+  userId: string,
+  displayName: string,
+  avatar: string,
+  guildId: string | null,
+): EmbedBuilder {
+  const profile = economy.getProfile(userId, guildId);
   const net = profile.totalWon - profile.totalLost;
   const cashBalance = cash.get(userId);
   const spouse = economy.spouseOf(userId);
@@ -148,12 +153,13 @@ export function walletPanel(
   userId: string,
   displayName: string,
   avatar: string,
+  guildId: string | null,
 ): {
   embeds: EmbedBuilder[];
   components: ActionRowBuilder<ButtonBuilder>[];
 } {
   return {
-    embeds: [walletEmbed(userId, displayName, avatar)],
+    embeds: [walletEmbed(userId, displayName, avatar, guildId)],
     components: walletRows(userId),
   };
 }
@@ -204,6 +210,7 @@ export const viCommand: Command = {
         interaction.user.id,
         interaction.user.displayName,
         interaction.user.displayAvatarURL(),
+        interaction.inGuild() ? interaction.guildId : null,
       ),
       flags: MessageFlags.Ephemeral,
     });
@@ -226,6 +233,7 @@ export const soduCommand: Command = {
           interaction.user.id,
           interaction.user.displayName,
           interaction.user.displayAvatarURL(),
+          interaction.inGuild() ? interaction.guildId : null,
         ),
         flags: MessageFlags.Ephemeral,
       });
@@ -235,7 +243,7 @@ export const soduCommand: Command = {
       await interaction.reply({ content: 'Bot không có ví đâu!', flags: MessageFlags.Ephemeral });
       return;
     }
-    const profile = economy.getProfile(target.id);
+    const profile = economy.getProfile(target.id, interaction.inGuild() ? interaction.guildId : null);
     await interaction.reply({
       embeds: [
         new EmbedBuilder()
@@ -262,6 +270,7 @@ async function refreshPanel(interaction: ButtonInteraction | ModalSubmitInteract
     interaction.user.id,
     interaction.user.displayName,
     interaction.user.displayAvatarURL(),
+    interaction.inGuild() ? interaction.guildId : null,
   );
   if (interaction.isModalSubmit()) {
     if (interaction.isFromMessage()) await interaction.update(panel);

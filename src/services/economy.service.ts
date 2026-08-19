@@ -146,15 +146,24 @@ export class EconomyService {
     return row?.balance ?? 0;
   }
 
-  getProfile(userId: string): Profile {
+  /**
+   * Rank is counted among members of `guildId` when one is given. The wallet
+   * is global but a standing only means something against people you share a
+   * server with.
+   */
+  getProfile(userId: string, guildId: string | null = null): Profile {
     this.ensureUser(userId);
     const row = this.db
       .prepare(
         `SELECT balance, daily_streak, total_won, total_lost, games_played,
-           (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.balance > u.balance) AS rank
+           (SELECT COUNT(*) + 1 FROM users u2
+                  WHERE u2.balance > u.balance
+                    AND (? IS NULL OR EXISTS (
+                          SELECT 1 FROM user_guilds g2
+                          WHERE g2.user_id = u2.user_id AND g2.guild_id = ?))) AS rank
          FROM users u WHERE user_id = ?`,
       )
-      .get(userId) as {
+      .get(guildId, guildId, userId) as {
       balance: number;
       daily_streak: number;
       total_won: number;
