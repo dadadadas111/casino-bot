@@ -210,7 +210,11 @@ function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBu
         .setLabel(label)
         .setEmoji('🏠')
         .setStyle(ButtonStyle.Success)
-        .setDisabled(!check.ok || economy.getBalance(userId) < check.cost),
+        // Big-ticket goods may be paid for out of the vault, so judge
+        // affordability on both pockets.
+        .setDisabled(
+          !check.ok || economy.getBalance(userId) + economy.getBank(userId) < check.cost,
+        ),
     );
   }
 
@@ -391,7 +395,22 @@ async function acquire(interaction: ButtonInteraction, key: string): Promise<voi
     });
     return;
   }
+  // A house costs more than anyone sensibly leaves in their wallet, so top up
+  // from the vault rather than making them withdraw by hand first.
+  const wallet = economy.getBalance(userId);
+  let fromVault = 0;
+  if (wallet < check.cost) {
+    fromVault = check.cost - wallet;
+    if (!economy.withdrawBank(userId, fromVault)) {
+      await interaction.reply({
+        content: `Không đủ xu! Cần ${formatCoins(check.cost)}, ví và két của bạn gộp lại mới có ${formatCoins(wallet + economy.getBank(userId))}.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+  }
   if (!economy.debit(userId, check.cost, 'asset', key)) {
+    if (fromVault > 0) economy.depositBank(userId, fromVault);
     await interaction.reply({
       content: `Không đủ xu! Cần ${formatCoins(check.cost)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`,
       flags: MessageFlags.Ephemeral,
@@ -413,6 +432,7 @@ async function acquire(interaction: ButtonInteraction, key: string): Promise<voi
             check.tradeIn
               ? `-# ${check.tradeIn.emoji} ${check.tradeIn.name} cũ được thu lại nửa giá.`
               : '',
+            fromVault > 0 ? `-# Rút thêm ${formatCoins(fromVault)} từ két để trả.` : '',
             `-# ${asset.desc}`,
           ]
             .filter(Boolean)
