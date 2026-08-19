@@ -350,7 +350,7 @@ interface Game {
 const GAMES: Game[] = [
   {
     index: '3:2',
-    suit: '🂡',
+    suit: '🃏',
     name: 'Blackjack',
     blurb: 'Đấu bài với nhà cái. Rút, dừng, gấp đôi, và blackjack trả 3 ăn 2.',
     cmd: '/blackjack',
@@ -406,7 +406,7 @@ const GAMES: Game[] = [
   },
   {
     index: 'x11',
-    suit: '🃏',
+    suit: '🎴',
     name: 'Cao hay Thấp',
     blurb: 'Đoán lá kế tiếp cao hơn hay thấp hơn. Càng đoán đúng tiền càng nhân, rút lúc nào cũng được.',
     cmd: '/hilo',

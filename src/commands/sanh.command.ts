@@ -51,7 +51,7 @@ interface BetGame {
 }
 
 const BET_GAMES: BetGame[] = [
-  { key: 'bj', label: 'Blackjack', emoji: '🂡', title: 'Blackjack' },
+  { key: 'bj', label: 'Blackjack', emoji: '🃏', title: 'Blackjack' },
   {
     key: 'tx',
     label: 'Tài xỉu',
@@ -60,7 +60,7 @@ const BET_GAMES: BetGame[] = [
     pick: { label: 'Cửa: tài hay xỉu', placeholder: 'tai / xiu' },
   },
   { key: 'sl', label: 'Máy xèng', emoji: '🎰', title: 'Máy xèng' },
-  { key: 'hl', label: 'Cao hay Thấp', emoji: '🃏', title: 'Cao hay Thấp' },
+  { key: 'hl', label: 'Cao hay Thấp', emoji: '🎴', title: 'Cao hay Thấp' },
   { key: 'dm', label: 'Dò mìn', emoji: '💣', title: 'Dò mìn' },
   {
     key: 'bc',
@@ -105,10 +105,10 @@ export function lobbyRows(): ActionRowBuilder<ButtonBuilder>[] {
 
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
-      game('bj', 'Blackjack', '🂡', ButtonStyle.Success),
+      game('bj', 'Blackjack', '🃏', ButtonStyle.Success),
       game('tx', 'Tài xỉu', '🎲', ButtonStyle.Success),
       game('sl', 'Máy xèng', '🎰', ButtonStyle.Success),
-      game('hl', 'Cao hay Thấp', '🃏', ButtonStyle.Success),
+      game('hl', 'Cao hay Thấp', '🎴', ButtonStyle.Success),
       game('dm', 'Dò mìn', '💣', ButtonStyle.Success),
     ),
     new ActionRowBuilder<ButtonBuilder>().addComponents(
