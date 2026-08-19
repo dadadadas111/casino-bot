@@ -19,13 +19,20 @@ import { MongoService } from './services/mongo.service.js';
 import { QuizPoolService, QuizReviewQueue } from './services/quiz-pool.service.js';
 import { GifCache } from './services/gif-cache.service.js';
 import { BackupService } from './services/backup.service.js';
+import { AssetsService } from './services/assets.service.js';
+import { LoanService } from './services/loan.service.js';
 
 export const db = createDb(env.DB_PATH);
 export const buffs = new BuffService(db);
-export const economy = new EconomyService(db, buffs);
+export const assets = new AssetsService(db);
+export const economy = new EconomyService(db, buffs, assets);
 export const quizHistory = new QuizHistoryStore(db);
 export const prefixes = new PrefixStore(db);
 export const lottery = new LotteryService(db, economy);
+export const loans = new LoanService(db, economy, assets, lottery);
+
+// Income tax feeds the lottery pot instead of vanishing.
+economy.setTreasury((amount) => lottery.addToJackpot(amount));
 export const activity = new ActivityService(db);
 export const reports = new ReportService(db);
 export const cash = new CashService(db);

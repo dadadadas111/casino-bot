@@ -12,12 +12,13 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from 'discord.js';
-import { buffs, cash, economy, figurines, topups } from '../context.js';
+import { buffs, cash, economy, figurines, loans, topups } from '../context.js';
 import { env } from '../config/env.js';
 import { BUFFS } from '../services/buff.service.js';
 import { XU_PER_VND } from '../services/cash.service.js';
 import { MAX_TOPUP, MIN_TOPUP } from '../services/topup.service.js';
 import { parseBetToken } from '../services/bet-parse.js';
+import { LOAN_MIN, amountDue } from '../services/loan.service.js';
 import { historyTable } from '../embeds/history-table.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
@@ -59,20 +60,29 @@ function walletEmbed(userId: string, displayName: string, avatar: string): Embed
       ),
   ].filter(Boolean);
 
+  const loan = loans.open(userId);
+  const lines = [
+    `👛 **Ví:** ${formatCoins(profile.balance)}`,
+    `-# Cược được, nhưng trộm cũng móc được.`,
+    `🏦 **Két:** ${formatCoins(economy.getBank(userId))}`,
+    `-# An toàn tuyệt đối, muốn cược phải rút ra.`,
+    `💵 **Tiền nạp:** ${formatVnd(cashBalance)}`,
+    `-# Đổi được sang xu, 1đ ăn ${XU_PER_VND} xu.`,
+  ];
+  if (loan) {
+    const owed = amountDue(loan.principal, loan.dueAt, new Date());
+    const overdue = loan.dueAt.getTime() < Date.now();
+    lines.push(
+      `${overdue ? '🔥' : '💰'} **Đang nợ:** ${formatCoins(owed)}`,
+      `-# Vay ${formatCoins(loan.principal)}, ${overdue ? 'ĐÃ QUÁ HẠN' : 'phải trả'} <t:${Math.floor(loan.dueAt.getTime() / 1000)}:R>.${overdue ? ' Lãi phạt đang chạy từng giờ.' : ''}`,
+    );
+  }
+
   return new EmbedBuilder()
-    .setColor(COLORS.gold)
+    .setColor(loan && loan.dueAt.getTime() < Date.now() ? COLORS.lose : COLORS.gold)
     .setTitle(`👛 Ví của ${displayName}`)
     .setThumbnail(avatar)
-    .setDescription(
-      [
-        `👛 **Ví:** ${formatCoins(profile.balance)}`,
-        `-# Cược được, nhưng trộm cũng móc được.`,
-        `🏦 **Két:** ${formatCoins(economy.getBank(userId))}`,
-        `-# An toàn tuyệt đối, muốn cược phải rút ra.`,
-        `💵 **Tiền nạp:** ${formatVnd(cashBalance)}`,
-        `-# Đổi được sang xu, 1đ ăn ${XU_PER_VND} xu.`,
-      ].join('\n'),
-    )
+    .setDescription(lines.join('\n'))
     .addFields(
       { name: 'Hạng', value: `#${profile.rank}`, inline: true },
       { name: 'Số ván', value: `${profile.gamesPlayed}`, inline: true },
@@ -118,6 +128,17 @@ function walletRows(userId: string): ActionRowBuilder<ButtonBuilder>[] {
         .setLabel('Lịch sử')
         .setEmoji('📜')
         .setStyle(ButtonStyle.Secondary),
+      loans.open(userId)
+        ? new ButtonBuilder()
+            .setCustomId(componentId('vi', 'tranno'))
+            .setLabel('Trả nợ')
+            .setEmoji('🧾')
+            .setStyle(ButtonStyle.Danger)
+        : new ButtonBuilder()
+            .setCustomId(componentId('vi', 'vay'))
+            .setLabel('Vay tiền')
+            .setEmoji('💰')
+            .setStyle(ButtonStyle.Secondary),
     ),
   ];
 }
@@ -294,6 +315,59 @@ export const walletComponents: ComponentHandler = {
       );
       return;
     }
+    if (action === 'vay') {
+      if (loans.open(userId)) {
+        await interaction.reply({
+          content: 'Nợ cũ chưa trả xong thì đừng mơ vay tiếp.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      const limit = loans.limitFor(userId, economy.workShifts(userId));
+      if (limit < LOAN_MIN) {
+        await interaction.reply({
+          content: `Uy tín của bạn chưa vay nổi ${formatCoins(LOAN_MIN)}. Đi làm vài ca hoặc tậu ít tài sản đã.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.showModal(
+        amountModal(
+          'vay',
+          'Vay tiền',
+          `Từ ${LOAN_MIN.toLocaleString('vi-VN')} tới ${limit.toLocaleString('vi-VN')} xu`,
+        ),
+      );
+      return;
+    }
+
+    if (action === 'tranno') {
+      const loan = loans.open(userId);
+      if (!loan) {
+        await interaction.reply({ content: 'Bạn có nợ đâu!', flags: MessageFlags.Ephemeral });
+        return;
+      }
+      const result = loans.repay(userId);
+      if (!result.ok) {
+        await interaction.reply({
+          content: `Không đủ tiền trả nợ. Cần ${formatCoins(amountDue(loan.principal, loan.dueAt, new Date()))}, mà ví lẫn két gộp lại vẫn thiếu.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await refreshPanel(interaction);
+      await announce(interaction, {
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.win)
+            .setDescription(
+              `🧾 **${interaction.user.displayName}** đã trả xong nợ **${formatCoins(result.paid ?? 0)}** (gốc ${formatCoins(loan.principal)}, lãi ${formatCoins(result.interest ?? 0)}). Sạch nợ, ngẩng cao đầu!`,
+            ),
+        ],
+      });
+      return;
+    }
+
     if (action === 'nap') {
       if (!env.SEPAY_ACCOUNT) {
         await interaction.reply({
@@ -324,7 +398,9 @@ export const walletComponents: ComponentHandler = {
         ? economy.getBalance(userId)
         : action === 'rut'
           ? economy.getBank(userId)
-          : cash.get(userId);
+          : action === 'vay'
+            ? loans.limitFor(userId, economy.workShifts(userId))
+            : cash.get(userId);
     const amount = parseBetToken(raw, pool);
 
     const complain = async (text: string): Promise<void> => {
@@ -367,6 +443,44 @@ export const walletComponents: ComponentHandler = {
             .setColor(COLORS.gold)
             .setDescription(
               `💱 **${interaction.user.displayName}** đổi ${formatVnd(amount)} lấy **${formatCoins(xu)}**.`,
+            ),
+        ],
+      });
+      return;
+    }
+
+    if (action === 'vay') {
+      const result = loans.borrow(
+        userId,
+        amount,
+        economy.workShifts(userId),
+        interaction.inGuild() ? interaction.guildId : null,
+        interaction.channelId,
+      );
+      if (!result.ok) {
+        await complain(
+          result.reason === 'has_loan'
+            ? 'Nợ cũ chưa trả xong thì đừng mơ vay tiếp.'
+            : result.reason === 'too_small'
+              ? `Vay ít nhất ${formatCoins(LOAN_MIN)} đi, lẻ tẻ quá chủ nợ không thèm.`
+              : `Quá hạn mức! Bạn chỉ vay được tối đa ${formatCoins(loans.limitFor(userId, economy.workShifts(userId)))}.`,
+        );
+        return;
+      }
+      const loan = result.loan!;
+      await refreshPanel(interaction);
+      await announce(interaction, {
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.gold)
+            .setTitle('💰 Vay nóng thành công')
+            .setDescription(
+              [
+                `**${interaction.user.displayName}** vừa vay **${formatCoins(loan.principal)}**.`,
+                `Phải trả **${formatCoins(amountDue(loan.principal, loan.dueAt, new Date()))}** trước <t:${Math.floor(loan.dueAt.getTime() / 1000)}:R>.`,
+                '',
+                '-# Quá hạn thì mỗi giờ cộng thêm 5% lãi phạt. Chây ì quá thì chủ nợ siết ví, siết két, siết luôn cả nhà xe.',
+              ].join('\n'),
             ),
         ],
       });

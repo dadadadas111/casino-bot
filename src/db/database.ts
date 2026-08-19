@@ -137,6 +137,28 @@ CREATE TABLE IF NOT EXISTS sepay_transactions (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS user_assets (
+  user_id TEXT NOT NULL,
+  asset TEXT NOT NULL,
+  acquired_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (user_id, asset)
+);
+
+CREATE TABLE IF NOT EXISTS loans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  principal INTEGER NOT NULL,
+  due_at TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  taken_at TEXT NOT NULL DEFAULT (datetime('now')),
+  settled_at TEXT,
+  dunned INTEGER NOT NULL DEFAULT 0,
+  guild_id TEXT,
+  channel_id TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_loans_open ON loans(status, due_at);
+CREATE INDEX IF NOT EXISTS idx_loans_user ON loans(user_id, status);
+
 CREATE TABLE IF NOT EXISTS cash_ledger (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id TEXT NOT NULL,
@@ -157,6 +179,32 @@ export function createDb(dbPath: string): Db {
   db.exec(SCHEMA);
   migrate(db);
   return db;
+}
+
+/**
+ * Seed the career ladder from history so players who already ground out
+ * shifts keep the rank they earned. Runs once: after the first pass some
+ * work_count is non-zero and the guard stops it repeating.
+ */
+function backfillWorkCount(db: Db): void {
+  const pending = db
+    .prepare("SELECT COUNT(*) AS n FROM users WHERE work_count > 0")
+    .get() as { n: number };
+  if (pending.n > 0) return;
+  const done = db
+    .prepare(
+      `UPDATE users SET work_count = (
+         SELECT COUNT(*) FROM transactions t
+         WHERE t.user_id = users.user_id AND t.type = 'work'
+       )`,
+    )
+    .run();
+  if (done.changes > 0) {
+    const seeded = db
+      .prepare('SELECT COUNT(*) AS n FROM users WHERE work_count > 0')
+      .get() as { n: number };
+    if (seeded.n > 0) console.log(`[db] Backfilled work_count for ${seeded.n} player(s)`);
+  }
 }
 
 /** Additive migrations for databases created before a column existed. */
@@ -193,4 +241,6 @@ function migrate(db: Db): void {
   ensureColumn('last_rob');
   ensureColumn('married_to');
   ensureColumn('married_at');
+  ensureColumn('work_count', 'INTEGER NOT NULL DEFAULT 0');
+  backfillWorkCount(db);
 }

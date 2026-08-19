@@ -16,6 +16,7 @@ import {
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
 import { SHOP_ITEMS, USABLE_ITEMS, findShopItem } from './services/items.service.js';
+import { rankFor } from './services/job.service.js';
 import { BUFFS } from './services/buff.service.js';
 import { openRace, placeRaceBet } from './commands/duangua.command.js';
 import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
@@ -81,6 +82,8 @@ const SLASH_ONLY = new Set([
   'nap',
   'cuoi',
   'hinhnom',
+  'doino',
+  'vay',
 ]);
 
 /** Where a typed name now lives as a slash command. */
@@ -92,6 +95,7 @@ const SLASH_TARGET: Record<string, string> = {
   cash: 'vi',
   setprefix: 'caidat',
   shop: 'tuido',
+  vay: 'vi',
 };
 
 /** Typed commands that still work while jailed or hospitalised. */
@@ -233,10 +237,17 @@ export async function handleTextCommand(message: Message): Promise<void> {
 
   if (name === 'daily') {
     const result = economy.claimDaily(userId);
+    if (!result.ok) {
+      await message.reply('Hôm nay bạn đã điểm danh rồi. Quay lại vào ngày mai nhé!');
+      return;
+    }
+    const extra = [
+      result.houseBonus ? `🏠 +${formatCoins(result.houseBonus)}` : '',
+      result.catFind ? `🐱 +${formatCoins(result.catFind)}` : '',
+    ].filter(Boolean);
     await message.reply(
-      result.ok
-        ? `📅 Điểm danh thành công! +${formatCoins(result.amount)}, chuỗi **${result.streak} ngày** 🔥`
-        : 'Hôm nay bạn đã điểm danh rồi. Quay lại vào ngày mai nhé!',
+      `📅 Điểm danh thành công! +${formatCoins(result.amount)}, chuỗi **${result.streak} ngày** 🔥` +
+        (extra.length > 0 ? `\n-# ${extra.join(' · ')}` : ''),
     );
     return;
   }
@@ -244,10 +255,18 @@ export async function handleTextCommand(message: Message): Promise<void> {
   if (name === 'lamviec' || name === 'work') {
     const result = economy.work(userId);
     const retryUnix = Math.floor(result.retryAt.getTime() / 1000);
+    if (!result.ok) {
+      await message.reply(`😮‍💨 Nghỉ chút đã! Ca tiếp theo: <t:${retryUnix}:R>`);
+      return;
+    }
+    const rank = rankFor(result.shifts ?? 1);
+    const taxLine =
+      result.tax && result.tax > 0
+        ? ` (lương ${formatCoins(result.gross ?? 0)}, thuế -${formatCoins(result.tax)})`
+        : '';
     await message.reply(
-      result.ok
-        ? `🔨 Làm việc xong, nhận ${formatCoins(result.amount)}! Ca tiếp theo: <t:${retryUnix}:R>`
-        : `😮‍💨 Nghỉ chút đã! Ca tiếp theo: <t:${retryUnix}:R>`,
+      `${rank.emoji} ${rank.name} làm xong ca, nhận ${formatCoins(result.amount)}${taxLine}! Ca tiếp theo: <t:${retryUnix}:R>` +
+        (result.promoted ? `\n🎉 **THĂNG CHỨC!** Giờ bạn là ${rank.emoji} **${rank.name}**.` : ''),
     );
     return;
   }
@@ -288,6 +307,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}xs <số 0-99>\` : Mua vé xổ số, quay 21h mỗi tối`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
               `\`${prefix}mua <món>\` · \`${prefix}dung <món>\` · \`${prefix}tui\` : mua bán không cần mở bảng`,
+              `Nhà xe, thú cưng, vay nợ: \`/tuido\` và \`/vi\``,
               '',
               '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
               `💡 Bỏ trống tiền cược thì lặp lại mức trước: \`${prefix}tx tai\`, \`${prefix}sl\`. Thứ tự tham số tùy ý.`,

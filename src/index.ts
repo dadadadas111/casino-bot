@@ -10,6 +10,7 @@ import { startLotteryScheduler } from './lottery-scheduler.js';
 import { startReportScheduler } from './report-scheduler.js';
 import { startWebServer } from './web-server.js';
 import { startBackupScheduler } from './backup-scheduler.js';
+import { startLoanCollector } from './loan-collector.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { refundPendingBlackjack } from './commands/blackjack.command.js';
 import { refundPendingKeo } from './commands/keo.command.js';
@@ -52,6 +53,7 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   danh: TUONGTAC_CD,
   choc: TUONGTAC_CD,
   xoadau: TUONGTAC_CD,
+  doino: TUONGTAC_CD,
   top: { key: 'top', ms: 10_000 },
   bantin: { key: 'bantin', ms: 30_000 },
 };
@@ -106,6 +108,7 @@ client.once(Events.ClientReady, async (c) => {
   }
   startWebServer(client);
   startBackupScheduler(client);
+  startLoanCollector(client);
   // Re-register on every boot so command changes ship with each deploy.
   for (const guild of c.guilds.cache.values()) {
     await registerGuildCommands(guild.id, guild.name);

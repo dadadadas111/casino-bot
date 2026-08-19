@@ -11,7 +11,7 @@ import {
 } from 'discord.js';
 
 export const QUIZ_RESET_PRICE_VND = 500;
-import { cash, economy, quizPool } from '../context.js';
+import { assets, cash, economy, quizPool } from '../context.js';
 import { env } from '../config/env.js';
 import { formatVnd } from '../embeds/topup.js';
 import {
@@ -35,7 +35,8 @@ interface QuizSession {
   username: string;
   questions: GameQuestion[];
   index: number; // current question; equals the number of correct answers so far
-  fiftyUsed: boolean;
+  /** 50:50 lifelines left; a 🦜 Vẹt buys a second one. */
+  fiftyLeft: number;
   removed: number[]; // answer indices removed by 50:50 on the current question
   message: Message | null;
   timeout: NodeJS.Timeout;
@@ -95,10 +96,10 @@ function buttons(session: QuizSession): ActionRowBuilder<ButtonBuilder>[] {
       .setStyle(ButtonStyle.Danger),
     new ButtonBuilder()
       .setCustomId(componentId('tp', session.userId, 'half'))
-      .setLabel('50:50')
+      .setLabel(session.fiftyLeft > 1 ? `50:50 (còn ${session.fiftyLeft})` : '50:50')
       .setEmoji('✂️')
       .setStyle(ButtonStyle.Secondary)
-      .setDisabled(session.fiftyUsed),
+      .setDisabled(session.fiftyLeft <= 0),
   );
   return [answerRow, controlRow];
 }
@@ -212,7 +213,7 @@ export const trieuphuCommand: Command = {
         username: interaction.user.displayName,
         questions,
         index: 0,
-        fiftyUsed: false,
+        fiftyLeft: assets.has(userId, 'vet') ? 2 : 1,
         removed: [],
         message: null,
         timeout: setTimeout(() => undefined, 0),
@@ -284,9 +285,9 @@ export const trieuphuComponents: ComponentHandler = {
     }
 
     if (action === 'half') {
-      if (session.fiftyUsed) {
+      if (session.fiftyLeft <= 0) {
         await interaction.reply({
-          content: 'Bạn đã dùng 50:50 rồi.',
+          content: 'Hết lượt 50:50 rồi. Mua 🦜 Vẹt trong `/tuido` để có thêm một lượt mỗi ván.',
           flags: MessageFlags.Ephemeral,
         });
         return;
@@ -296,7 +297,7 @@ export const trieuphuComponents: ComponentHandler = {
       // Remove two random wrong answers.
       wrongIndices.sort(() => Math.random() - 0.5);
       session.removed = wrongIndices.slice(0, 2);
-      session.fiftyUsed = true;
+      session.fiftyLeft -= 1;
       await interaction.update({ embeds: [questionEmbed(session)], components: buttons(session) });
       return;
     }

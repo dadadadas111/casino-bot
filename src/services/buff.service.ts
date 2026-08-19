@@ -10,7 +10,16 @@ export interface BuffDef {
 
 export const LUCKY_BONUS_RATE = 0.1;
 
+export const DUN_BUFF_MS = 10 * 60 * 1000;
+
 export const BUFFS: Record<string, BuffDef> = {
+  dino: {
+    key: 'dino',
+    name: 'Bị dí nợ',
+    emoji: '😰',
+    durationMs: DUN_BUFF_MS,
+    desc: 'Đang bị chủ nợ dí, phải cày thêm ca nên lương tạm thời +10%',
+  },
   mayman: {
     key: 'mayman',
     name: 'Bùa may mắn',

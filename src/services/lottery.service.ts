@@ -80,6 +80,16 @@ export class LotteryService {
     return Number(row.value);
   }
 
+  /**
+   * Everything the house rakes in (income tax, loan interest) is funnelled
+   * here rather than destroyed, so the pot grows on its own and the money
+   * finds its way back to players as a prize.
+   */
+  addToJackpot(amount: number): void {
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    this.setJackpot(this.getJackpot() + Math.floor(amount));
+  }
+
   /** Owner override, for priming the pot outside the normal ticket flow. */
   setJackpotTo(value: number): number {
     const amount = Math.max(0, Math.floor(value));

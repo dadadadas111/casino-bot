@@ -1,5 +1,9 @@
 import type { Db } from '../db/database.js';
 import { BuffService, LUCKY_BONUS_RATE } from './buff.service.js';
+import { AssetsService, CAT_MAX, CAT_MIN } from './assets.service.js';
+import { DUN_WORK_BONUS } from './loan.service.js';
+import { rankFor } from './job.service.js';
+import { marginalRate, taxOnWage } from './tax.service.js';
 
 export const STARTING_BALANCE = 1_000;
 export const DAILY_BASE = 500;
@@ -21,6 +25,10 @@ export interface DailyResult {
   amount: number;
   streak: number;
   alreadyClaimed: boolean;
+  /** Base pay before the house bonus, for showing the breakdown. */
+  base?: number;
+  houseBonus?: number;
+  catFind?: number;
 }
 
 // Work is the anti-bankruptcy floor: frequent, small, and safe.
@@ -52,8 +60,17 @@ export type RobOutcome =
 
 export interface WorkResult {
   ok: boolean;
+  /** What actually landed in the wallet, after tax. */
   amount: number;
   retryAt: Date;
+  gross?: number;
+  tax?: number;
+  rank?: string;
+  promoted?: boolean;
+  shifts?: number;
+  /** Marginal tax rate the player now stands on, for the nudge line. */
+  bracket?: number;
+  hounded?: boolean;
 }
 
 export interface HistoryEntry {
@@ -73,7 +90,44 @@ export class EconomyService {
   constructor(
     private db: Db,
     private buffs: BuffService = new BuffService(db),
+    private assets: AssetsService = new AssetsService(db),
   ) {}
+
+  /**
+   * Where collected tax goes. Wired to the lottery jackpot at startup; kept
+   * as a hook so this service does not have to know the lottery exists.
+   */
+  private treasury: ((amount: number, reason: string) => void) | null = null;
+
+  setTreasury(sink: (amount: number, reason: string) => void): void {
+    this.treasury = sink;
+  }
+
+  /**
+   * Wages earned in the trailing 24h; the base for the income tax ladder.
+   * Rows carry SQLite wall-clock timestamps, so an injected `now` only makes
+   * sense as the real current time (which is what every caller passes).
+   */
+  wagesInWindow(userId: string, now: Date = new Date()): number {
+    const since = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      .toISOString()
+      .replace('T', ' ')
+      .slice(0, 19);
+    const row = this.db
+      .prepare(
+        "SELECT COALESCE(SUM(amount), 0) AS total FROM transactions WHERE user_id = ? AND type = 'work' AND created_at >= ?",
+      )
+      .get(userId, since) as { total: number };
+    return row.total;
+  }
+
+  workShifts(userId: string): number {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT work_count FROM users WHERE user_id = ?')
+      .get(userId) as { work_count: number };
+    return row.work_count;
+  }
 
   ensureUser(userId: string): void {
     const inserted = this.db
@@ -183,14 +237,32 @@ export class EconomyService {
     }
 
     const streak = row.last_daily === yesterday ? row.daily_streak + 1 : 1;
-    const amount = DAILY_BASE + Math.min(streak - 1, DAILY_STREAK_CAP) * DAILY_STREAK_BONUS;
+    const base = DAILY_BASE + Math.min(streak - 1, DAILY_STREAK_CAP) * DAILY_STREAK_BONUS;
+    // A house pays off exactly here: it is what makes the daily worth typing.
+    const paid = Math.round(base * this.assets.dailyMultiplier(userId));
+    const houseBonus = paid - base;
     this.db
       .prepare(
         'UPDATE users SET balance = balance + ?, last_daily = ?, daily_streak = ? WHERE user_id = ?',
       )
-      .run(amount, today, streak, userId);
-    this.logTx(userId, amount, 'daily', `streak:${streak}`);
-    return { ok: true, amount, streak, alreadyClaimed: false };
+      .run(paid, today, streak, userId);
+    this.logTx(userId, paid, 'daily', `streak:${streak}`);
+
+    // The cat only hands over its haul when you show up.
+    let catFind = 0;
+    if (this.assets.has(userId, 'meo')) {
+      catFind = CAT_MIN + 10 * Math.floor((Math.random() * (CAT_MAX - CAT_MIN)) / 10 + 1);
+      this.credit(userId, catFind, 'pet_find', 'meo');
+    }
+    return {
+      ok: true,
+      amount: paid + catFind,
+      streak,
+      alreadyClaimed: false,
+      base,
+      houseBonus,
+      catFind,
+    };
   }
 
   /**
@@ -231,22 +303,53 @@ export class EconomyService {
   /** Earn a random wage once per hour; the cooldown is persisted in the DB. */
   work(userId: string, now: Date = new Date()): WorkResult {
     this.ensureUser(userId);
-    const row = this.db.prepare('SELECT last_work FROM users WHERE user_id = ?').get(userId) as {
-      last_work: string | null;
-    };
+    const row = this.db
+      .prepare('SELECT last_work, work_count FROM users WHERE user_id = ?')
+      .get(userId) as { last_work: string | null; work_count: number };
+    const cooldownMs = this.assets.workCooldownMs(userId, WORK_COOLDOWN_MS);
     if (row.last_work) {
-      const readyAt = new Date(Date.parse(row.last_work) + WORK_COOLDOWN_MS);
+      const readyAt = new Date(Date.parse(row.last_work) + cooldownMs);
       if (readyAt.getTime() > now.getTime()) {
         return { ok: false, amount: 0, retryAt: readyAt };
       }
     }
-    const steps = (WORK_MAX - WORK_MIN) / 10 + 1;
-    const amount = WORK_MIN + 10 * Math.floor(Math.random() * steps);
+
+    const rank = rankFor(row.work_count);
+    const steps = (rank.max - rank.min) / 10 + 1;
+    let gross = rank.min + 10 * Math.floor(Math.random() * steps);
+    // Being hounded for a debt means picking up overtime.
+    const hounded = this.buffs.activeUntil(userId, 'dino', now) !== null;
+    if (hounded) gross = Math.round(gross * (1 + DUN_WORK_BONUS));
+
+    const earnedSoFar = this.wagesInWindow(userId, now);
+    const tax = taxOnWage(earnedSoFar, gross);
+    const net = gross - tax;
+
     this.db
-      .prepare('UPDATE users SET balance = balance + ?, last_work = ? WHERE user_id = ?')
-      .run(amount, now.toISOString(), userId);
-    this.logTx(userId, amount, 'work', null);
-    return { ok: true, amount, retryAt: new Date(now.getTime() + WORK_COOLDOWN_MS) };
+      .prepare(
+        'UPDATE users SET balance = balance + ?, last_work = ?, work_count = work_count + 1 WHERE user_id = ?',
+      )
+      .run(net, now.toISOString(), userId);
+    // Log the gross so the tax window stays consistent, then the deduction
+    // separately so /lichsu shows where the missing coins went.
+    this.logTx(userId, gross, 'work', `rank:${rank.key}`);
+    if (tax > 0) {
+      this.logTx(userId, -tax, 'tax', `wage:${gross}`);
+      this.treasury?.(tax, 'tax');
+    }
+
+    return {
+      ok: true,
+      amount: net,
+      retryAt: new Date(now.getTime() + cooldownMs),
+      gross,
+      tax,
+      rank: rank.key,
+      promoted: rankFor(row.work_count).key !== rankFor(row.work_count + 1).key,
+      shifts: row.work_count + 1,
+      bracket: marginalRate(earnedSoFar + gross),
+      hounded,
+    };
   }
 
   /**

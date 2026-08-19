@@ -8,6 +8,20 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.0.0',
+    date: '19/08/2026',
+    title: 'Nhà cửa, sự nghiệp và nợ nần',
+    changes: [
+      '💼 **Đi làm giờ có chức.** `/lamviec` không còn phẳng lì 200-500 xu nữa. Làm càng nhiều ca càng lên chức, từ 🧹 Chạy vặt tới 🏦 Chủ tịch, lương đỉnh 2.000-3.500 mỗi ca. Số ca bạn đã làm từ trước vẫn được tính, không mất công ai cả',
+      '🏠 **Nhà, xe, thú cưng** trong thẻ mới của `/tuido`. Nhà cộng tiền điểm danh tới +100%, xe rút thời gian chờ làm việc từ 10 phút xuống 4, 🐶 chó đuổi trộm, 🐱 mèo tha xu về mỗi ngày, 🦜 vẹt cho thêm một lượt 50:50 ở Triệu Phú',
+      '-# Mỗi loại giữ một món, lên đời thì món cũ được thu lại nửa giá. Giá từ 20.000 tới 1.500.000 xu, đủ chỗ cho đống xu nằm không trong két.',
+      '💰 **Vay nóng** bằng nút trong `/vi`. Hạn mức tuỳ uy tín: chức càng cao, tài sản càng nhiều thì vay được càng lớn. Lãi 20% cho 24 giờ, quá hạn mỗi giờ cộng thêm 5%',
+      '🚨 **Quỵt nợ thì bị siết.** Quá hạn một ngày là chủ nợ vét ví, phá két, tịch thu nhà xe bán nửa giá, vẫn thiếu thì tống vào tù 15 phút kèm bêu tên giữa kênh',
+      '🧾 **`/doino @ai đó`** để đi dí nợ người khác. Không lấy được xu nào, nhưng càng đòi nhiều lần bot càng làm ầm ĩ, tới lần thứ mười thì dựng rạp đọc loa. Con nợ bị dí thì phải cày thêm ca nên lương tạm +10%',
+      '🎱 Hũ xổ số giờ tự lớn: mọi khoản lãi bot thu về đều dồn hết vào hũ rồi trả lại cho người chơi qua giải thưởng',
+    ],
+  },
+  {
     version: '4.1.0',
     date: '18/08/2026',
     title: 'Máy xèng dễ thở, hũ xổ số phình to',

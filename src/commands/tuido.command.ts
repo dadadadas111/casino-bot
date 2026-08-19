@@ -12,8 +12,15 @@ import {
   type ButtonInteraction,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { buffs, economy, items } from '../context.js';
+import { assets, buffs, economy, items } from '../context.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
+import {
+  ASSETS,
+  ASSET_LIST,
+  KIND_LABEL,
+  type AssetKind,
+  canBuy,
+} from '../services/assets.service.js';
 import { BUFFS } from '../services/buff.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
@@ -24,19 +31,54 @@ import type { Command } from './types.js';
 // Kept below twice the box price so opening boxes stays a losing habit.
 const GIFT_BOX_MAX = 900;
 
-type Tab = 'bag' | 'shop';
+type Tab = 'bag' | 'shop' | 'taisan';
 
 interface PanelState {
   tab: Tab;
   selected: string;
 }
 
+const TABS: Tab[] = ['bag', 'shop', 'taisan'];
+
+function asTab(raw: string | undefined): Tab {
+  return TABS.includes(raw as Tab) ? (raw as Tab) : 'bag';
+}
+
 function parseState(args: string[], from = 1): PanelState {
-  const tab = args[from] === 'shop' ? 'shop' : 'bag';
-  return { tab, selected: args[from + 1] ?? '' };
+  return { tab: asTab(args[from]), selected: args[from + 1] ?? '' };
+}
+
+function assetEmbed(userId: string): EmbedBuilder {
+  const owned = assets.owned(userId);
+  const byKind = (kind: AssetKind): string => {
+    const mine = owned.find((a) => a.kind === kind);
+    return ASSET_LIST.filter((a) => a.kind === kind)
+      .map((a) => {
+        const mark = mine?.key === a.key ? '✅' : mine && mine.tier > a.tier ? '▫️' : '▪️';
+        return `${mark} ${a.emoji} **${a.name}** · ${formatCoins(a.price)}\n-# ${a.desc}`;
+      })
+      .join('\n');
+  };
+  return new EmbedBuilder()
+    .setColor(COLORS.gold)
+    .setTitle('🏠 Tài sản')
+    .setDescription(
+      owned.length > 0
+        ? `Đang sở hữu: ${owned.map((a) => `${a.emoji} ${a.name}`).join(' · ')}`
+        : 'Chưa có gì cả. Xu để trong két thì mãi chỉ là con số.',
+    )
+    .addFields(
+      { name: `${KIND_LABEL.nha.emoji} ${KIND_LABEL.nha.name}`, value: byKind('nha') },
+      { name: `${KIND_LABEL.xe.emoji} ${KIND_LABEL.xe.name}`, value: byKind('xe') },
+      { name: `${KIND_LABEL.thucung.emoji} ${KIND_LABEL.thucung.name}`, value: byKind('thucung') },
+    )
+    .setFooter({
+      text: `Ví: ${economy.getBalance(userId).toLocaleString('vi-VN')} xu · lên đời thì món cũ được thu lại nửa giá`,
+    });
 }
 
 function panelEmbed(userId: string, state: PanelState): EmbedBuilder {
+  if (state.tab === 'taisan') return assetEmbed(userId);
   if (state.tab === 'shop') {
     return new EmbedBuilder()
       .setColor(COLORS.gold)
@@ -86,6 +128,12 @@ function tabRow(state: PanelState): ActionRowBuilder<ButtonBuilder> {
       .setEmoji('🏪')
       .setStyle(state.tab === 'shop' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(state.tab === 'shop'),
+    new ButtonBuilder()
+      .setCustomId(componentId('bag', 'tab', 'taisan'))
+      .setLabel('Tài sản')
+      .setEmoji('🏠')
+      .setStyle(state.tab === 'taisan' ? ButtonStyle.Primary : ButtonStyle.Secondary)
+      .setDisabled(state.tab === 'taisan'),
   );
 }
 
@@ -94,7 +142,14 @@ function selectRow(
   state: PanelState,
 ): ActionRowBuilder<StringSelectMenuBuilder> | null {
   const entries =
-    state.tab === 'shop'
+    state.tab === 'taisan'
+      ? ASSET_LIST.map((a) => ({
+          key: a.key,
+          label: `${a.name} · ${a.price.toLocaleString('vi-VN')} xu`,
+          emoji: a.emoji,
+          desc: a.desc,
+        }))
+      : state.tab === 'shop'
       ? Object.values(SHOP_ITEMS).map((i) => ({
           key: i.key,
           label: `${i.name} · ${i.price.toLocaleString('vi-VN')} xu`,
@@ -115,7 +170,13 @@ function selectRow(
   return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(componentId('bag', 'pick', state.tab))
-      .setPlaceholder(state.tab === 'shop' ? 'Chọn món muốn mua' : 'Chọn món trong túi')
+      .setPlaceholder(
+        state.tab === 'taisan'
+          ? 'Chọn tài sản muốn tậu'
+          : state.tab === 'shop'
+            ? 'Chọn món muốn mua'
+            : 'Chọn món trong túi',
+      )
       .addOptions(
         entries.slice(0, 25).map((e) =>
           new StringSelectMenuOptionBuilder()
@@ -131,6 +192,28 @@ function selectRow(
 
 function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBuilder> | null {
   const key = state.selected;
+
+  if (state.tab === 'taisan') {
+    const asset = ASSETS[key];
+    if (!asset) return null;
+    const check = canBuy(assets.owned(userId), asset);
+    const label = !check.ok
+      ? check.reason === 'owned'
+        ? 'Đang sở hữu rồi'
+        : 'Không hạ đời được'
+      : check.tradeIn
+        ? `Lên đời ${asset.name} (${check.cost.toLocaleString('vi-VN')} xu)`
+        : `Tậu ${asset.name} (${asset.price.toLocaleString('vi-VN')} xu)`;
+    return new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(componentId('bag', 'tau', state.tab, key))
+        .setLabel(label)
+        .setEmoji('🏠')
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!check.ok || economy.getBalance(userId) < check.cost),
+    );
+  }
+
   const item = SHOP_ITEMS[key];
   if (!item) return null;
 
@@ -292,21 +375,71 @@ async function use(interaction: ButtonInteraction, key: string): Promise<void> {
   });
 }
 
+async function acquire(interaction: ButtonInteraction, key: string): Promise<void> {
+  const asset = ASSETS[key];
+  const userId = interaction.user.id;
+  if (!asset) return;
+
+  const check = canBuy(assets.owned(userId), asset);
+  if (!check.ok) {
+    await interaction.reply({
+      content:
+        check.reason === 'owned'
+          ? `Bạn đang sở hữu ${asset.emoji} **${asset.name}** rồi.`
+          : 'Đang có món xịn hơn rồi, hạ đời làm gì!',
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  if (!economy.debit(userId, check.cost, 'asset', key)) {
+    await interaction.reply({
+      content: `Không đủ xu! Cần ${formatCoins(check.cost)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`,
+      flags: MessageFlags.Ephemeral,
+    });
+    return;
+  }
+  if (check.tradeIn) assets.remove(userId, check.tradeIn.key);
+  assets.add(userId, key);
+
+  await interaction.update(bagPanel(userId, { tab: 'taisan', selected: key }));
+  await announce(interaction, {
+    embeds: [
+      new EmbedBuilder()
+        .setColor(COLORS.gold)
+        .setTitle(`${asset.emoji} Tậu ${asset.name}!`)
+        .setDescription(
+          [
+            `**${interaction.user.displayName}** vừa xuống **${formatCoins(check.cost)}** để rước ${asset.emoji} **${asset.name}** về.`,
+            check.tradeIn
+              ? `-# ${check.tradeIn.emoji} ${check.tradeIn.name} cũ được thu lại nửa giá.`
+              : '',
+            `-# ${asset.desc}`,
+          ]
+            .filter(Boolean)
+            .join('\n'),
+        ),
+    ],
+  });
+}
+
 export const bagComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {
     const action = args[0];
     const userId = interaction.user.id;
 
     if (action === 'tab') {
-      await interaction.update(
-        bagPanel(userId, { tab: args[1] === 'shop' ? 'shop' : 'bag', selected: '' }),
-      );
+      await interaction.update(bagPanel(userId, { tab: asTab(args[1]), selected: '' }));
       return;
     }
     const state = parseState(args);
     if (action === 'buy') {
       if (await refuseIfDown(interaction)) return;
       await buy(interaction, state.selected);
+      return;
+    }
+    if (action === 'tau') {
+      if (await refuseIfDown(interaction)) return;
+      await acquire(interaction, state.selected);
       return;
     }
     if (action === 'use') {
@@ -345,10 +478,7 @@ export const bagComponents: ComponentHandler = {
 
     if (args[0] === 'pick' && interaction.isStringSelectMenu()) {
       await interaction.update(
-        bagPanel(userId, {
-          tab: args[1] === 'shop' ? 'shop' : 'bag',
-          selected: interaction.values[0],
-        }),
+        bagPanel(userId, { tab: asTab(args[1]), selected: interaction.values[0] }),
       );
       return;
     }

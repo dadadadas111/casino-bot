@@ -26,6 +26,7 @@ import { shopCommand, tuidoCommand } from './tuido.command.js';
 import { cuoiCommand } from './cuoi.command.js';
 import { hinhnomCommand } from './hinhnom.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
+import { doinoCommand } from './doino.command.js';
 
 /** Register a command under an extra short name (same options, same handler). */
 function alias(command: Command, name: string): Command {
@@ -73,6 +74,7 @@ const all: Command[] = [
   cuoiCommand,
   hinhnomCommand,
   tromCommand,
+  doinoCommand,
   ...tuongtacCommands,
   // Meta.
   helpCommand,

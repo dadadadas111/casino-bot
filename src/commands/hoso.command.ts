@@ -7,7 +7,10 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { buffs, economy, figurines, profiles } from '../context.js';
+import { assets, buffs, economy, figurines, loans, profiles } from '../context.js';
+import { KIND_LABEL } from '../services/assets.service.js';
+import { amountDue } from '../services/loan.service.js';
+import { rankFor, shiftsToNext } from '../services/job.service.js';
 import { BUFFS } from '../services/buff.service.js';
 import { GAME_LABELS } from '../embeds/history-table.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
@@ -40,7 +43,11 @@ export const hosoCommand: Command = {
     const hospitalized = economy.hospitalizedUntil(target.id);
     const activeBuffs = buffs.activeList(target.id);
 
+    const loan = loans.open(target.id);
     const status = [
+      loan
+        ? `${loan.dueAt.getTime() < Date.now() ? '🔥' : '💰'} Đang nợ **${formatCoins(amountDue(loan.principal, loan.dueAt, new Date()))}**, hạn <t:${Math.floor(loan.dueAt.getTime() / 1000)}:R>${loan.dunned > 0 ? ` · bị đòi ${loan.dunned} lần` : ''}`
+        : null,
       jailed ? `🚔 Đang ngồi tù, ra <t:${Math.floor(jailed.getTime() / 1000)}:R>` : null,
       hospitalized
         ? `🏥 Đang nằm viện, ra <t:${Math.floor(hospitalized.getTime() / 1000)}:R>`
@@ -69,6 +76,19 @@ export const hosoCommand: Command = {
             `🏦 Két: **${formatCoins(p.bank)}**`,
             `💵 Tiền nạp: **${formatVnd(p.cash)}**`,
           ].join('\n'),
+          inline: true,
+        },
+        {
+          name: '💼 Nghề nghiệp',
+          value: (() => {
+            const shifts = economy.workShifts(target.id);
+            const rank = rankFor(shifts);
+            const toNext = shiftsToNext(shifts);
+            return [
+              `${rank.emoji} **${rank.name}** · ${shifts} ca`,
+              toNext > 0 ? `-# Còn ${toNext} ca nữa lên chức` : '-# Đỉnh cao sự nghiệp 🏆',
+            ].join('\n');
+          })(),
           inline: true,
         },
         {
@@ -118,6 +138,30 @@ export const hosoCommand: Command = {
         return 'Độc thân vui tính 🕊️';
       })(),
     });
+
+    const owned = assets.owned(target.id);
+    if (owned.length > 0) {
+      embed.addFields({
+        name: '🏠 Tài sản',
+        value: owned
+          .map((a) => `${a.emoji} **${a.name}** (${KIND_LABEL[a.kind].name})`)
+          .join('\n'),
+        inline: false,
+      });
+    }
+
+    const debtHistory = loans.history(target.id);
+    if (debtHistory.taken > 0) {
+      embed.addFields({
+        name: '🧾 Lịch sử vay',
+        value:
+          `Đã vay **${debtHistory.taken}** lần` +
+          (debtHistory.defaulted > 0
+            ? ` · **quỵt ${debtHistory.defaulted}** lần 😬`
+            : ' · chưa quỵt lần nào ✅'),
+        inline: false,
+      });
+    }
 
     if (p.items.length > 0) {
       embed.addFields({

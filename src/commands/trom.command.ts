@@ -4,7 +4,8 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { economy, items } from '../context.js';
+import { assets, economy, items } from '../context.js';
+import { DOG_BLOCK_CHANCE } from '../services/assets.service.js';
 import { ROB_MIN_VICTIM_WALLET } from '../services/economy.service.js';
 import { releaseRow } from '../interactions/downtime.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
@@ -40,6 +41,20 @@ export const tromCommand: Command = {
       await interaction.reply({
         content: `Ví của **${victim.displayName}** lép kẹp (dưới ${formatCoins(ROB_MIN_VICTIM_WALLET)}), trộm không bõ công.`,
         flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    // The dog gets first crack, and unlike a shield it does not wear out.
+    if (assets.has(victim.id, 'cho') && Math.random() < DOG_BLOCK_CHANCE) {
+      economy.startRobCooldown(thief.id);
+      await interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.push)
+            .setDescription(
+              `🐶 **${thief.displayName}** vừa trèo tường nhà **${victim.displayName}** thì con chó lao ra sủa inh ỏi, chạy mất dép!\n-# Không bị bắt, nhưng lượt trộm giờ này coi như đã dùng.`,
+            ),
+        ],
       });
       return;
     }
