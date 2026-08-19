@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { EmbedBuilder, type Client } from 'discord.js';
 import { env } from './config/env.js';
-import { dashboard, quizPool, quizReview, topups } from './context.js';
+import { dashboard, lottery, quizPool, quizReview, topups } from './context.js';
 import { COLORS } from './embeds/format.js';
 import { formatVnd } from './embeds/topup.js';
 import {
@@ -15,7 +15,8 @@ import {
   verifySession,
 } from './web/auth.js';
 import { DASHBOARD_PAGE, LOGIN_PAGE } from './web/dashboard-page.js';
-import { PRIVACY_PAGE, TERMS_PAGE, landingPage } from './web/landing-page.js';
+import { landingPage, privacyPage, termsPage } from './web/landing-page.js';
+import { LOGO_ETAG, LOGO_PNG } from './web/logo.js';
 
 const MAX_BODY_BYTES = 64 * 1024;
 const throttle = new LoginThrottle();
@@ -250,20 +251,37 @@ export function startWebServer(client: Client): void {
         // Public pages: what the bot is, plus the legal pages Discord asks
         // for when a bot takes payments.
         if (url.pathname === '/' || url.pathname === '/index.html') {
-          send(res, 200, landingPage(env.DISCORD_CLIENT_ID));
+          // The live jackpot is the most casino thing on the page, so it is
+          // read fresh on every request rather than baked in.
+          send(res, 200, landingPage(env.DISCORD_CLIENT_ID, lottery.getJackpot()));
           return;
         }
         if (url.pathname === '/terms') {
-          send(res, 200, TERMS_PAGE);
+          send(res, 200, termsPage(env.DISCORD_CLIENT_ID));
           return;
         }
         if (url.pathname === '/privacy') {
-          send(res, 200, PRIVACY_PAGE);
+          send(res, 200, privacyPage(env.DISCORD_CLIENT_ID));
+          return;
+        }
+        if (url.pathname === '/logo.png') {
+          if (req.headers['if-none-match'] === LOGO_ETAG) {
+            res.writeHead(304, { ETag: LOGO_ETAG });
+            res.end();
+            return;
+          }
+          res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=604800, immutable',
+            ETag: LOGO_ETAG,
+            'X-Content-Type-Options': 'nosniff',
+          });
+          res.end(LOGO_PNG);
           return;
         }
         if (url.pathname === '/invite' && env.DISCORD_CLIENT_ID) {
           send(res, 302, '', {
-            Location: `https://discord.com/oauth2/authorize?client_id=${env.DISCORD_CLIENT_ID}&scope=bot%20applications.commands&permissions=277025508352`,
+            Location: `https://discord.com/oauth2/authorize?client_id=${env.DISCORD_CLIENT_ID}&scope=bot%20applications.commands&permissions=274945395776`,
           });
           return;
         }
