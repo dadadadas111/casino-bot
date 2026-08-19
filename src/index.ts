@@ -13,7 +13,8 @@ import { startBackupScheduler } from './backup-scheduler.js';
 import { startLoanCollector } from './loan-collector.js';
 import { announcePatchNotes } from './patch-announcer.js';
 import { refundPendingBlackjack } from './commands/blackjack.command.js';
-import { refundPendingKeo } from './commands/keo.command.js';
+import { refundPendingHilo } from './commands/hilo.command.js';
+import { refundPendingMines } from './commands/domin.command.js';
 import { refundPendingRaces } from './commands/duangua.command.js';
 import { refundPendingRoulette } from './commands/coquay.command.js';
 import { refundPendingWeddings } from './commands/honle.command.js';
@@ -23,8 +24,8 @@ import { activity, cache, connectExternalServices, mongo } from './context.js';
 // While jailed or hospitalised, everything that moves money or plays games
 // is off-limits.
 const DOWNTIME_BLOCKED = new Set([
-  'blackjack', 'bj', 'taixiu', 'baucua', 'coinflip', 'slots',
-  'keo', 'duangua', 'xoso', 'trieuphu', 'coquay',
+  'blackjack', 'bj', 'taixiu', 'baucua', 'slots', 'hilo', 'domin',
+  'duangua', 'xoso', 'trieuphu', 'coquay',
   'daily', 'lamviec', 'chuyentien', 'trom', 'cuoi',
   'chubot', // no editing the books from behind bars
 ]);
@@ -43,9 +44,9 @@ const COOLDOWNS: Record<string, { key: string; ms: number }> = {
   bj: GAME_CD,
   taixiu: GAME_CD,
   baucua: GAME_CD,
-  coinflip: GAME_CD,
+  hilo: GAME_CD,
+  domin: GAME_CD,
   slots: GAME_CD,
-  keo: { key: 'keo', ms: 30_000 },
   duangua: GAME_CD,
   xoso: GAME_CD,
   om: TUONGTAC_CD,
@@ -186,7 +187,8 @@ function refundEverything(reason: string): void {
   try {
     const refunds =
       refundPendingBlackjack() +
-      refundPendingKeo() +
+      refundPendingHilo() +
+      refundPendingMines() +
       refundPendingRaces() +
       refundPendingRoulette() +
       refundPendingWeddings() +

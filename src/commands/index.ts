@@ -2,9 +2,9 @@ import type { Command } from './types.js';
 import { blackjackCommand } from './blackjack.command.js';
 import { taixiuCommand } from './taixiu.command.js';
 import { baucuaCommand } from './baucua.command.js';
-import { coinflipCommand } from './coinflip.command.js';
 import { slotsCommand } from './slots.command.js';
-import { keoCommand } from './keo.command.js';
+import { hiloCommand } from './hilo.command.js';
+import { dominCommand } from './domin.command.js';
 import { duanguaCommand } from './duangua.command.js';
 import { xosoCommand } from './xoso.command.js';
 import { trieuphuCommand } from './trieuphu.command.js';
@@ -52,9 +52,9 @@ const all: Command[] = [
   blackjackCommand,
   taixiuCommand,
   baucuaCommand,
-  coinflipCommand,
   slotsCommand,
-  keoCommand,
+  hiloCommand,
+  dominCommand,
   duanguaCommand,
   xosoCommand,
   trieuphuCommand,

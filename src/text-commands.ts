@@ -6,8 +6,6 @@ import {
   type BauCuaSymbol,
   DICE_EMOJI,
   bauCuaPayout,
-  coinflipPayout,
-  flipCoin,
   rollBauCua,
   rollTaiXiu,
   slotsPayout,
@@ -37,15 +35,6 @@ const TAIXIU_CHOICES: Record<string, 'tai' | 'xiu'> = {
   x: 'xiu',
 };
 
-const COINFLIP_CHOICES: Record<string, 'ngua' | 'sap'> = {
-  ngua: 'ngua',
-  ngửa: 'ngua',
-  n: 'ngua',
-  sap: 'sap',
-  sấp: 'sap',
-  s: 'sap',
-};
-
 const BAUCUA_CHOICES: Record<string, BauCuaSymbol> = {
   bau: 'bau',
   bầu: 'bau',
@@ -68,7 +57,6 @@ const BAUCUA_CHOICES: Record<string, BauCuaSymbol> = {
 const SLASH_ONLY = new Set([
   'blackjack',
   'bj',
-  'keo',
   'trieuphu',
   'tp',
   'lichsu',
@@ -96,6 +84,9 @@ const SLASH_TARGET: Record<string, string> = {
   setprefix: 'caidat',
   shop: 'tuido',
   vay: 'vi',
+  cf: 'hilo',
+  coinflip: 'hilo',
+  keo: 'coquay',
 };
 
 /** Typed commands that still work while jailed or hospitalised. */
@@ -121,6 +112,9 @@ const KNOWN_TEXT_COMMANDS = new Set([
   'baucua',
   'cf',
   'coinflip',
+  'keo',
+  'hilo',
+  'domin',
   'sl',
   'slots',
   'mua',
@@ -462,7 +456,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
   }
 
   // ---- one-shot games ----
-  const isGame = ['tx', 'taixiu', 'bc', 'baucua', 'cf', 'coinflip', 'sl', 'slots'].includes(name);
+  const isGame = ['tx', 'taixiu', 'bc', 'baucua', 'sl', 'slots'].includes(name);
   if (!isGame) return; // unknown text command: stay silent
 
   const remaining = tryUse(userId, 'game', 5_000);
@@ -525,34 +519,6 @@ export async function handleTextCommand(message: Message): Promise<void> {
         gameEmbed('🦀 Bầu Cua: Kết quả', [
           `Kết quả: ${diceText}`,
           `Bạn đặt ${BAU_CUA_SYMBOLS[choice].emoji}, trúng **${result.matches}** mặt.`,
-          resultLine(payout, bet),
-          `Số dư mới: ${formatCoins(economy.getBalance(userId))}`,
-        ], payout > 0),
-      ],
-    });
-    return;
-  }
-
-  if (name === 'cf' || name === 'coinflip') {
-    const { bet: rawBet, choice } = extractBetAndChoice(args, COINFLIP_CHOICES, balance);
-    if (!choice) {
-      await message.reply(
-        `Chọn mặt đi: \`${prefix}${name} 100 ngua\` hoặc \`${prefix}${name} 100 sap\` (viết tắt: n, s)`,
-      );
-      return;
-    }
-    const bet = await resolveBet(message, rawBet, `\`${prefix}${name} <cược> <ngua|sap>\``);
-    if (bet === null) return;
-    if (!(await debitOrComplain(message, bet, 'coinflip'))) return;
-    const sent = await message.reply('🪙 Đồng xu đang xoay...');
-    await sleep(1000);
-    const result = flipCoin();
-    const payout = coinflipPayout(result, choice, bet);
-    economy.settleGame(userId, bet, payout, 'coinflip');
-    await sent.edit({
-      content: '',
-      embeds: [
-        gameEmbed(`🪙 Kết quả: ${result.side === 'ngua' ? 'NGỬA 🌕' : 'SẤP 🌑'}`, [
           resultLine(payout, bet),
           `Số dư mới: ${formatCoins(economy.getBalance(userId))}`,
         ], payout > 0),

@@ -8,6 +8,19 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.1.0',
+    date: '19/08/2026',
+    title: 'Cao hay Thấp, Dò mìn, và dọn hai trò ế',
+    changes: [
+      '🃏 **`/hilo` Cao hay Thấp.** Lật một lá bài, đoán lá kế tiếp cao hơn hay thấp hơn. Đoán đúng thì tiền nhân lên, đoán tiếp hay rút là tùy bạn, nhưng sai một lá là mất sạch',
+      '-# Tỷ lệ ăn tính theo đúng lá đang nằm trên bàn: con 2 mà đoán thấp hơn thì ăn x11,64, còn đoán cao hơn chỉ x1,06. Tối đa 8 lá.',
+      '💣 **`/domin` Dò mìn.** Ba quả mìn giấu trong mười sáu ô. Mở được ô nào ăn ô đó, mở càng nhiều tiền càng dày, nhưng bấm trúng mìn là trắng tay. Dọn sạch cả bãi ăn x537',
+      '-# Cả hai trò đều cho rút giữa chừng. Cái khó là biết dừng lúc nào.',
+      '🗑️ **Bỏ `/keo` và `/coinflip`.** Kèo tung xu cả đời bot mới có 14 ván và không ai đụng tới từ ngày 15/08. Tung đồng xu thì không có lấy một quyết định nào, Cao hay Thấp làm đúng việc đó nhưng hay hơn',
+      '-# Gõ `!cf` bây giờ bot sẽ chỉ bạn sang `/hilo`. Bầu cua tuy ít ván nhưng có tới 11 người từng chơi nên vẫn giữ.',
+    ],
+  },
+  {
     version: '5.0.0',
     date: '19/08/2026',
     title: 'Nhà cửa, sự nghiệp và nợ nần',

@@ -1,13 +1,8 @@
-export type Suit = '♠' | '♥' | '♦' | '♣';
-export type Rank = 'A' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K';
+import { RANK_ORDER, SUITS, formatCard, type Card, type Rank, type Suit } from './cards.js';
 
-export interface Card {
-  rank: Rank;
-  suit: Suit;
-}
+export type { Card, Rank, Suit };
 
-const SUITS: Suit[] = ['♠', '♥', '♦', '♣'];
-const RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const RANKS = RANK_ORDER;
 
 export function createShuffledDeck(): Card[] {
   const deck: Card[] = [];
@@ -63,16 +58,7 @@ export function dealerPlay(deck: Card[], dealer: Card[]): void {
 
 // Emoji presentation (U+FE0F) renders hearts/diamonds red and spades/clubs
 // black on every platform; inline code would disable emoji, so no backticks.
-const SUIT_EMOJI: Record<Suit, string> = {
-  '♠': '♠️',
-  '♥': '♥️',
-  '♦': '♦️',
-  '♣': '♣️',
-};
-
-export function formatCard(card: Card): string {
-  return `${card.rank}${SUIT_EMOJI[card.suit]}`;
-}
+export { formatCard };
 
 export function formatHand(hand: Card[], hideSecond = false): string {
   if (hideSecond && hand.length >= 2) {

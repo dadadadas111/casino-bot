@@ -60,20 +60,6 @@ export function bauCuaPayout(result: BauCuaResult, bet: number): number {
   return result.matches > 0 ? bet * (1 + result.matches) : 0;
 }
 
-// ---- Coinflip ----
-
-export interface CoinflipResult {
-  side: 'ngua' | 'sap';
-}
-
-export function flipCoin(): CoinflipResult {
-  return { side: Math.random() < 0.5 ? 'ngua' : 'sap' };
-}
-
-export function coinflipPayout(result: CoinflipResult, choice: 'ngua' | 'sap', bet: number): number {
-  return result.side === choice ? bet * 2 : 0;
-}
-
 // ---- Slots ----
 
 export const SLOT_SYMBOLS = ['🍒', '🍋', '🍇', '🍊', '🔔', '⭐', '💎', '7️⃣'] as const;

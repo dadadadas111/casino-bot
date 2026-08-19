@@ -6,13 +6,14 @@ import type {
 import { CUSTOM_ID_ROOT, type ComponentHandler } from './ids.js';
 import { downtimeComponents } from './downtime.js';
 import { blackjackComponents } from '../commands/blackjack.command.js';
-import { keoComponents } from '../commands/keo.command.js';
 import { trieuphuComponents } from '../commands/trieuphu.command.js';
 import { duanguaComponents } from '../commands/duangua.command.js';
 import { weddingComponents } from '../commands/cuoi.command.js';
 import { honleComponents } from '../commands/honle.command.js';
 import { helpComponents } from '../commands/help.command.js';
 import { coquayComponents } from '../commands/coquay.command.js';
+import { hiloComponents } from '../commands/hilo.command.js';
+import { minesComponents } from '../commands/domin.command.js';
 import { reviewComponents } from '../commands/duyetcau.command.js';
 import { walletComponents } from '../commands/vi.command.js';
 import { bagComponents } from '../commands/tuido.command.js';
@@ -26,7 +27,8 @@ const handlers: Record<string, ComponentHandler> = {
   cq: coquayComponents,
   rev: reviewComponents,
   bj: blackjackComponents,
-  keo: keoComponents,
+  hilo: hiloComponents,
+  min: minesComponents,
   tp: trieuphuComponents,
   dn: duanguaComponents,
   wed: weddingComponents,

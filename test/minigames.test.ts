@@ -3,7 +3,6 @@ import {
   SLOT_SYMBOLS,
   type SlotSymbol,
   bauCuaPayout,
-  coinflipPayout,
   SLOT_PREMIUM,
   evaluateSlots,
   rollBauCua,
@@ -48,12 +47,6 @@ describe('baucua', () => {
   });
 });
 
-describe('coinflip', () => {
-  it('pays 1:1', () => {
-    expect(coinflipPayout({ side: 'ngua' }, 'ngua', 50)).toBe(100);
-    expect(coinflipPayout({ side: 'sap' }, 'ngua', 50)).toBe(0);
-  });
-});
 
 describe('slots', () => {
   it('classifies triples, pairs and misses', () => {

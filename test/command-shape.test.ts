@@ -50,7 +50,8 @@ describe('slash command shape', () => {
 
   it('keeps the commands players use most as their own entry point', () => {
     const declared = new Set(allNames.map((n) => n.name));
-    for (const name of ['sodu', 'shop', 'nap', 'om', 'hon', 'danh', 'choc', 'xoadau', 'doino']) {
+    for (const name of ['sodu', 'shop', 'nap', 'om', 'hon', 'danh', 'choc', 'xoadau', 'doino',
+      'hilo', 'domin']) {
       expect(declared).toContain(name);
     }
   });
@@ -64,7 +65,8 @@ describe('slash command shape', () => {
   it('drops the commands that were folded into panels', () => {
     const declared = new Set(allNames.map((n) => n.name));
     for (const name of ['bank', 'cash', 'mua', 'dungdo', 'tang', 'lichsu', 'nopphat', 'vienphi',
-      'cauhon', 'lyhon', 'honle', 'setprefix', 'doiten', 'casino-admin', 'luck', 'backup']) {
+      'cauhon', 'lyhon', 'honle', 'setprefix', 'doiten', 'casino-admin', 'luck', 'backup',
+      'coinflip', 'keo']) {
       expect(declared).not.toContain(name);
     }
   });

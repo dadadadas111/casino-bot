@@ -350,7 +350,7 @@ interface Game {
 const GAMES: Game[] = [
   {
     index: '3:2',
-    suit: '🃏',
+    suit: '🂡',
     name: 'Blackjack',
     blurb: 'Đấu bài với nhà cái. Rút, dừng, gấp đôi, và blackjack trả 3 ăn 2.',
     cmd: '/blackjack',
@@ -405,11 +405,18 @@ const GAMES: Game[] = [
     cmd: '/xoso',
   },
   {
-    index: '1v1',
-    suit: '🪙',
-    name: 'Kèo tung xu',
-    blurb: 'Thách một người solo, hai bên cược bằng nhau, ai thắng ôm cả.',
-    cmd: '/keo',
+    index: 'x11',
+    suit: '🃏',
+    name: 'Cao hay Thấp',
+    blurb: 'Đoán lá kế tiếp cao hơn hay thấp hơn. Càng đoán đúng tiền càng nhân, rút lúc nào cũng được.',
+    cmd: '/hilo',
+  },
+  {
+    index: '3/16',
+    suit: '💣',
+    name: 'Dò mìn',
+    blurb: 'Ba quả mìn giấu trong mười sáu ô. Mở được ô nào ăn ô đó, tham quá thì mất sạch.',
+    cmd: '/domin',
   },
 ];
 
@@ -512,7 +519,7 @@ export function landingPage(clientId: string | undefined, jackpot: number): stri
         <img class="hero-chip" src="/logo.png" alt="Phỉnh casino, biểu tượng của Casino Bot" width="176" height="176">
       <p class="eyebrow">Bot Discord tiếng Việt</p>
       <h1>Cả một sòng bạc, và <em>cả một cuộc đời</em>, trong server của bạn</h1>
-      <p class="lede">Chín trò cược ăn tiền ngay. Rồi đi làm kiếm xu, tậu nhà tậu xe, cưới hỏi,
+      <p class="lede">Mười trò cược ăn tiền ngay. Rồi đi làm kiếm xu, tậu nhà tậu xe, cưới hỏi,
         trộm cắp, vay nóng và bị dí nợ giữa kênh.</p>
 
       <div class="ctas">
@@ -531,7 +538,7 @@ export function landingPage(clientId: string | undefined, jackpot: number): stri
 
     <section class="band" id="tro-choi"><div class="wrap">
       <div class="band-head">
-        <h2>Chín cách để mất tiền</h2>
+        <h2>Mười cách để mất tiền</h2>
         <p>Mỗi trò một luật, đều chơi bằng nút bấm ngay trong kênh. Con số ở góc thẻ là thứ định nghĩa trò đó.</p>
       </div>
       <div class="hand">
@@ -560,7 +567,7 @@ export function landingPage(clientId: string | undefined, jackpot: number): stri
 
     <section class="band"><div class="wrap">
       <div class="stats">
-        <div><b>9</b><small>trò cược</small></div>
+        <div><b>10</b><small>trò cược</small></div>
         <div><b>34</b><small>lệnh</small></div>
         <div><b>6</b><small>cấp nghề nghiệp</small></div>
         <div><b>10</b><small>món tài sản</small></div>
