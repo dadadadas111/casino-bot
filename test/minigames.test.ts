@@ -4,6 +4,7 @@ import {
   type SlotSymbol,
   bauCuaPayout,
   coinflipPayout,
+  SLOT_PREMIUM,
   evaluateSlots,
   rollBauCua,
   rollTaiXiu,
@@ -61,7 +62,34 @@ describe('slots', () => {
     expect(evaluateSlots(['🍒', '🍋', '💎'])).toMatchObject({ kind: 'none', multiplier: 0 });
   });
 
-  it('has a house edge: RTP between 85% and 99%', () => {
+  it('pays a profit on a premium pair and only the stake on a common one', () => {
+    for (const symbol of SLOT_PREMIUM) {
+      expect(evaluateSlots([symbol, symbol, '🍒'])).toMatchObject({ kind: 'pair', multiplier: 2 });
+      // The pair can sit anywhere on the reels.
+      expect(evaluateSlots(['🍒', symbol, symbol])).toMatchObject({ symbol, multiplier: 2 });
+      expect(evaluateSlots([symbol, '🍒', symbol])).toMatchObject({ symbol, multiplier: 2 });
+    }
+    for (const symbol of ['🍒', '🍋', '🍇', '🍊'] as const) {
+      expect(evaluateSlots([symbol, symbol, '💎'])).toMatchObject({ kind: 'pair', multiplier: 1 });
+    }
+  });
+
+  it('turns a losing spin into a real win far more often than before', () => {
+    let profitable = 0;
+    let outcomes = 0;
+    for (const a of SLOT_SYMBOLS) {
+      for (const b of SLOT_SYMBOLS) {
+        for (const c of SLOT_SYMBOLS) {
+          if (evaluateSlots([a, b, c]).multiplier > 1) profitable++;
+          outcomes++;
+        }
+      }
+    }
+    // Was 1.56% when only a triple paid; the premium pair lifts it past 15%.
+    expect(profitable / outcomes).toBeGreaterThan(0.15);
+  });
+
+  it('keeps a house edge: RTP between 93% and 96%', () => {
     let totalPayout = 0;
     let outcomes = 0;
     for (const a of SLOT_SYMBOLS) {
@@ -74,7 +102,7 @@ describe('slots', () => {
       }
     }
     const rtp = totalPayout / outcomes;
-    expect(rtp).toBeGreaterThan(0.85);
-    expect(rtp).toBeLessThan(0.99);
+    expect(rtp).toBeGreaterThan(0.93);
+    expect(rtp).toBeLessThan(0.96);
   });
 });

@@ -15,7 +15,7 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from 'discord.js';
-import { cash, economy, luck, quizReview } from '../context.js';
+import { cash, economy, lottery, luck, quizReview } from '../context.js';
 import { env } from '../config/env.js';
 import { JAIL_DURATION_MS } from '../services/economy.service.js';
 import {
@@ -66,7 +66,7 @@ function panelEmbed(targetId: string | null, targetName: string | null): EmbedBu
         : 'Chọn một người chơi bên dưới để chỉnh xu, tiền nạp hoặc vận may.',
     )
     .setFooter({
-      text: `Cộng/trừ tối đa ${ADMIN_ADD_CAP.toLocaleString('vi-VN')} xu mỗi lần · cảnh sát vẫn tuần tra`,
+      text: `Hũ xổ số: ${lottery.getJackpot().toLocaleString('vi-VN')} xu · cộng/trừ tối đa ${ADMIN_ADD_CAP.toLocaleString('vi-VN')} xu mỗi lần · cảnh sát vẫn tuần tra`,
     });
   return embed;
 }
@@ -112,6 +112,11 @@ export function ownerPanel(
           .setCustomId(componentId('own', 'luckList'))
           .setLabel('Ai đang được ưu ái')
           .setEmoji('📋')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(componentId('own', 'hu'))
+          .setLabel('Bơm hũ xổ số')
+          .setEmoji('🎱')
           .setStyle(ButtonStyle.Secondary),
       ),
     ],
@@ -189,6 +194,26 @@ export const ownerComponents: ComponentHandler = {
       return;
     }
 
+    if (action === 'hu') {
+      await interaction.showModal(
+        new ModalBuilder()
+          .setCustomId(componentId('own', 'apply', 'hu', 'x'))
+          .setTitle('Hũ xổ số')
+          .addComponents(
+            new ActionRowBuilder<TextInputBuilder>().addComponents(
+              new TextInputBuilder()
+                .setCustomId('giatri')
+                .setLabel('Đặt hũ thành bao nhiêu xu')
+                .setPlaceholder(`Đang là ${lottery.getJackpot()}`)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(12),
+            ),
+          ),
+      );
+      return;
+    }
+
     if (action === 'luckList') {
       const rows = luck.list();
       await interaction.reply({
@@ -220,6 +245,24 @@ export const ownerComponents: ComponentHandler = {
 
   async handleModal(interaction: ModalSubmitInteraction, args: string[]): Promise<void> {
     if (args[0] !== 'apply' || !isOwner(interaction.user.id)) return;
+    if (args[1] === 'hu') {
+      const value = Number(interaction.fields.getTextInputValue('giatri').replace(/[.,\s]/g, ''));
+      if (!Number.isInteger(value) || value < 0 || value > 100_000_000) {
+        await interaction.reply({
+          content: 'Nhập số nguyên từ 0 đến 100.000.000.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      const set = lottery.setJackpotTo(value);
+      await refresh(interaction, null, null);
+      await interaction.followUp({
+        content: `🎱 Hũ xổ số giờ là **${formatCoins(set)}**. Quay lúc 21h, ai trúng số thì ẵm cả hũ.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+
     const spec = ACTIONS.find((a) => a.key === args[1]);
     const targetId = args[2];
     if (!spec || !targetId) return;
@@ -323,8 +366,8 @@ export const ownerComponents: ComponentHandler = {
 
 async function refresh(
   interaction: ModalSubmitInteraction,
-  targetId: string,
-  targetName: string,
+  targetId: string | null,
+  targetName: string | null,
 ): Promise<void> {
   const panel = ownerPanel(targetId, targetName);
   if (interaction.isFromMessage()) await interaction.update(panel);

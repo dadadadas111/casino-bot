@@ -4,7 +4,12 @@ import { EconomyService, vnDay } from './economy.service.js';
 export const TICKET_PRICE = 100;
 export const MAX_TICKETS_PER_DAY = 5;
 export const POT_PER_TICKET = 80; // 80% of the ticket feeds the pot (house edge 20%)
-export const JACKPOT_SEED = 5_000;
+/**
+ * Where the pot restarts after somebody wins. At 80 xu per ticket a small
+ * player base can never grow a jackpot worth chasing on its own, so the house
+ * primes it: this is the floor that keeps the game alive between wins.
+ */
+export const JACKPOT_SEED = 50_000;
 export const DRAW_HOUR = 21; // Vietnam time
 
 const hourFmt = new Intl.DateTimeFormat('en-GB', {
@@ -73,6 +78,13 @@ export class LotteryService {
       value: string;
     };
     return Number(row.value);
+  }
+
+  /** Owner override, for priming the pot outside the normal ticket flow. */
+  setJackpotTo(value: number): number {
+    const amount = Math.max(0, Math.floor(value));
+    this.setJackpot(amount);
+    return amount;
   }
 
   private setJackpot(value: number): void {

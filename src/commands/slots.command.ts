@@ -1,6 +1,11 @@
 import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
 import { economy, luck } from '../context.js';
-import { SLOT_TRIPLE_PAYOUT, slotsPayout, spinSlots } from '../services/minigames.service.js';
+import {
+  SLOT_PREMIUM,
+  SLOT_TRIPLE_PAYOUT,
+  slotsPayout,
+  spinSlots,
+} from '../services/minigames.service.js';
 import { COLORS, formatCoins, sleep } from '../embeds/format.js';
 import { placeBetOrReply, resultLine } from './bet-helpers.js';
 import type { Command } from './types.js';
@@ -8,7 +13,7 @@ import type { Command } from './types.js';
 export const slotsCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('slots')
-    .setDescription('Quay máy xèng: 3 hình giống nhau trúng lớn (7️⃣7️⃣7️⃣ ăn x100)')
+    .setDescription('Quay máy xèng: 2 hình cao đã ăn tiền, 3 hình giống nhau trúng lớn (7️⃣7️⃣7️⃣ x100)')
     .addIntegerOption((o) =>
       o.setName('cuoc').setDescription('Số xu muốn cược').setRequired(true).setMinValue(10),
     ),
@@ -38,9 +43,11 @@ export const slotsCommand: Command = {
     const kindText =
       result.kind === 'triple'
         ? `✨ **JACKPOT ${result.reels[0]}${result.reels[0]}${result.reels[0]}!** Trúng x${result.multiplier}!`
-        : result.kind === 'pair'
-          ? '2 hình giống nhau: hoàn lại tiền cược.'
-          : 'Không trúng hình nào.';
+        : result.kind === 'pair' && result.multiplier > 1
+          ? `💰 Đôi ${result.symbol}${result.symbol} hình cao, ăn x${result.multiplier}!`
+          : result.kind === 'pair'
+            ? `2 hình ${result.symbol} giống nhau: hoàn lại tiền cược.`
+            : 'Không trúng hình nào.';
 
     await interaction.editReply({
       embeds: [
@@ -57,9 +64,12 @@ export const slotsCommand: Command = {
             ].join('\n'),
           )
           .setFooter({
-            text: `Bảng thưởng x3 hình: ${Object.entries(SLOT_TRIPLE_PAYOUT)
-              .map(([s, m]) => `${s}x${m}`)
-              .join(' ')}`,
+            text: [
+              `Đôi hình cao (${SLOT_PREMIUM.join('')}) ăn x2`,
+              `Ba hình: ${Object.entries(SLOT_TRIPLE_PAYOUT)
+                .map(([s, m]) => `${s}x${m}`)
+                .join(' ')}`,
+            ].join(' · '),
           }),
       ],
     });

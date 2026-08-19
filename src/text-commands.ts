@@ -556,7 +556,11 @@ export async function handleTextCommand(message: Message): Promise<void> {
     embeds: [
       gameEmbed('🎰 Máy xèng: Kết quả', [
         `🎰 | ${result.reels.join(' ')} |`,
-        result.kind === 'triple' ? `✨ **JACKPOT!** Trúng x${result.multiplier}!` : '',
+        result.kind === 'triple'
+          ? `✨ **JACKPOT!** Trúng x${result.multiplier}!`
+          : result.multiplier > 1
+            ? `💰 Đôi ${result.symbol}${result.symbol} hình cao, ăn x${result.multiplier}!`
+            : '',
         resultLine(payout, bet),
         `Số dư mới: ${formatCoins(economy.getBalance(userId))}`,
       ].filter(Boolean), payout > bet),

@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '4.1.0',
+    date: '18/08/2026',
+    title: 'Máy xèng dễ thở, hũ xổ số phình to',
+    changes: [
+      '🎰 **Máy xèng giờ trả tiền thật khi ra hai hình cao.** Đôi 🔔 ⭐ 💎 7️⃣ ăn x2 chứ không chỉ hoàn vốn nữa. Số ván có lãi nhảy từ 1,6% lên 18%, tức là cứ khoảng 5 lượt là có một lượt ăn tiền',
+      '-# Đôi hình thường (🍒🍋🍇🍊) vẫn hoàn lại tiền cược. Ba hình giống nhau ăn từ x10 tới x100, 7️⃣7️⃣7️⃣ vẫn là x100.',
+      '🎱 **Hũ xổ số được bơm lên 1.000.000 xu.** Vé vẫn 100 xu, chọn số 00-99, quay 21h mỗi tối. Ai trúng ẵm cả hũ, nhiều người trúng thì chia đều',
+      '-# Sau khi có người trúng, hũ về mốc 50.000 xu rồi lại dồn lên (trước đây tụt về 5.000 nên chẳng ai buồn mua vé).',
+    ],
+  },
+  {
     version: '4.0.0',
     date: '18/08/2026',
     title: 'Dọn lại toàn bộ danh sách lệnh',

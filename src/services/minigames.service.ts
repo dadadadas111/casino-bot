@@ -79,34 +79,52 @@ export function coinflipPayout(result: CoinflipResult, choice: 'ngua' | 'sap', b
 export const SLOT_SYMBOLS = ['🍒', '🍋', '🍇', '🍊', '🔔', '⭐', '💎', '7️⃣'] as const;
 export type SlotSymbol = (typeof SLOT_SYMBOLS)[number];
 
-/** Multiplier of the bet for three of a kind. Overall RTP ≈ 91%. */
+/**
+ * The four high symbols. A pair of these pays a real profit, which is what
+ * makes the machine feel winnable: two matching reels come up on roughly a
+ * third of spins, so half of those now hand money back instead of merely
+ * returning the stake.
+ */
+export const SLOT_PREMIUM: readonly SlotSymbol[] = ['🔔', '⭐', '💎', '7️⃣'];
+
+export const SLOT_PAIR_PAYOUT = 2; // premium pair: double the stake
+export const SLOT_PAIR_PUSH = 1; // common pair: stake back
+
+/** Multiplier of the bet for three of a kind. Overall RTP ≈ 94.5%. */
 export const SLOT_TRIPLE_PAYOUT: Record<SlotSymbol, number> = {
-  '🍒': 15,
-  '🍋': 15,
-  '🍇': 20,
-  '🍊': 20,
-  '🔔': 30,
-  '⭐': 40,
-  '💎': 60,
+  '🍒': 10,
+  '🍋': 12,
+  '🍇': 14,
+  '🍊': 16,
+  '🔔': 20,
+  '⭐': 25,
+  '💎': 35,
   '7️⃣': 100,
 };
 
 export interface SlotsResult {
   reels: [SlotSymbol, SlotSymbol, SlotSymbol];
   kind: 'triple' | 'pair' | 'none';
+  /** The doubled symbol on a pair, the tripled one on a triple. */
+  symbol: SlotSymbol | null;
   multiplier: number;
 }
 
 export function evaluateSlots(reels: [SlotSymbol, SlotSymbol, SlotSymbol]): SlotsResult {
   const [a, b, c] = reels;
   if (a === b && b === c) {
-    return { reels, kind: 'triple', multiplier: SLOT_TRIPLE_PAYOUT[a] };
+    return { reels, kind: 'triple', symbol: a, multiplier: SLOT_TRIPLE_PAYOUT[a] };
   }
-  if (a === b || b === c || a === c) {
-    // A pair returns the stake, keeps the game feeling lively.
-    return { reels, kind: 'pair', multiplier: 1 };
+  const paired = a === b || a === c ? a : b === c ? b : null;
+  if (paired) {
+    return {
+      reels,
+      kind: 'pair',
+      symbol: paired,
+      multiplier: SLOT_PREMIUM.includes(paired) ? SLOT_PAIR_PAYOUT : SLOT_PAIR_PUSH,
+    };
   }
-  return { reels, kind: 'none', multiplier: 0 };
+  return { reels, kind: 'none', symbol: null, multiplier: 0 };
 }
 
 export function spinSlots(): SlotsResult {
