@@ -71,7 +71,7 @@ export const lamviecCommand: Command = {
       `Ca tiếp theo: <t:${retryUnix}:R>${assets.best(interaction.user.id, 'xe') ? ` ${assets.best(interaction.user.id, 'xe')!.emoji}` : ''}`,
     );
     if (toNext > 0) lines.push(`-# Còn ${toNext} ca nữa là lên chức.`);
-    if (result.bracket && result.bracket >= 0.25) {
+    if (result.bracket && result.bracket >= 0.35) {
       lines.push(
         `-# Thu nhập 24h của bạn đang ở bậc thuế ${Math.round(result.bracket * 100)}%. Nghỉ tay một lúc cho nó hạ xuống.`,
       );

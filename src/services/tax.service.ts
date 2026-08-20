@@ -4,8 +4,11 @@
  * numbers still add up on screen, so it reads as a rule of the world rather
  * than a bug.
  *
- * Brackets apply to the rolling 24h wage total, so casual players never pay
- * and grinders throttle themselves. Pure logic, no DB.
+ * Brackets apply to the rolling 24h wage total. Calibrated against real play:
+ * the heaviest grinder measured earned ~20.000 xu in a day (six-plus hours of
+ * returning every ten minutes), so the free bracket runs to 40.000 — past
+ * anything a human reaches by hand — and tax only bites at levels that imply
+ * scripting or a maxed rank farmed for hours. Pure logic, no DB.
  */
 
 export interface TaxBracket {
@@ -15,11 +18,10 @@ export interface TaxBracket {
 }
 
 export const TAX_BRACKETS: TaxBracket[] = [
-  { upTo: 5_000, rate: 0 },
-  { upTo: 15_000, rate: 0.1 },
-  { upTo: 40_000, rate: 0.25 },
-  { upTo: 100_000, rate: 0.55 },
-  { upTo: Infinity, rate: 0.8 },
+  { upTo: 40_000, rate: 0 },
+  { upTo: 100_000, rate: 0.15 },
+  { upTo: 250_000, rate: 0.35 },
+  { upTo: Infinity, rate: 0.6 },
 ];
 
 /** Total tax owed on a rolling income of `income`. */

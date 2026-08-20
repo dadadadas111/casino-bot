@@ -70,24 +70,27 @@ describe('work', () => {
     expect(result.amount).toBe(result.gross);
   });
 
-  it('starts biting once the daily wage clears the first bracket', () => {
-    const { gross, net } = grind(30);
-    expect(gross).toBeGreaterThan(5_000);
+  it('starts biting once the daily wage clears the free bracket', () => {
+    // The free bracket now runs to 40.000, far past a light session, so grind
+    // enough shifts (ranks rise along the way) to cross it.
+    const { gross, net } = grind(100);
+    expect(gross).toBeGreaterThan(40_000);
     expect(net).toBeLessThan(gross);
     expect(gross - net).toBe(taxOn(gross));
   });
 
   it('credits the wallet net of tax while logging the gross wage', () => {
-    grind(30);
-    const wages = economy.wagesInWindow(ME, later(400));
-    const { entries } = economy.getHistory(ME, 100);
+    grind(100);
+    const { entries } = economy.getHistory(ME, 300);
     const taxRows = entries.filter((e) => e.type === 'tax');
     const workRows = entries.filter((e) => e.type === 'work');
-    expect(workRows.reduce((s, e) => s + e.amount, 0)).toBe(wages);
+    // The gross wage is logged, the tax logged separately as a negative row,
+    // and the wallet is exactly starting + everything logged. This identity
+    // holds no matter how the rolling window lands.
     expect(taxRows.length).toBeGreaterThan(0);
-    expect(economy.getBalance(ME)).toBe(
-      1_000 + wages + taxRows.reduce((s, e) => s + e.amount, 0),
-    );
+    const workSum = workRows.reduce((s, e) => s + e.amount, 0);
+    const taxSum = taxRows.reduce((s, e) => s + e.amount, 0);
+    expect(economy.getBalance(ME)).toBe(1_000 + workSum + taxSum);
   });
 
   it('forgets old wages once they fall out of the 24h window', () => {

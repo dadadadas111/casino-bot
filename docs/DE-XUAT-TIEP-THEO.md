@@ -110,11 +110,12 @@ Bậc thuế áp trên **tổng lương `/lamviec` trong 24h trượt**, không 
 
 | Thu nhập 24h | Thuế biên |
 |---|---|
-| 0 - 5.000 | 0% |
-| 5.000 - 15.000 | 10% |
-| 15.000 - 40.000 | 25% |
-| 40.000 - 100.000 | 55% |
-| trên 100.000 | 80% |
+| 0 - 40.000 | 0% |
+| 40.000 - 100.000 | 15% |
+| 100.000 - 250.000 | 35% |
+| trên 250.000 | 60% |
+
+> **Đã hiệu chỉnh 20/08/2026.** Bảng cũ (bậc đầu 5.000, trần 80%) đặt cho một thế giới tưởng tượng nơi người cày đỉnh làm 990k/ngày. Thực tế người cày nhiều nhất chỉ tới ~20k/ngày (hơn 6 tiếng gõ `/lamviec`) mà đã dính bậc 25%. Bảng mới cho toàn bộ playerbase hiện tại về 0%, thuế chỉ cắn ở mức không ai chạm bằng tay.
 
 Lũy tiến theo bậc, tức là phần thu nhập nằm trong bậc nào chịu thuế bậc đó, không phải toàn bộ nhảy lên mức cao nhất.
 

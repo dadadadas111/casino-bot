@@ -56,30 +56,33 @@ describe('job ladder', () => {
 });
 
 describe('income tax', () => {
-  it('leaves a casual earner alone', () => {
-    // Real usage today averages under 400 xu a day.
+  it('leaves an ordinary day of play untouched', () => {
+    // The heaviest grinder measured earned ~20.000 in a day; all of that,
+    // and then some, sits inside the free bracket now.
     expect(taxOn(400)).toBe(0);
-    expect(taxOn(5_000)).toBe(0);
+    expect(taxOn(20_000)).toBe(0);
+    expect(taxOn(40_000)).toBe(0);
   });
 
   it('charges only the slice inside each bracket', () => {
-    // 5.000 free, then 10.000 at 10%.
-    expect(taxOn(15_000)).toBe(1_000);
-    // ...plus 25.000 at 25%.
-    expect(taxOn(40_000)).toBe(1_000 + 6_250);
+    // 40.000 free, then 10.000 at 15%.
+    expect(taxOn(50_000)).toBe(1_500);
+    // ...the full 15% band, then 50.000 at 35%.
+    expect(taxOn(150_000)).toBe(9_000 + 17_500);
   });
 
-  it('bites hard at grinding volumes but never takes everything', () => {
-    const owed = taxOn(990_000);
-    expect(owed / 990_000).toBeGreaterThan(0.6);
-    expect(owed).toBeLessThan(990_000);
+  it('bites at scripting volumes but stays gentler than the old table', () => {
+    const owed = taxOn(500_000);
+    // Under half, where the old table took nearly three quarters.
+    expect(owed / 500_000).toBeGreaterThan(0.35);
+    expect(owed / 500_000).toBeLessThan(0.5);
   });
 
   it('splits a wage the same way no matter how it arrives', () => {
-    const oneGo = taxOn(30_000);
+    const oneGo = taxOn(120_000);
     let piecemeal = 0;
     let earned = 0;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 120; i++) {
       piecemeal += taxOnWage(earned, 1_000);
       earned += 1_000;
     }
@@ -88,7 +91,7 @@ describe('income tax', () => {
 
   it('rises monotonically with income', () => {
     let previous = -1;
-    for (let income = 0; income <= 200_000; income += 2_500) {
+    for (let income = 0; income <= 400_000; income += 2_500) {
       const owed = taxOn(income);
       expect(owed).toBeGreaterThanOrEqual(previous);
       previous = owed;
@@ -97,7 +100,8 @@ describe('income tax', () => {
 
   it('reports the bracket the player is standing on', () => {
     expect(marginalRate(0)).toBe(0);
-    expect(marginalRate(5_000)).toBe(0.1);
+    expect(marginalRate(20_000)).toBe(0); // a full day of hand-play is free
+    expect(marginalRate(50_000)).toBe(0.15);
     expect(marginalRate(999_999)).toBe(TAX_BRACKETS[TAX_BRACKETS.length - 1].rate);
   });
 
