@@ -9,6 +9,7 @@ import { WORK_COOLDOWN_MS } from '../services/economy.service.js';
 import { JOB_RANKS, rankFor, shiftsToNext } from '../services/job.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { announce } from '../interactions/announce.js';
+import { isBoardShift, openDecision } from './boardroom.command.js';
 import type { Command } from './types.js';
 
 const JOBS = [
@@ -33,6 +34,22 @@ export const lamviecCommand: Command = {
     .setName('lamviec')
     .setDescription('Đi làm kiếm xu. Làm càng nhiều ca càng lên chức, lương càng cao'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    // A Chủ tịch's shift may open a boardroom decision instead of paying out.
+    if (isBoardShift(economy.workShifts(interaction.user.id))) {
+      const begun = economy.beginBoardShift(interaction.user.id);
+      if (!begun.ok) {
+        await interaction.reply({
+          content: `😮‍💨 Bạn mới làm xong, nghỉ chút đã! Ca tiếp theo: <t:${Math.floor(begun.retryAt.getTime() / 1000)}:R>.`,
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.reply(
+        openDecision(interaction.user.id, interaction.user.displayName, begun.gross),
+      );
+      return;
+    }
+
     const result = economy.work(interaction.user.id);
     const retryUnix = Math.floor(result.retryAt.getTime() / 1000);
 

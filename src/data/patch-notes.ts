@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.4.0',
+    date: '20/08/2026',
+    title: 'Ghế Chủ tịch không dễ ngồi',
+    changes: [
+      '🏦 **Lên chức Chủ tịch rồi thì đi làm không còn nhàn.** Một nửa số ca sẽ là một quyết định điều hành công ty: giữ người tài, ký hợp đồng, xử lý khủng hoảng truyền thông...',
+      '📈 **Chọn đúng thì ăn đậm** (có ca nhân tới 5 lần lương), chọn sai thì lỗ, và vài tình huống hoàn toàn hên xui',
+      '💥 **Có nút liều dẫn tới phá sản.** Vay lớn đánh úp, all-in tiền số, IPO ẩu... trúng thì phất to, xui thì mất ghế Chủ tịch, rơi xuống chức thấp và cày lại. Nút liều luôn ghi rõ % phá sản nên không ai mất chức oan',
+      '-# Quyết định nào cũng cho rút lui an toàn. Muốn ngồi yên hưởng lương đều thì cứ chọn cửa chắc, không ai ép liều.',
+    ],
+  },
+  {
     version: '5.3.0',
     date: '20/08/2026',
     title: 'Uống cà phê quá đà thì đi viện',

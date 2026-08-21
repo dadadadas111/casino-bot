@@ -15,6 +15,7 @@ import { announcePatchNotes } from './patch-announcer.js';
 import { refundPendingBlackjack } from './commands/blackjack.command.js';
 import { refundPendingHilo } from './commands/hilo.command.js';
 import { refundPendingMines } from './commands/domin.command.js';
+import { refundPendingBoard } from './commands/boardroom.command.js';
 import { refundPendingRaces } from './commands/duangua.command.js';
 import { refundPendingRoulette } from './commands/coquay.command.js';
 import { refundPendingWeddings } from './commands/honle.command.js';
@@ -189,6 +190,7 @@ function refundEverything(reason: string): void {
       refundPendingBlackjack() +
       refundPendingHilo() +
       refundPendingMines() +
+      refundPendingBoard() +
       refundPendingRaces() +
       refundPendingRoulette() +
       refundPendingWeddings() +

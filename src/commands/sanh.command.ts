@@ -16,6 +16,7 @@ import { assets, economy, lottery } from '../context.js';
 import { BAU_CUA_SYMBOLS, type BauCuaSymbol } from '../services/minigames.service.js';
 import { parseBetToken } from '../services/bet-parse.js';
 import { rankFor, shiftsToNext } from '../services/job.service.js';
+import { isBoardShift, openDecision } from './boardroom.command.js';
 import { TICKET_PRICE } from '../services/lottery.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
@@ -242,6 +243,18 @@ export const lobbyComponents: ComponentHandler = {
 
     if (action === 'work') {
       if (await refuseIfDown(interaction)) return;
+      if (isBoardShift(economy.workShifts(userId))) {
+        const begun = economy.beginBoardShift(userId);
+        if (!begun.ok) {
+          await interaction.reply({
+            content: `😮‍💨 Bạn mới làm xong, nghỉ chút đã! Ca tiếp theo: <t:${Math.floor(begun.retryAt.getTime() / 1000)}:R>.`,
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+        await interaction.reply(openDecision(userId, interaction.user.displayName, begun.gross));
+        return;
+      }
       const result = economy.work(userId);
       const retryUnix = Math.floor(result.retryAt.getTime() / 1000);
       if (!result.ok) {

@@ -76,6 +76,7 @@ const PAGES: HelpPage[] = [
         '`/daily` : điểm danh, chuỗi liên tục càng dài thưởng càng cao. Có nhà thì được cộng thêm',
         '`/lamviec` : đi làm theo ca. Càng nhiều ca càng lên chức, từ 🧹 Chạy vặt tới 🏦 Chủ tịch',
         '-# Chức càng cao lương càng cao: Chạy vặt 200-500, Chủ tịch 2.000-3.500 mỗi ca.',
+        '-# 🏦 Lên Chủ tịch thì một nửa số ca là quyết định điều hành: chọn đúng ăn đậm, chọn liều có thể phá sản mất chức.',
         '',
         '**Vay nóng** (nút 💰 trong `/vi`)',
         'Hạn mức tuỳ uy tín: chức càng cao, tài sản càng nhiều thì vay được càng lớn.',

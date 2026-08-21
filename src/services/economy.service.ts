@@ -368,6 +368,59 @@ export class EconomyService {
   }
 
   /**
+   * Consume a shift's cooldown and count it, but defer the pay: the boardroom
+   * decision settles the wage once the player chooses. Returns the base gross
+   * to scale by the chosen outcome. Only reaches here for Chủ tịch shifts.
+   */
+  beginBoardShift(
+    userId: string,
+    now: Date = new Date(),
+  ): { ok: false; retryAt: Date } | { ok: true; gross: number; shifts: number; retryAt: Date } {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT last_work, work_count FROM users WHERE user_id = ?')
+      .get(userId) as { last_work: string | null; work_count: number };
+    const cooldownMs = this.assets.workCooldownMs(userId, WORK_COOLDOWN_MS);
+    if (row.last_work) {
+      const readyAt = new Date(Date.parse(row.last_work) + cooldownMs);
+      if (readyAt.getTime() > now.getTime()) return { ok: false, retryAt: readyAt };
+    }
+    const rank = rankFor(row.work_count);
+    const steps = (rank.max - rank.min) / 10 + 1;
+    const gross = rank.min + 10 * Math.floor(Math.random() * steps);
+    this.db
+      .prepare('UPDATE users SET last_work = ?, work_count = work_count + 1 WHERE user_id = ?')
+      .run(now.toISOString(), userId);
+    return { ok: true, gross, shifts: row.work_count + 1, retryAt: new Date(now.getTime() + cooldownMs) };
+  }
+
+  /**
+   * Pay the wage a board decision landed on. Taxed and logged exactly like a
+   * normal shift, so the ledger and the tax window stay consistent.
+   */
+  settleBoardWage(userId: string, wage: number, now: Date = new Date()): { net: number; tax: number } {
+    this.ensureUser(userId);
+    const gross = Math.max(0, Math.round(wage));
+    const tax = taxOnWage(this.wagesInWindow(userId, now), gross);
+    const net = gross - tax;
+    this.db.prepare('UPDATE users SET balance = balance + ? WHERE user_id = ?').run(net, userId);
+    if (gross > 0) this.logTx(userId, gross, 'work', 'board');
+    if (tax > 0) {
+      this.logTx(userId, -tax, 'tax', `wage:${gross}`);
+      this.treasury?.(tax, 'tax');
+    }
+    return { net, tax };
+  }
+
+  /** Drop a defaulted CEO down the ladder to a rank's floor. */
+  demote(userId: string, toWorkCount: number): void {
+    this.ensureUser(userId);
+    this.db
+      .prepare('UPDATE users SET work_count = ? WHERE user_id = ?')
+      .run(Math.max(0, Math.floor(toWorkCount)), userId);
+  }
+
+  /**
    * Settle a finished game. `bet` was already debited when the bet was placed;
    * `payout` is the total returned to the player (0 = lost, bet = push).
    */

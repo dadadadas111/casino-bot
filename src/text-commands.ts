@@ -15,6 +15,7 @@ import {
 import { resultLine } from './commands/bet-helpers.js';
 import { SHOP_ITEMS, USABLE_ITEMS, findShopItem } from './services/items.service.js';
 import { rankFor } from './services/job.service.js';
+import { isBoardShift, openDecision } from './commands/boardroom.command.js';
 import { BUFFS } from './services/buff.service.js';
 import { openRace, placeRaceBet } from './commands/duangua.command.js';
 import { buyErrorText, drawTimeUnix } from './commands/xoso.command.js';
@@ -278,6 +279,15 @@ export async function handleTextCommand(message: Message): Promise<void> {
   }
 
   if (name === 'lamviec' || name === 'work') {
+    if (isBoardShift(economy.workShifts(userId))) {
+      const begun = economy.beginBoardShift(userId);
+      if (!begun.ok) {
+        await message.reply(`😮‍💨 Nghỉ chút đã! Ca tiếp theo: <t:${Math.floor(begun.retryAt.getTime() / 1000)}:R>`);
+        return;
+      }
+      await message.reply(openDecision(userId, username, begun.gross));
+      return;
+    }
     const result = economy.work(userId);
     const retryUnix = Math.floor(result.retryAt.getTime() / 1000);
     if (!result.ok) {
