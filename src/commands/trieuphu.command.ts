@@ -10,10 +10,8 @@ import {
   type Message,
 } from 'discord.js';
 
-export const QUIZ_RESET_PRICE_VND = 500;
-import { assets, cash, economy, quizPool } from '../context.js';
+import { assets, economy, quizPool } from '../context.js';
 import { env } from '../config/env.js';
-import { formatVnd } from '../embeds/topup.js';
 import {
   type GameQuestion,
   LADDER,
@@ -142,7 +140,7 @@ function finalEmbed(session: QuizSession, kind: EndKind, chosen?: number): Embed
         `Số dư mới: ${formatCoins(economy.getBalance(session.userId))}`,
       ].join('\n'),
     )
-    .setFooter({ text: `${session.username} · Hẹn gặp lại vào ngày mai!` });
+    .setFooter({ text: `${session.username} · Ghế nóng mở lại sau 15 phút` });
 }
 
 function armTimer(session: QuizSession): void {
@@ -164,7 +162,7 @@ function armTimer(session: QuizSession): void {
 export const trieuphuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('trieuphu')
-    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 50.000 xu, miễn phí 1 lần mỗi ngày'),
+    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 100.000 xu, chơi lại sau mỗi 15 phút'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await runTrieuPhu(interaction);
   },
@@ -184,17 +182,9 @@ export async function runTrieuPhu(
       return;
     }
     if (!economy.canPlayQuiz(userId)) {
+      const readyUnix = Math.floor(economy.quizReadyAt(userId).getTime() / 1000);
       await interaction.reply({
-        content: `Hôm nay bạn đã ngồi ghế nóng rồi. Quay lại vào ngày mai, hoặc chơi lại ngay với ${formatVnd(QUIZ_RESET_PRICE_VND)} tiền nạp (bạn đang có ${formatVnd(cash.get(userId))}).`,
-        components: [
-          new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-              .setCustomId(componentId('tp', userId, 'reset'))
-              .setLabel(`Chơi lại ngay (${QUIZ_RESET_PRICE_VND.toLocaleString('vi-VN')}đ)`)
-              .setEmoji('⚡')
-              .setStyle(ButtonStyle.Danger),
-          ),
-        ],
+        content: `⏳ Ghế nóng cần dọn lại! Vào ván tiếp theo <t:${readyUnix}:R>.`,
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -251,36 +241,6 @@ export const trieuphuComponents: ComponentHandler = {
       return;
     }
 
-    // Paid cooldown reset, charged in premium cash.
-    if (action === 'reset') {
-      if (sessions.has(ownerId) || pending.has(ownerId)) {
-        await interaction.reply({
-          content: 'Bạn đang trong ghế nóng rồi mà!',
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-      if (economy.canPlayQuiz(ownerId)) {
-        await interaction.reply({
-          content: 'Cooldown của bạn đang trống, gõ `/trieuphu` chơi luôn không mất tiền!',
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-      if (!cash.spend(ownerId, QUIZ_RESET_PRICE_VND, 'trieuphu_reset')) {
-        await interaction.reply({
-          content: `Không đủ tiền nạp (cần ${formatVnd(QUIZ_RESET_PRICE_VND)}, bạn có ${formatVnd(cash.get(ownerId))}). Nạp thêm bằng \`/nap\``,
-          flags: MessageFlags.Ephemeral,
-        });
-        return;
-      }
-      economy.resetCooldown(ownerId, 'trieuphu');
-      await interaction.reply({
-        content: `⚡ Đã trừ ${formatVnd(QUIZ_RESET_PRICE_VND)} và reset ghế nóng! Gõ \`/trieuphu\` để chơi ngay.`,
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
 
     const session = sessions.get(ownerId);
     if (!session) {

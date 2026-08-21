@@ -6,8 +6,8 @@ import { QUESTIONS, type QuizQuestion, type QuizTier } from '../data/trieuphu-qu
  * gamble rather than a guaranteed loss.
  */
 export const LADDER = [
-  300, 600, 1_200, 2_000, 3_000, 4_500, 6_000, 8_000, 10_000, 15_000, 20_000, 27_000, 35_000,
-  42_000, 50_000,
+  600, 1_200, 2_400, 4_000, 6_000, 9_000, 12_000, 16_000, 20_000, 30_000, 40_000, 54_000, 70_000,
+  84_000, 100_000,
 ] as const;
 
 export const QUESTION_COUNT = LADDER.length;

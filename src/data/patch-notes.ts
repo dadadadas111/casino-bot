@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.6.0',
+    date: '21/08/2026',
+    title: 'Ai Là Triệu Phú chơi thả ga hơn',
+    changes: [
+      '💰 **Triệu Phú giờ chơi lại sau mỗi 15 phút**, không còn giới hạn một lần mỗi ngày. Cứ hết cooldown là lại lên ghế nóng',
+      '🏆 **Giải thưởng tối đa nâng lên 100.000 xu** (mốc an toàn 6.000 ở câu 5 và 30.000 ở câu 10)',
+      '-# Tạm bỏ trả tiền để chơi lại ngay, giờ chỉ cần chờ 15 phút là được.',
+    ],
+  },
+  {
     version: '5.5.0',
     date: '20/08/2026',
     title: 'Mua cả rổ, và công việc hợp chức hơn',

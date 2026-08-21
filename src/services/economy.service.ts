@@ -41,6 +41,8 @@ export interface DailyResult {
 export const WORK_COOLDOWN_MS = 10 * 60 * 1000;
 export const WORK_MIN = 200;
 export const WORK_MAX = 500;
+/** Triệu Phú is now a repeatable game on a short cooldown, not a daily. */
+export const QUIZ_COOLDOWN_MS = 15 * 60 * 1000;
 
 // Crime should pay a little more than honest work, not twenty times more.
 export const ROB_COOLDOWN_MS = 60 * 60 * 1000;
@@ -299,20 +301,26 @@ export class EconomyService {
     }
   }
 
-  /** One quiz game per Vietnam-timezone calendar day. */
+  /** One quiz game per cooldown window (15 min), like work. */
   canPlayQuiz(userId: string, now: Date = new Date()): boolean {
+    return this.quizReadyAt(userId, now).getTime() <= now.getTime();
+  }
+
+  /** When the ghế nóng opens again; in the past when it is ready now. */
+  quizReadyAt(userId: string, now: Date = new Date()): Date {
     this.ensureUser(userId);
     const row = this.db.prepare('SELECT last_trieuphu FROM users WHERE user_id = ?').get(userId) as {
       last_trieuphu: string | null;
     };
-    return row.last_trieuphu !== vnDay(now);
+    if (!row.last_trieuphu) return new Date(0);
+    return new Date(Date.parse(row.last_trieuphu) + QUIZ_COOLDOWN_MS);
   }
 
   markQuizPlayed(userId: string, now: Date = new Date()): void {
     this.ensureUser(userId);
     this.db
       .prepare('UPDATE users SET last_trieuphu = ? WHERE user_id = ?')
-      .run(vnDay(now), userId);
+      .run(now.toISOString(), userId);
   }
 
   /** Earn a random wage once per hour; the cooldown is persisted in the DB. */

@@ -54,23 +54,23 @@ describe('buildGameQuestions', () => {
 describe('prizes', () => {
   it('stop keeps the ladder value of the last correct answer', () => {
     expect(stopPrize(0)).toBe(0);
-    expect(stopPrize(1)).toBe(300);
-    expect(stopPrize(9)).toBe(10_000);
-    expect(stopPrize(15)).toBe(50_000);
+    expect(stopPrize(1)).toBe(600);
+    expect(stopPrize(9)).toBe(20_000);
+    expect(stopPrize(15)).toBe(100_000);
   });
 
   it('wrong answers fall back to the milestones', () => {
     expect(wrongPrize(0)).toBe(0);
     expect(wrongPrize(4)).toBe(0);
-    expect(wrongPrize(5)).toBe(3_000);
-    expect(wrongPrize(9)).toBe(3_000);
-    expect(wrongPrize(10)).toBe(15_000);
-    expect(wrongPrize(14)).toBe(15_000);
+    expect(wrongPrize(5)).toBe(6_000); // Q5 safety net
+    expect(wrongPrize(9)).toBe(6_000);
+    expect(wrongPrize(10)).toBe(30_000); // Q10 safety net
+    expect(wrongPrize(14)).toBe(30_000);
   });
 
-  it('rises monotonically and tops out above a paid reset', () => {
+  it('rises monotonically and tops out at the 100k jackpot', () => {
     expect(LADDER).toHaveLength(15);
-    expect(LADDER[14]).toBe(50_000);
+    expect(LADDER[14]).toBe(100_000);
     for (let i = 1; i < LADDER.length; i++) {
       expect(LADDER[i]).toBeGreaterThan(LADDER[i - 1]);
     }

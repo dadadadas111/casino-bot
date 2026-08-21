@@ -60,7 +60,7 @@ function receiptEmbed(amount: number, code: string): EmbedBuilder {
     .setDescription(
       [
         `Đã nhận **${formatVnd(amount)}** cho mã \`${code}\`.`,
-        '`/vi` để kiểm tra ví và đổi sang xu, `/trieuphu` để reset ghế nóng.',
+        '`/vi` để kiểm tra ví và đổi sang xu.',
       ].join('\n'),
     );
 }
