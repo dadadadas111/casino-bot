@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  JOB_ACTIVITIES,
   JOB_CREDIT,
   JOB_RANKS,
   isPromotion,
@@ -51,6 +52,12 @@ describe('job ladder', () => {
   it('gives every rank a credit allowance', () => {
     for (const rank of JOB_RANKS) {
       expect(JOB_CREDIT[rank.key]).toBeTypeOf('number');
+    }
+  });
+
+  it('gives every rank its own job activities', () => {
+    for (const rank of JOB_RANKS) {
+      expect(JOB_ACTIVITIES[rank.key]?.length).toBeGreaterThan(0);
     }
   });
 });

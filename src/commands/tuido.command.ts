@@ -4,13 +4,17 @@ import {
   ButtonStyle,
   EmbedBuilder,
   MessageFlags,
+  ModalBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   UserSelectMenuBuilder,
   type AnySelectMenuInteraction,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type ModalSubmitInteraction,
 } from 'discord.js';
 import { assets, buffs, economy, items } from '../context.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
@@ -222,13 +226,20 @@ function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBu
   if (!item) return null;
 
   if (state.tab === 'shop') {
+    const broke = economy.getBalance(userId) < item.price;
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(componentId('bag', 'buy', state.tab, key))
-        .setLabel(`Mua ${item.name} (${item.price.toLocaleString('vi-VN')} xu)`)
+        .setLabel(`Mua 1 (${item.price.toLocaleString('vi-VN')} xu)`)
         .setEmoji('🛒')
         .setStyle(ButtonStyle.Success)
-        .setDisabled(economy.getBalance(userId) < item.price),
+        .setDisabled(broke),
+      new ButtonBuilder()
+        .setCustomId(componentId('bag', 'buymany', state.tab, key))
+        .setLabel('Mua nhiều')
+        .setEmoji('🧺')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(broke),
     );
   }
 
@@ -295,42 +306,82 @@ export const shopCommand: Command = {
   },
 };
 
-async function buy(interaction: ButtonInteraction, key: string): Promise<void> {
+export const MAX_BUY = 100;
+
+export type PurchaseResult =
+  | { ok: false; reason: 'unknown' | 'bad_qty' | 'poor'; need?: number }
+  | { ok: true; key: string; qty: number; spent: number; owned: number; giftTotal?: number };
+
+/**
+ * Buy `qty` of an item in one go. Gift boxes open on purchase, so buying
+ * several opens several and sums the winnings. Shared by the panel and the
+ * typed `!mua` command.
+ */
+export function purchase(userId: string, key: string, qty: number): PurchaseResult {
+  const item = SHOP_ITEMS[key];
+  if (!item) return { ok: false, reason: 'unknown' };
+  if (!Number.isInteger(qty) || qty < 1 || qty > MAX_BUY) return { ok: false, reason: 'bad_qty' };
+
+  const cost = item.price * qty;
+  if (!economy.debit(userId, cost, 'item', qty > 1 ? `${key}x${qty}` : key)) {
+    return { ok: false, reason: 'poor', need: cost };
+  }
+
+  if (key === 'hopqua') {
+    let giftTotal = 0;
+    for (let i = 0; i < qty; i++) {
+      const reward = Math.floor(Math.random() * (GIFT_BOX_MAX + 1));
+      if (reward > 0) {
+        economy.credit(userId, reward, 'gift_box');
+        giftTotal += reward;
+      }
+    }
+    return { ok: true, key, qty, spent: cost, owned: 0, giftTotal };
+  }
+
+  items.add(userId, key, qty);
+  return { ok: true, key, qty, spent: cost, owned: items.count(userId, key) };
+}
+
+async function buy(interaction: ButtonInteraction, key: string, qty = 1): Promise<void> {
   const item = SHOP_ITEMS[key];
   const userId = interaction.user.id;
   if (!item) return;
 
-  if (!economy.debit(userId, item.price, 'item', key)) {
+  const result = purchase(userId, key, qty);
+  if (!result.ok) {
     await interaction.reply({
-      content: `Không đủ xu! Cần ${formatCoins(item.price)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`,
+      content:
+        result.reason === 'poor'
+          ? `Không đủ xu! Cần ${formatCoins(result.need ?? 0)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`
+          : result.reason === 'bad_qty'
+            ? `Số lượng phải từ 1 đến ${MAX_BUY}.`
+            : 'Không có món đó.',
       flags: MessageFlags.Ephemeral,
     });
     return;
   }
 
-  // Mystery boxes open on the spot, and that moment is worth sharing.
+  await interaction.update(bagPanel(userId, { tab: 'shop', selected: key }));
   if (key === 'hopqua') {
-    const reward = Math.floor(Math.random() * (GIFT_BOX_MAX + 1));
-    if (reward > 0) economy.credit(userId, reward, 'gift_box');
-    await interaction.update(bagPanel(userId, { tab: 'shop', selected: key }));
+    const total = result.giftTotal ?? 0;
     await announce(interaction, {
       embeds: [
         new EmbedBuilder()
-          .setColor(reward > item.price ? COLORS.win : COLORS.push)
+          .setColor(total > result.spent ? COLORS.win : COLORS.push)
           .setDescription(
-            reward > 0
-              ? `📦 **${interaction.user.displayName}** mở hộp quà và nhận được **${formatCoins(reward)}**!${reward > item.price ? ' Lời rồi! 🎉' : ''}`
-              : `📦 **${interaction.user.displayName}** mở hộp quà và bên trong... trống trơn 💨`,
+            qty > 1
+              ? `📦 **${interaction.user.displayName}** mở ${qty} hộp quà, tổng cộng nhận **${formatCoins(total)}** (bỏ ra ${formatCoins(result.spent)}).${total > result.spent ? ' Lời rồi! 🎉' : ''}`
+              : total > 0
+                ? `📦 **${interaction.user.displayName}** mở hộp quà và nhận được **${formatCoins(total)}**!${total > result.spent ? ' Lời rồi! 🎉' : ''}`
+                : `📦 **${interaction.user.displayName}** mở hộp quà và bên trong... trống trơn 💨`,
           ),
       ],
     });
     return;
   }
-
-  items.add(userId, key);
-  await interaction.update(bagPanel(userId, { tab: 'shop', selected: key }));
   await interaction.followUp({
-    content: `${item.emoji} Đã mua **${item.name}** với giá ${formatCoins(item.price)}. Đang có ${items.count(userId, key)} cái.`,
+    content: `${item.emoji} Đã mua **${result.qty}× ${item.name}** hết ${formatCoins(result.spent)}. Đang có ${result.owned} cái.`,
     flags: MessageFlags.Ephemeral,
   });
 }
@@ -459,6 +510,7 @@ async function acquire(interaction: ButtonInteraction, key: string): Promise<voi
   });
 }
 
+
 export const bagComponents: ComponentHandler = {
   async handleButton(interaction: ButtonInteraction, args: string[]): Promise<void> {
     const action = args[0];
@@ -472,6 +524,28 @@ export const bagComponents: ComponentHandler = {
     if (action === 'buy') {
       if (await refuseIfDown(interaction)) return;
       await buy(interaction, state.selected);
+      return;
+    }
+    if (action === 'buymany') {
+      if (await refuseIfDown(interaction)) return;
+      const item = SHOP_ITEMS[state.selected];
+      if (!item) return;
+      await interaction.showModal(
+        new ModalBuilder()
+          .setCustomId(componentId('bag', 'buyqty', state.selected))
+          .setTitle(`Mua ${item.name}`)
+          .addComponents(
+            new ActionRowBuilder<TextInputBuilder>().addComponents(
+              new TextInputBuilder()
+                .setCustomId('soluong')
+                .setLabel(`Số lượng (mỗi cái ${item.price.toLocaleString('vi-VN')} xu)`)
+                .setPlaceholder(`1 - ${MAX_BUY}`)
+                .setStyle(TextInputStyle.Short)
+                .setRequired(true)
+                .setMaxLength(3),
+            ),
+          ),
+      );
       return;
     }
     if (action === 'tau') {
@@ -508,6 +582,54 @@ export const bagComponents: ComponentHandler = {
         ],
       });
     }
+  },
+
+  async handleModal(interaction: ModalSubmitInteraction, args: string[]): Promise<void> {
+    if (args[0] !== 'buyqty') return;
+    const key = args[1];
+    const raw = interaction.fields.getTextInputValue('soluong').trim();
+    const qty = Number(raw);
+    const item = SHOP_ITEMS[key];
+    const userId = interaction.user.id;
+    if (!item) return;
+    if (!/^\d+$/.test(raw) || qty < 1 || qty > MAX_BUY) {
+      await interaction.reply({
+        content: `Số lượng phải là số nguyên từ 1 đến ${MAX_BUY}.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const result = purchase(userId, key, qty);
+    if (!result.ok) {
+      await interaction.reply({
+        content:
+          result.reason === 'poor'
+            ? `Không đủ xu! Cần ${formatCoins(result.need ?? 0)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`
+            : `Số lượng phải từ 1 đến ${MAX_BUY}.`,
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
+    }
+    const panel = bagPanel(userId, { tab: 'shop', selected: key });
+    if (interaction.isFromMessage()) await interaction.update(panel);
+    else await interaction.reply({ ...panel, flags: MessageFlags.Ephemeral });
+    if (key === 'hopqua') {
+      const total = result.giftTotal ?? 0;
+      await announce(interaction, {
+        embeds: [
+          new EmbedBuilder()
+            .setColor(total > result.spent ? COLORS.win : COLORS.push)
+            .setDescription(
+              `📦 **${interaction.user.displayName}** mở ${qty} hộp quà, tổng nhận **${formatCoins(total)}** (bỏ ra ${formatCoins(result.spent)}).${total > result.spent ? ' Lời rồi! 🎉' : ''}`,
+            ),
+        ],
+      });
+      return;
+    }
+    await interaction.followUp({
+      content: `${item.emoji} Đã mua **${result.qty}× ${item.name}** hết ${formatCoins(result.spent)}. Đang có ${result.owned} cái.`,
+      flags: MessageFlags.Ephemeral,
+    });
   },
 
   async handleSelect(interaction: AnySelectMenuInteraction, args: string[]): Promise<void> {

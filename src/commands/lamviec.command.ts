@@ -6,24 +6,11 @@ import {
 } from 'discord.js';
 import { assets, economy } from '../context.js';
 import { WORK_COOLDOWN_MS } from '../services/economy.service.js';
-import { JOB_RANKS, rankFor, shiftsToNext } from '../services/job.service.js';
+import { JOB_ACTIVITIES, JOB_RANKS, rankFor, shiftsToNext } from '../services/job.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { announce } from '../interactions/announce.js';
 import { isBoardShift, openDecision } from './boardroom.command.js';
 import type { Command } from './types.js';
-
-const JOBS = [
-  'chia bài ở sòng',
-  'lau máy xèng bóng loáng',
-  'trông xe cho khách VIP',
-  'bưng nước cho bàn tài xỉu',
-  'đếm xu cho nhà cái',
-  'canh cửa sòng bạc',
-  'giao trà sữa xuyên đêm',
-  'rửa chén thuê cho căng tin',
-  'phát tờ rơi khuyến mãi',
-  'sửa cái máy xèng bị kẹt',
-];
 
 function pick<T>(items: T[]): T {
   return items[Math.floor(Math.random() * items.length)];
@@ -70,7 +57,7 @@ export const lamviecCommand: Command = {
     const rank = rankFor(result.shifts ?? 1);
     const toNext = shiftsToNext(result.shifts ?? 1);
     const lines = [
-      `**${interaction.user.displayName}** vừa ${pick(JOBS)} với tư cách ${rank.emoji} **${rank.name}**`,
+      `**${interaction.user.displayName}** vừa ${pick(JOB_ACTIVITIES[rank.key] ?? JOB_ACTIVITIES.chayvat)} với tư cách ${rank.emoji} **${rank.name}**`,
     ];
     // Only show the deduction when there is one: most players never see it.
     if (result.tax && result.tax > 0) {

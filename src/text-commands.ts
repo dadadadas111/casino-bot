@@ -14,6 +14,7 @@ import {
 } from './services/minigames.service.js';
 import { resultLine } from './commands/bet-helpers.js';
 import { SHOP_ITEMS, USABLE_ITEMS, findShopItem } from './services/items.service.js';
+import { MAX_BUY, purchase } from './commands/tuido.command.js';
 import { rankFor } from './services/job.service.js';
 import { isBoardShift, openDecision } from './commands/boardroom.command.js';
 import { BUFFS } from './services/buff.service.js';
@@ -177,8 +178,6 @@ function gameEmbed(title: string, lines: string[], win: boolean): EmbedBuilder {
 }
 
 
-// Kept below twice the box price so opening boxes stays a losing habit.
-const GIFT_BOX_MAX = 900;
 
 function itemMenu(pool: Array<{ key: string; emoji: string; name: string }>): string {
   return pool.map((i) => `${i.emoji} \`${i.key}\``).join(' · ');
@@ -341,7 +340,7 @@ export async function handleTextCommand(message: Message): Promise<void> {
               `\`${prefix}dn\` : Mở trường đua ngựa, \`${prefix}dn <cược> <1-4>\` : vào kèo`,
               `\`${prefix}xs <số 0-99>\` : Mua vé xổ số, quay 21h mỗi tối`,
               `\`${prefix}sodu\` · \`${prefix}daily\` · \`${prefix}work\` · \`${prefix}top\``,
-              `\`${prefix}mua <món>\` · \`${prefix}dung <món>\` · \`${prefix}tui\` : mua bán không cần mở bảng`,
+              `\`${prefix}mua <món> [số]\` · \`${prefix}dung <món>\` · \`${prefix}tui\` : mua bán không cần mở bảng`,
               `Nhà xe, thú cưng, vay nợ: \`/tuido\` và \`/vi\``,
               '',
               '💡 Mẹo cược: `1k` = 1.000, `1k5` = 1.500, `2m` = 2 triệu, `all` = tất tay, `half` = nửa số dư.',
@@ -357,32 +356,43 @@ export async function handleTextCommand(message: Message): Promise<void> {
 
   // ---- shop shortcuts ----
   if (name === 'mua') {
-    const item = findShopItem(args.join(' '));
+    // An optional trailing number is the quantity: `!mua mu 3`.
+    let qty = 1;
+    let itemArgs = args;
+    const last = args[args.length - 1];
+    if (args.length >= 2 && /^\d+$/.test(last ?? '')) {
+      qty = Number(last);
+      itemArgs = args.slice(0, -1);
+    }
+    const item = findShopItem(itemArgs.join(' '));
     if (!item) {
       await message.reply(
-        `Mua gì? \`${prefix}mua <món>\`\n${itemMenu(Object.values(SHOP_ITEMS))}\nXem giá và mô tả: \`/tuido\``,
+        `Mua gì? \`${prefix}mua <món> [số lượng]\`\n${itemMenu(Object.values(SHOP_ITEMS))}\nXem giá và mô tả: \`/tuido\``,
       );
       return;
     }
-    if (!economy.debit(userId, item.price, 'item', item.key)) {
+    const result = purchase(userId, item.key, qty);
+    if (!result.ok) {
       await message.reply(
-        `Không đủ xu! Cần ${formatCoins(item.price)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`,
+        result.reason === 'poor'
+          ? `Không đủ xu! Cần ${formatCoins(result.need ?? 0)}, ví của bạn: ${formatCoins(economy.getBalance(userId))}`
+          : `Số lượng phải từ 1 đến ${MAX_BUY}.`,
       );
       return;
     }
     if (item.key === 'hopqua') {
-      const reward = Math.floor(Math.random() * (GIFT_BOX_MAX + 1));
-      if (reward > 0) economy.credit(userId, reward, 'gift_box');
+      const total = result.giftTotal ?? 0;
       await message.reply(
-        reward > 0
-          ? `📦 **${username}** mở hộp quà và nhận được **${formatCoins(reward)}**!${reward > item.price ? ' Lời rồi! 🎉' : ''}`
-          : `📦 **${username}** mở hộp quà và bên trong... trống trơn 💨`,
+        qty > 1
+          ? `📦 **${username}** mở ${qty} hộp quà, tổng nhận **${formatCoins(total)}** (bỏ ra ${formatCoins(result.spent)}).${total > result.spent ? ' Lời rồi! 🎉' : ''}`
+          : total > 0
+            ? `📦 **${username}** mở hộp quà và nhận được **${formatCoins(total)}**!${total > result.spent ? ' Lời rồi! 🎉' : ''}`
+            : `📦 **${username}** mở hộp quà và bên trong... trống trơn 💨`,
       );
       return;
     }
-    items.add(userId, item.key);
     await message.reply(
-      `${item.emoji} Đã mua **${item.name}** với giá ${formatCoins(item.price)}. Đang có ${items.count(userId, item.key)} cái.`,
+      `${item.emoji} Đã mua **${result.qty}× ${item.name}** hết ${formatCoins(result.spent)}. Đang có ${result.owned} cái.`,
     );
     return;
   }

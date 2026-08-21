@@ -32,6 +32,49 @@ export const JOB_CREDIT: Record<string, number> = {
   chutich: 100_000,
 };
 
+/** What each rank actually does on a shift, so the flavour fits the title. */
+export const JOB_ACTIVITIES: Record<string, string[]> = {
+  chayvat: [
+    'rửa chén thuê cho căng tin',
+    'lau máy xèng bóng loáng',
+    'trông xe cho khách VIP',
+    'bưng nước cho bàn tài xỉu',
+    'phát tờ rơi khuyến mãi',
+    'quét dọn sảnh sòng bạc',
+  ],
+  phuho: [
+    'khuân bàn bài vào phòng mới',
+    'phụ hồ xây phòng VIP',
+    'sửa cái máy xèng bị kẹt',
+    'lắp dàn đèn cho sảnh cược',
+  ],
+  nhanvien: [
+    'chia bài ở bàn blackjack',
+    'trực quầy đổi phỉnh',
+    'nhập sổ sách cho nhà cái',
+    'trực tổng đài chăm sóc khách',
+  ],
+  truongphong: [
+    'họp giao ban đầu ca',
+    'xếp lịch trực cho nhân viên',
+    'đào tạo lứa nhân viên mới',
+    'chốt doanh số cuối ngày',
+  ],
+  giamdoc: [
+    'duyệt ngân sách các phòng',
+    'ký hợp đồng với nhà cung cấp',
+    'họp với đối tác chiến lược',
+    'xét duyệt kế hoạch mở rộng',
+  ],
+  chutich: [
+    'chủ trì cuộc họp hội đồng quản trị',
+    'duyệt chiến lược năm cho tập đoàn',
+    'tiếp một đoàn nhà đầu tư lớn',
+    'cắt băng khánh thành chi nhánh mới',
+    'ký một thương vụ triệu đô',
+  ],
+};
+
 export function rankFor(shifts: number): JobRank {
   let current = JOB_RANKS[0];
   for (const rank of JOB_RANKS) {

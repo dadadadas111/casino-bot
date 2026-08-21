@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.5.0',
+    date: '20/08/2026',
+    title: 'Mua cả rổ, và công việc hợp chức hơn',
+    changes: [
+      '🧺 **Mua nhiều món một lúc.** Trong `/tuido` bấm nút Mua nhiều để nhập số lượng, hoặc gõ thẳng `!mua mubaohiem 3`. Mua nhiều hộp quà thì mở hết một lượt, cộng dồn tiền trúng',
+      '💼 **Công việc giờ hợp với chức.** Chủ tịch không còn đi rửa chén thuê nữa mà chủ trì hội đồng quản trị, ký thương vụ triệu đô; Chạy vặt thì lau máy xèng, bưng nước. Mỗi cấp một kiểu việc',
+    ],
+  },
+  {
     version: '5.4.0',
     date: '20/08/2026',
     title: 'Ghế Chủ tịch không dễ ngồi',

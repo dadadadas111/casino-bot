@@ -125,6 +125,7 @@ const PAGES: HelpPage[] = [
         '🗝️ Chìa khóa (200) : thoát tù hoặc trốn viện, khỏi tốn tiền chuộc',
         '🎎 Hình nộm (1.000) : bạn tưởng tượng, tự đặt tên và cưới được luôn',
         '🏷️ Thẻ đổi tên (200) : đổi tên hoặc đổi hình cho hình nộm',
+        '-# Mua nhiều cái một lúc: nút 🧺 Mua nhiều trong `/tuido`, hoặc gõ `!mua mubaohiem 3`.',
         '-# `/shop` vẫn dùng được, nó mở thẳng vào thẻ cửa hàng.',
         '',
         '**Tài sản lớn** (thẻ 🏠 trong `/tuido`)',
