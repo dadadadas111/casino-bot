@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.7.0',
+    date: '21/08/2026',
+    title: 'Câu hỏi Triệu Phú chất lượng hơn',
+    changes: [
+      '🧠 **Lọc câu hỏi kém.** Trước đây thỉnh thoảng có câu nhiều đáp án cùng đúng (kiểu "con nào là bò sát" mà có cả rùa lẫn thằn lằn) hoặc câu chủ quan không có đáp án chuẩn. Giờ mỗi câu mới đều qua một vòng kiểm định trước khi vào kho',
+      '-# Đã dọn lại cả kho câu hỏi hiện có, bỏ các câu mơ hồ hoặc gây tranh cãi.',
+    ],
+  },
+  {
     version: '5.6.0',
     date: '21/08/2026',
     title: 'Ai Là Triệu Phú chơi thả ga hơn',

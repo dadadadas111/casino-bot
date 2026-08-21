@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildPrompt,
+  judgeQuestions,
   generateQuizQuestions,
   parseGeneratedQuestions,
 } from '../src/services/quiz-ai.service';
@@ -76,5 +77,65 @@ describe('buildPrompt', () => {
     const prompt = buildPrompt(['Thủ đô của Việt Nam là gì?']);
     expect(prompt).toContain('Thủ đô của Việt Nam là gì?');
     expect(prompt).toContain('15 câu hỏi');
+  });
+
+  it('spells out the one-correct-answer and no-subjective rules', () => {
+    const prompt = buildPrompt([]);
+    // The exact failure modes the owner flagged must be named as anti-patterns.
+    expect(prompt).toContain('ĐÚNG MỘT đáp án đúng');
+    expect(prompt).toContain('bò sát'); // the "which is a reptile" example
+    expect(prompt).toContain('Quốc hoa'); // the not-officially-defined example
+    expect(prompt).toMatch(/biểu tượng|tượng trưng/);
+  });
+});
+
+describe('judgeQuestions', () => {
+  const q = (question: string, correct = 0) => ({
+    question,
+    answers: ['a', 'b', 'c', 'd'],
+    correct,
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('removes questions the model flags and keeps the rest', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                verdicts: [
+                  { i: 0, ok: true, ly_do: 'rõ ràng' },
+                  { i: 1, ok: false, ly_do: 'hai đáp án cùng đúng' },
+                ],
+              }),
+            },
+          },
+        ],
+      }),
+    } as Response);
+    const result = await judgeQuestions('key', [q('Thủ đô Pháp?'), q('Con nào là bò sát?')]);
+    expect(result[0].ok).toBe(true);
+    expect(result[1].ok).toBe(false);
+  });
+
+  it('fails open: an API error keeps every question', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 500 } as Response);
+    const result = await judgeQuestions('key', [q('x?'), q('y?')]);
+    expect(result.every((r) => r.ok)).toBe(true);
+  });
+
+  it('keeps a question the model forgot to rate', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ choices: [{ message: { content: JSON.stringify({ verdicts: [{ i: 0, ok: false }] }) } }] }),
+    } as Response);
+    const result = await judgeQuestions('key', [q('rated?'), q('unrated?')]);
+    expect(result[0].ok).toBe(false);
+    expect(result[1].ok).toBe(true); // not-rated -> kept
   });
 });

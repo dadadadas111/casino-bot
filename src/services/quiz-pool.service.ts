@@ -2,6 +2,7 @@ import type { CacheService } from './redis.service.js';
 import { type MongoService, type PoolQuestion, questionKey } from './mongo.service.js';
 import { generateQuestionBatch } from './quiz-ai.service.js';
 import { rejectDuplicates } from './similarity.service.js';
+import { judgeQuestions } from './quiz-ai.service.js';
 import { type GameQuestion, toGameQuestions } from './trieuphu.service.js';
 import type { QuizTier } from '../data/trieuphu-questions.js';
 
@@ -215,13 +216,23 @@ export class QuizPoolService {
     );
     if (!generated) return 0;
 
+    // Filter out ambiguous / subjective / wrong questions before they enter
+    // the pool. Fail-open: a judge outage keeps everything.
+    const judged = await judgeQuestions(this.apiKey, generated);
+    const quality = judged.filter((j) => j.ok).map((j) => j.question);
+    const badCount = generated.length - quality.length;
+    if (badCount > 0) {
+      console.log(`[quiz-pool] giám khảo loại ${badCount}/${generated.length} câu kém chất lượng`);
+    }
+    if (quality.length === 0) return 0;
+
     // The unique index only stops identical text; a reworded repeat of the
     // same fact needs comparing content words against the whole pool.
     const existing = await this.mongo
       .questions()
       .find({}, { projection: { question: 1, answers: 1, correct: 1, _id: 0 } })
       .toArray();
-    const { kept, dropped, borderline } = rejectDuplicates(generated, existing);
+    const { kept, dropped, borderline } = rejectDuplicates(quality, existing);
     if (dropped.length > 0) {
       console.log(`[quiz-pool] bỏ ${dropped.length}/${generated.length} câu trùng ý với kho`);
     }
