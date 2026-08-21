@@ -323,6 +323,25 @@ export class EconomyService {
       .run(now.toISOString(), userId);
   }
 
+  /** True when today's điểm danh has not been claimed yet. */
+  canClaimDaily(userId: string, now: Date = new Date()): boolean {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT last_daily FROM users WHERE user_id = ?')
+      .get(userId) as { last_daily: string | null };
+    return row.last_daily !== vnDay(now);
+  }
+
+  /** When the next work shift is available; in the past when ready now. */
+  workReadyAt(userId: string, now: Date = new Date()): Date {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT last_work FROM users WHERE user_id = ?')
+      .get(userId) as { last_work: string | null };
+    if (!row.last_work) return new Date(0);
+    return new Date(Date.parse(row.last_work) + this.assets.workCooldownMs(userId, WORK_COOLDOWN_MS));
+  }
+
   /** Earn a random wage once per hour; the cooldown is persisted in the DB. */
   work(userId: string, now: Date = new Date()): WorkResult {
     this.ensureUser(userId);

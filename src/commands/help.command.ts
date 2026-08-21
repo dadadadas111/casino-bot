@@ -93,6 +93,7 @@ const PAGES: HelpPage[] = [
         '`/sodu [nguoi]` : lối tắt vào ví, có kèm tên ai đó thì xem ví người ta',
         '`/hoso [nguoi]` : hồ sơ đầy đủ, từ tài sản tới tiền án tiền sự và chuyện gia đình',
         '`/top` : bảng xếp hạng đại gia trong server',
+        '`/recommend` : không biết làm gì tiếp thì hỏi bot, nó gợi ý theo tình trạng của bạn',
         '`/chuyentien nguoi soxu` : chuyển xu, hào phóng hay hối lộ tùy bạn',
         '',
         '**Tiền nạp** 💵',

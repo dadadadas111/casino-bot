@@ -8,6 +8,15 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.8.0',
+    date: '21/08/2026',
+    title: 'Không biết làm gì thì hỏi /recommend',
+    changes: [
+      '🧭 **`/recommend` gợi ý nên làm gì tiếp theo** dựa trên tình trạng hiện tại: đang ở tù/viện thì nhắc chuộc thân, ví nhiều tiền thì nhắc cất két, chưa điểm danh hay tới lượt làm việc / Triệu Phú thì nhắc chơi luôn',
+      '-# Xem hộ người khác được: `/recommend nguoi:@ai đó`.',
+    ],
+  },
+  {
     version: '5.7.0',
     date: '21/08/2026',
     title: 'Câu hỏi Triệu Phú chất lượng hơn',

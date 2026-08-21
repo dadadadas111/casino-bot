@@ -13,6 +13,7 @@ import { coquayCommand } from './coquay.command.js';
 import { viCommand, soduCommand } from './vi.command.js';
 import { napCommand } from './nap.command.js';
 import { hosoCommand } from './hoso.command.js';
+import { recommendCommand } from './recommend.command.js';
 import { dailyCommand } from './daily.command.js';
 import { lamviecCommand } from './lamviec.command.js';
 import { chuyentienCommand } from './chuyentien.command.js';
@@ -69,6 +70,7 @@ const all: Command[] = [
   chuyentienCommand,
   topCommand,
   hosoCommand,
+  recommendCommand,
   dailyCommand,
   lamviecCommand,
   // Life.
