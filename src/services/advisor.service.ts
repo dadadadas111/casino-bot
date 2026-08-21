@@ -21,6 +21,7 @@ export interface AdvisorState {
   bank: number;
   cash: number; // tiền nạp (VND), not yet exchanged
   jackpot: number;
+  quest: { completed: boolean; text: string; progress: number; target: number; reward: number } | null;
 }
 
 export interface Advice {
@@ -106,6 +107,16 @@ export function recommend(s: AdvisorState): Advice[] {
     });
   }
 
+  // 3b. A finished mission is a reward sitting unclaimed.
+  if (s.quest?.completed) {
+    out.push({
+      key: 'quest_done',
+      icon: '🎁',
+      title: 'Nhiệm vụ đã xong, nhận thưởng',
+      detail: `"${s.quest.text}" đã hoàn thành. Vào \`/nhiemvu\` nhận ${s.quest.reward.toLocaleString('vi-VN')} xu.`,
+    });
+  }
+
   // 4. Housekeeping: protect and deploy idle money.
   if (s.wallet > EXPOSED_WALLET) {
     out.push({
@@ -121,6 +132,16 @@ export function recommend(s: AdvisorState): Advice[] {
       icon: '💵',
       title: 'Đổi tiền nạp ra xu',
       detail: `Bạn còn ${s.cash.toLocaleString('vi-VN')}đ tiền nạp chưa dùng. Đổi sang xu trong \`/vi\` để chơi.`,
+    });
+  }
+
+  // A mission in progress is worth a gentle nudge.
+  if (s.quest && !s.quest.completed) {
+    out.push({
+      key: 'quest_active',
+      icon: '🎯',
+      title: 'Nhiệm vụ đang làm',
+      detail: `${s.quest.text} (${s.quest.progress}/${s.quest.target}) — xong nhận ${s.quest.reward.toLocaleString('vi-VN')} xu. Xem \`/nhiemvu\`.`,
     });
   }
 

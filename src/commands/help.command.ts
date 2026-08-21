@@ -94,6 +94,7 @@ const PAGES: HelpPage[] = [
         '`/hoso [nguoi]` : hồ sơ đầy đủ, từ tài sản tới tiền án tiền sự và chuyện gia đình',
         '`/top` : bảng xếp hạng đại gia trong server',
         '`/recommend` : không biết làm gì tiếp thì hỏi bot, nó gợi ý theo tình trạng của bạn',
+        '`/nhiemvu` : nhiệm vụ nho nhỏ để làm, xong nhận thưởng, 10 phút được đổi một lần',
         '`/chuyentien nguoi soxu` : chuyển xu, hào phóng hay hối lộ tùy bạn',
         '',
         '**Tiền nạp** 💵',

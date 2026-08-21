@@ -16,7 +16,7 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from 'discord.js';
-import { assets, buffs, economy, items } from '../context.js';
+import { assets, buffs, economy, items, quests } from '../context.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
 import {
   ASSETS,
@@ -340,6 +340,7 @@ export function purchase(userId: string, key: string, qty: number): PurchaseResu
   }
 
   items.add(userId, key, qty);
+  quests.record(userId, ['buy']);
   return { ok: true, key, qty, spent: cost, owned: items.count(userId, key) };
 }
 
@@ -665,6 +666,7 @@ export const bagComponents: ComponentHandler = {
         return;
       }
 
+      quests.record(userId, ['gift']);
       await interaction.update(bagPanel(userId, { tab: 'bag', selected: key }));
       await announce(interaction, {
         embeds: [

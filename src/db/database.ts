@@ -91,6 +91,15 @@ CREATE TABLE IF NOT EXISTS user_items (
   PRIMARY KEY (user_id, item)
 );
 
+CREATE TABLE IF NOT EXISTS quests (
+  user_id TEXT PRIMARY KEY,
+  mission_id TEXT NOT NULL,
+  progress INTEGER NOT NULL DEFAULT 0,
+  completed INTEGER NOT NULL DEFAULT 0,
+  first_seen TEXT,
+  assigned_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS bot_meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL

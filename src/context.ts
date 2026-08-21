@@ -21,6 +21,7 @@ import { GifCache } from './services/gif-cache.service.js';
 import { BackupService } from './services/backup.service.js';
 import { AssetsService } from './services/assets.service.js';
 import { LoanService } from './services/loan.service.js';
+import { QuestService } from './services/quest.service.js';
 
 export const db = createDb(env.DB_PATH);
 export const buffs = new BuffService(db);
@@ -30,9 +31,13 @@ export const quizHistory = new QuizHistoryStore(db);
 export const prefixes = new PrefixStore(db);
 export const lottery = new LotteryService(db, economy);
 export const loans = new LoanService(db, economy, assets, lottery);
+export const quests = new QuestService(db, economy);
 
 // Income tax feeds the lottery pot instead of vanishing.
 economy.setTreasury((amount) => lottery.addToJackpot(amount));
+// Every settled game feeds the quest tracker (real bets only).
+economy.setGameHook((userId, bet, payout, game) => quests.recordGame(userId, bet, payout, game));
+economy.setLifeHook((userId, event) => quests.record(userId, [event]));
 export const activity = new ActivityService(db);
 export const reports = new ReportService(db);
 export const cash = new CashService(db);

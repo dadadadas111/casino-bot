@@ -3,7 +3,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { gifs } from '../context.js';
+import { gifs, quests } from '../context.js';
 import { COLORS } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -99,6 +99,9 @@ function buildCommand(def: ActionDef): Command {
       const text = template
         .replaceAll('{a}', interaction.user.displayName)
         .replaceAll('{b}', target.displayName);
+
+      // Only social interaction with another real person counts.
+      if (!isSelf && !target.bot) quests.record(interaction.user.id, ['interact']);
 
       const embed = new EmbedBuilder().setColor(def.color).setDescription(text);
       if (gif) embed.setImage(gif);

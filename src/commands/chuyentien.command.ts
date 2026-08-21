@@ -1,5 +1,5 @@
 import { EmbedBuilder, MessageFlags, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import { economy } from '../context.js';
+import { economy, quests } from '../context.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import type { Command } from './types.js';
 
@@ -30,7 +30,9 @@ export const chuyentienCommand: Command = {
       return;
     }
 
-    if (!economy.transfer(interaction.user.id, target.id, amount)) {
+    if (economy.transfer(interaction.user.id, target.id, amount)) {
+      quests.record(interaction.user.id, ['transfer']);
+    } else {
       await interaction.reply({
         content: `Không đủ xu! Số dư của bạn: ${formatCoins(economy.getBalance(interaction.user.id))}`,
         flags: MessageFlags.Ephemeral,

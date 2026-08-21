@@ -51,15 +51,15 @@ describe('slash command shape', () => {
   it('keeps the commands players use most as their own entry point', () => {
     const declared = new Set(allNames.map((n) => n.name));
     for (const name of ['sodu', 'shop', 'nap', 'om', 'hon', 'danh', 'choc', 'xoadau', 'doino',
-      'hilo', 'domin', 'sanh', 'recommend']) {
+      'hilo', 'domin', 'sanh', 'recommend', 'nhiemvu']) {
       expect(declared).toContain(name);
     }
   });
 
   it('lands on the agreed command count', () => {
-    // 36 builders here, plus the /bj alias registered in index.ts: 37 in the
-    // home guild, 36 everywhere else once /chubot is filtered out.
-    expect(allNames).toHaveLength(36);
+    // 37 builders here, plus the /bj alias registered in index.ts: 38 in the
+    // home guild, 37 everywhere else once /chubot is filtered out.
+    expect(allNames).toHaveLength(37);
   });
 
   it('drops the commands that were folded into panels', () => {

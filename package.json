@@ -1,6 +1,6 @@
 {
   "name": "casino-bot",
-  "version": "5.8.0",
+  "version": "5.9.0",
   "private": true,
   "description": "Discord casino bot: blackjack, tai xiu, bau cua, coinflip, slots with a coin economy",
   "type": "module",

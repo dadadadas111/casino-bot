@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { assets, economy, items } from '../context.js';
+import { assets, economy, items, quests } from '../context.js';
 import { DOG_BLOCK_CHANCE } from '../services/assets.service.js';
 import { ROB_MIN_VICTIM_WALLET } from '../services/economy.service.js';
 import { releaseRow } from '../interactions/downtime.js';
@@ -75,6 +75,7 @@ export const tromCommand: Command = {
 
     const outcome = economy.tryRob(thief.id, victim.id);
     if (outcome.result === 'success') {
+      quests.record(thief.id, ['rob']);
       await interaction.reply({
         embeds: [
           new EmbedBuilder()

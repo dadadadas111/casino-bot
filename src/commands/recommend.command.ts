@@ -4,7 +4,7 @@ import {
   SlashCommandBuilder,
   type ChatInputCommandInteraction,
 } from 'discord.js';
-import { assets, cash, economy, items, loans, lottery } from '../context.js';
+import { assets, cash, economy, items, loans, lottery, quests } from '../context.js';
 import { recommend, type AdvisorState } from '../services/advisor.service.js';
 import { amountDue } from '../services/loan.service.js';
 import { CHUTICH_FLOOR } from '../services/boardroom.service.js';
@@ -39,6 +39,16 @@ function snapshot(userId: string, now = new Date()): AdvisorState {
     bank: economy.getBank(userId),
     cash: cash.get(userId),
     jackpot: lottery.getJackpot(),
+    quest: (() => {
+      const q = quests.peek(userId, now);
+      return {
+        completed: q.completed,
+        text: q.mission.text,
+        progress: q.progress,
+        target: q.mission.target,
+        reward: q.mission.reward,
+      };
+    })(),
   };
 }
 

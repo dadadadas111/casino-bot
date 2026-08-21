@@ -111,6 +111,29 @@ export class EconomyService {
     this.treasury = sink;
   }
 
+  /** Hook the quest tracker into every settled game without importing it. */
+  private gameHook: ((userId: string, bet: number, payout: number, game: string) => void) | null =
+    null;
+
+  setGameHook(hook: (userId: string, bet: number, payout: number, game: string) => void): void {
+    this.gameHook = hook;
+  }
+
+  private lifeHook: ((userId: string, event: 'work' | 'daily' | 'quiz') => void) | null = null;
+
+  /** Fired on a work shift, a daily claim, or a quiz start (any entry point). */
+  setLifeHook(hook: (userId: string, event: 'work' | 'daily' | 'quiz') => void): void {
+    this.lifeHook = hook;
+  }
+
+  private fireLife(userId: string, event: 'work' | 'daily' | 'quiz'): void {
+    try {
+      this.lifeHook?.(userId, event);
+    } catch (error) {
+      console.error('[quest] life hook failed:', error);
+    }
+  }
+
   /**
    * Wages earned in the trailing 24h; the base for the income tax ladder.
    * Rows carry SQLite wall-clock timestamps, so an injected `now` only makes
@@ -271,6 +294,7 @@ export class EconomyService {
       catFind = CAT_MIN + 10 * Math.floor((Math.random() * (CAT_MAX - CAT_MIN)) / 10 + 1);
       this.credit(userId, catFind, 'pet_find', 'meo');
     }
+    this.fireLife(userId, 'daily');
     return {
       ok: true,
       amount: paid + catFind,
@@ -321,6 +345,7 @@ export class EconomyService {
     this.db
       .prepare('UPDATE users SET last_trieuphu = ? WHERE user_id = ?')
       .run(now.toISOString(), userId);
+    this.fireLife(userId, 'quiz');
   }
 
   /** True when today's điểm danh has not been claimed yet. */
@@ -380,6 +405,7 @@ export class EconomyService {
       this.treasury?.(tax, 'tax');
     }
 
+    this.fireLife(userId, 'work');
     return {
       ok: true,
       amount: net,
@@ -418,6 +444,7 @@ export class EconomyService {
     this.db
       .prepare('UPDATE users SET last_work = ?, work_count = work_count + 1 WHERE user_id = ?')
       .run(now.toISOString(), userId);
+    this.fireLife(userId, 'work');
     return { ok: true, gross, shifts: row.work_count + 1, retryAt: new Date(now.getTime() + cooldownMs) };
   }
 
@@ -481,6 +508,12 @@ export class EconomyService {
         .run(net > 0 ? net + bonus : 0, net < 0 ? -net : 0, userId);
     });
     run();
+    // A settled bet may advance a game mission; failures must not break payout.
+    try {
+      this.gameHook?.(userId, bet, payout, game);
+    } catch (error) {
+      console.error('[quest] game hook failed:', error);
+    }
   }
 
   /**

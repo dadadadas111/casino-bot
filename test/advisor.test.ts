@@ -7,7 +7,7 @@ const base: AdvisorState = {
   hasKey: false,
   loanOverdue: false, loanDueSoonHours: null, loanOwed: 0,
   canDaily: false, workReady: false, isChutich: false, quizReady: false,
-  wallet: 500, bank: 0, cash: 0, jackpot: 1_000_000,
+  wallet: 500, bank: 0, cash: 0, jackpot: 1_000_000, quest: null,
 };
 const keys = (s: AdvisorState) => recommend(s).map((a) => a.key);
 

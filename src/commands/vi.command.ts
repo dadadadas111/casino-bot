@@ -12,7 +12,7 @@ import {
   type ChatInputCommandInteraction,
   type ModalSubmitInteraction,
 } from 'discord.js';
-import { buffs, cash, economy, figurines, loans, topups } from '../context.js';
+import { buffs, cash, economy, figurines, loans, quests, topups } from '../context.js';
 import { env } from '../config/env.js';
 import { BUFFS } from '../services/buff.service.js';
 import { XU_PER_VND } from '../services/cash.service.js';
@@ -424,6 +424,7 @@ export const walletComponents: ComponentHandler = {
     if (action === 'gui' || action === 'rut') {
       const ok =
         action === 'gui' ? economy.depositBank(userId, amount) : economy.withdrawBank(userId, amount);
+      if (ok && action === 'gui') quests.record(userId, ['bank']);
       if (!ok) {
         await complain(
           action === 'gui'

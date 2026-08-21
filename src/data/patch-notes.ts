@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.9.0',
+    date: '21/08/2026',
+    title: 'Nhiệm vụ nho nhỏ để làm',
+    changes: [
+      '🎯 **`/nhiemvu`: luôn có một nhiệm vụ đang chờ.** Kiểu "thắng một ván Blackjack", "đi làm 2 ca", "tặng quà cho ai đó", "trộm thành công một lần". Tiến độ tự đếm khi bạn chơi, xong thì bấm nhận thưởng',
+      '🔄 **Không thích thì đổi.** 10 phút sau khi mở bảng nhiệm vụ là được đổi sang cái khác',
+      '-# Thưởng nhỏ (600-2.000 xu) nên không đè các trò chính, chủ yếu để có việc vặt mà làm và thử những trò ít đụng tới.',
+    ],
+  },
+  {
     version: '5.8.0',
     date: '21/08/2026',
     title: 'Không biết làm gì thì hỏi /recommend',
