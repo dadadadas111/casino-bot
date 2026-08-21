@@ -363,8 +363,25 @@ async function use(interaction: ButtonInteraction, key: string): Promise<void> {
     const until = buffs.activate(userId, 'mayman');
     description = `🍀 **${interaction.user.displayName}** kích hoạt **${BUFFS.mayman.name}**! Mọi ván thắng +10% tiền lời đến <t:${Math.floor(until.getTime() / 1000)}:R>.`;
   } else if (key === 'caphe') {
-    economy.resetCooldown(userId, 'work');
-    description = `☕ **${interaction.user.displayName}** làm một ly cà phê, tỉnh cả người! Có thể \`/lamviec\` ngay bây giờ.`;
+    const result = economy.drinkCoffee(userId);
+    if (result.overdosed) {
+      await interaction.update(bagPanel(userId, { tab: 'bag', selected: key }));
+      await announce(interaction, {
+        embeds: [
+          new EmbedBuilder()
+            .setColor(COLORS.lose)
+            .setDescription(
+              `☕💀 **${interaction.user.displayName}** làm ly cà phê thứ ${result.cups} trong một giờ, tim đập loạn xạ, ngất xỉu và được đưa thẳng vào viện! Xuất viện <t:${Math.floor(result.until!.getTime() / 1000)}:R>.\n-# Uống điều độ thôi, cà phê không phải nước lọc.`,
+            ),
+        ],
+      });
+      return;
+    }
+    const warn =
+      result.chance > 0
+        ? `\n-# Ly thứ ${result.cups} rồi, uống thêm là dễ ngộ độc (nguy cơ ${Math.round(result.chance * 100)}%). Nghỉ tay cho tỉnh.`
+        : '';
+    description = `☕ **${interaction.user.displayName}** làm một ly cà phê, tỉnh cả người! Có thể \`/lamviec\` ngay bây giờ.${warn}`;
   } else {
     economy.release(userId);
     economy.discharge(userId);

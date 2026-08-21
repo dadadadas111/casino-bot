@@ -242,5 +242,7 @@ function migrate(db: Db): void {
   ensureColumn('married_to');
   ensureColumn('married_at');
   ensureColumn('work_count', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('caffeine_count', 'INTEGER NOT NULL DEFAULT 0');
+  ensureColumn('caffeine_at');
   backfillWorkCount(db);
 }

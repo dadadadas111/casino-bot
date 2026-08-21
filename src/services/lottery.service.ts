@@ -7,9 +7,10 @@ export const POT_PER_TICKET = 80; // 80% of the ticket feeds the pot (house edge
 /**
  * Where the pot restarts after somebody wins. At 80 xu per ticket a small
  * player base can never grow a jackpot worth chasing on its own, so the house
- * primes it: this is the floor that keeps the game alive between wins.
+ * primes it heavily: a fresh pot opens at a million so it always reads as a
+ * prize worth buying a ticket for.
  */
-export const JACKPOT_SEED = 50_000;
+export const JACKPOT_SEED = 1_000_000;
 export const DRAW_HOUR = 21; // Vietnam time
 
 const hourFmt = new Intl.DateTimeFormat('en-GB', {

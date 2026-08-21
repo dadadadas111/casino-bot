@@ -4,6 +4,12 @@ import { AssetsService, CAT_MAX, CAT_MIN } from './assets.service.js';
 import { DUN_WORK_BONUS } from './loan.service.js';
 import { rankFor } from './job.service.js';
 import { marginalRate, taxOnWage } from './tax.service.js';
+import {
+  CAFFEINE_WINDOW_MS,
+  HOSPITAL_OVERDOSE_MS,
+  overdoseChance,
+  windowExpired,
+} from './caffeine.service.js';
 
 export const STARTING_BALANCE = 1_000;
 export const DAILY_BASE = 500;
@@ -567,6 +573,44 @@ export class EconomyService {
       .prepare('UPDATE users SET hospital_until = ? WHERE user_id = ?')
       .run(until.toISOString(), userId);
     return until;
+  }
+
+  /**
+   * Drink a coffee: clear the work cooldown, but count the caffeine. Past a
+   * few cups an hour the next one risks an overdose that hospitalises the
+   * drinker, which is what stops the buy-coffee-work loop. `roll` is injectable
+   * so the odds can be tested.
+   */
+  drinkCoffee(
+    userId: string,
+    now: Date = new Date(),
+    roll: number = Math.random(),
+  ): { overdosed: boolean; cups: number; chance: number; until?: Date } {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT caffeine_count AS n, caffeine_at AS at FROM users WHERE user_id = ?')
+      .get(userId) as { n: number; at: string | null };
+    const cups = (windowExpired(row.at, now) ? 0 : row.n) + 1;
+    this.db
+      .prepare('UPDATE users SET caffeine_count = ?, caffeine_at = ? WHERE user_id = ?')
+      .run(cups, now.toISOString(), userId);
+
+    const chance = overdoseChance(cups);
+    if (roll < chance) {
+      const until = this.hospitalize(userId, HOSPITAL_OVERDOSE_MS, now);
+      return { overdosed: true, cups, chance, until };
+    }
+    this.resetCooldown(userId, 'work', now);
+    return { overdosed: false, cups, chance };
+  }
+
+  /** Cups drunk in the current rolling window, for showing a warning. */
+  caffeineCups(userId: string, now: Date = new Date()): number {
+    this.ensureUser(userId);
+    const row = this.db
+      .prepare('SELECT caffeine_count AS n, caffeine_at AS at FROM users WHERE user_id = ?')
+      .get(userId) as { n: number; at: string | null };
+    return windowExpired(row.at, now) ? 0 : row.n;
   }
 
   /** Discharge without paying (used by the skeleton key item). */

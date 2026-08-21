@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.3.0',
+    date: '20/08/2026',
+    title: 'Uống cà phê quá đà thì đi viện',
+    changes: [
+      '☕💀 **Cà phê giờ có thể gây ngộ độc.** Ba ly một giờ thì vô tư, nhưng ly thứ tư trở đi có nguy cơ tim đập loạn xạ và ngất xỉu vào viện, nguy cơ tăng dần mỗi ly (20%, 40%, 60%...). Ai spam cà phê để cày liên tục thì coi chừng',
+      '-# Uống điều độ thì không bao giờ dính. Bot có nhắc nguy cơ trước mỗi ly từ ly thứ tư.',
+      '🎱 **Hũ xổ số giờ luôn mở lại ở 1.000.000 xu** sau mỗi lần có người trúng, thay vì tụt về mức nhỏ. Luôn có một triệu treo đó cho người mua vé kế tiếp',
+      '💸 **Thuế thu nhập nhẹ đi nhiều.** Cày một buổi tối giờ không còn bị đánh thuế nữa, thuế chỉ chạm mức mà bình thường không ai với tới',
+    ],
+  },
+  {
     version: '5.2.0',
     date: '19/08/2026',
     title: 'Sảnh sòng bạc, khỏi lục lệnh gạch chéo',

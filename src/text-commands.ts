@@ -399,8 +399,20 @@ export async function handleTextCommand(message: Message): Promise<void> {
         `🍀 **${username}** kích hoạt **${BUFFS.mayman.name}**! Thắng ván nào cũng +10% tiền lời đến <t:${Math.floor(until.getTime() / 1000)}:R>.`,
       );
     } else if (item.key === 'caphe') {
-      economy.resetCooldown(userId, 'work');
-      await message.reply(`☕ **${username}** làm một ly cà phê, tỉnh cả người! Đi \`${prefix}work\` ngay được rồi.`);
+      const result = economy.drinkCoffee(userId);
+      if (result.overdosed) {
+        await message.reply(
+          `☕💀 **${username}** làm ly cà phê thứ ${result.cups} trong một giờ, tim đập loạn xạ, ngất xỉu vào viện! Xuất viện <t:${Math.floor(result.until!.getTime() / 1000)}:R>. Uống điều độ thôi!`,
+        );
+      } else {
+        const warn =
+          result.chance > 0
+            ? ` (ly thứ ${result.cups}, nguy cơ ngộ độc ${Math.round(result.chance * 100)}%)`
+            : '';
+        await message.reply(
+          `☕ **${username}** làm một ly cà phê, tỉnh cả người${warn}! Đi \`${prefix}work\` ngay được rồi.`,
+        );
+      }
     } else {
       economy.release(userId);
       economy.discharge(userId);
