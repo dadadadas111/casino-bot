@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.10.0',
+    date: '24/08/2026',
+    title: 'Triệu Phú: thắng lớn thì nghỉ dài hơn',
+    changes: [
+      '🎰 **Ván Triệu Phú nào ẵm từ 30.000 xu trở lên giờ khóa ghế nóng 2 tiếng** (gồm cả về đích 100k, và cả khi dừng non ở câu cao). Chơi thường hoặc thua nhỏ thì vẫn 15 phút như cũ',
+      '⌨️ **Bỏ lệnh gõ tay kiểu `!tx`.** Từ giờ dùng dấu `/` cho mọi lệnh — gõ `/` là Discord gợi ý đầy đủ, gọn hơn và không đụng tiền tố của bot khác',
+      '-# Cooldown dài chỉ chạm những ai thắng lớn liên tục, người chơi vui vẻ gần như không thấy khác gì.',
+    ],
+  },
+  {
     version: '5.9.0',
     date: '21/08/2026',
     title: 'Nhiệm vụ nho nhỏ để làm',

@@ -43,6 +43,19 @@ export const WORK_MIN = 200;
 export const WORK_MAX = 500;
 /** Triệu Phú is now a repeatable game on a short cooldown, not a daily. */
 export const QUIZ_COOLDOWN_MS = 15 * 60 * 1000;
+/**
+ * A big win keeps the ghế nóng cold much longer, so a strong player cannot
+ * spam the seat and farm the top prize every 15 minutes. Losing or small runs
+ * keep the base window.
+ */
+export const QUIZ_WIN_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+/**
+ * A run that pays out at least this much counts as a "big win" for the
+ * cooldown. Set at the 10-câu milestone (30k). Keying off the prize, not just
+ * a full 15/15 clear, closes the loophole where a player stops at câu 14 for
+ * 84k and would otherwise only wait the base 15 minutes.
+ */
+export const QUIZ_BIG_WIN_PRIZE = 30_000;
 
 // Crime should pay a little more than honest work, not twenty times more.
 export const ROB_COOLDOWN_MS = 60 * 60 * 1000;
@@ -325,27 +338,46 @@ export class EconomyService {
     }
   }
 
-  /** One quiz game per cooldown window (15 min), like work. */
+  /** The ghế nóng is free again once the stored cooldown has passed. */
   canPlayQuiz(userId: string, now: Date = new Date()): boolean {
     return this.quizReadyAt(userId, now).getTime() <= now.getTime();
   }
 
-  /** When the ghế nóng opens again; in the past when it is ready now. */
-  quizReadyAt(userId: string, now: Date = new Date()): Date {
+  /**
+   * When the ghế nóng opens again; in the past when it is ready now.
+   * last_trieuphu stores the ready-at time directly (not the played-at time),
+   * so the cooldown length can vary: see setQuizCooldown.
+   */
+  quizReadyAt(userId: string, _now: Date = new Date()): Date {
     this.ensureUser(userId);
     const row = this.db.prepare('SELECT last_trieuphu FROM users WHERE user_id = ?').get(userId) as {
       last_trieuphu: string | null;
     };
     if (!row.last_trieuphu) return new Date(0);
-    return new Date(Date.parse(row.last_trieuphu) + QUIZ_COOLDOWN_MS);
+    return new Date(Date.parse(row.last_trieuphu));
   }
 
+  /** Opening a game locks the seat for the base window and credits the quest. */
   markQuizPlayed(userId: string, now: Date = new Date()): void {
+    this.setQuizReadyAt(userId, now.getTime() + QUIZ_COOLDOWN_MS);
+    this.fireLife(userId, 'quiz');
+  }
+
+  /**
+   * Called when a game ends. A run paying out QUIZ_BIG_WIN_PRIZE or more locks
+   * the seat for the long window; anything smaller (or a loss) keeps the base
+   * window. Overrides the base cooldown set when the game started.
+   */
+  setQuizCooldown(userId: string, prize: number, now: Date = new Date()): void {
+    const cooldown = prize >= QUIZ_BIG_WIN_PRIZE ? QUIZ_WIN_COOLDOWN_MS : QUIZ_COOLDOWN_MS;
+    this.setQuizReadyAt(userId, now.getTime() + cooldown);
+  }
+
+  private setQuizReadyAt(userId: string, readyAtMs: number): void {
     this.ensureUser(userId);
     this.db
       .prepare('UPDATE users SET last_trieuphu = ? WHERE user_id = ?')
-      .run(now.toISOString(), userId);
-    this.fireLife(userId, 'quiz');
+      .run(new Date(readyAtMs).toISOString(), userId);
   }
 
   /** True when today's điểm danh has not been claimed yet. */

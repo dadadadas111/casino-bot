@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createDb, type Db } from '../src/db/database';
 import {
   EconomyService,
+  QUIZ_BIG_WIN_PRIZE,
+  QUIZ_COOLDOWN_MS,
+  QUIZ_WIN_COOLDOWN_MS,
   STARTING_BALANCE,
   WORK_COOLDOWN_MS,
   WORK_MAX,
@@ -138,6 +141,38 @@ describe('resetCooldown', () => {
     expect(economy.claimDaily('u1', t0).ok).toBe(true);
     expect(economy.work('u1', t0).ok).toBe(true);
     expect(economy.canPlayQuiz('u1', t0)).toBe(true);
+  });
+});
+
+describe('quiz cooldown by outcome', () => {
+  const t0 = new Date('2026-08-11T10:00:00+07:00');
+  const at = (ms: number) => new Date(t0.getTime() + ms);
+
+  it('opening a game locks the base window', () => {
+    economy.markQuizPlayed('u1', t0);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS - 1000))).toBe(false);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS + 1000))).toBe(true);
+  });
+
+  it('a small win or a loss keeps the base window', () => {
+    economy.markQuizPlayed('u1', t0);
+    economy.setQuizCooldown('u1', QUIZ_BIG_WIN_PRIZE - 1, t0); // e.g. lost, small floor
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS - 1000))).toBe(false);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS + 1000))).toBe(true);
+  });
+
+  it('a big payout locks the long window, closing the stop-at-14 loophole', () => {
+    economy.markQuizPlayed('u1', t0);
+    economy.setQuizCooldown('u1', 84_000, t0); // walked away at câu 14
+    // still locked long after the base window would have opened
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS + 1000))).toBe(false);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_WIN_COOLDOWN_MS - 1000))).toBe(false);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_WIN_COOLDOWN_MS + 1000))).toBe(true);
+  });
+
+  it('the big-win threshold itself counts as big', () => {
+    economy.setQuizCooldown('u1', QUIZ_BIG_WIN_PRIZE, t0);
+    expect(economy.canPlayQuiz('u1', at(QUIZ_COOLDOWN_MS + 1000))).toBe(false);
   });
 });
 

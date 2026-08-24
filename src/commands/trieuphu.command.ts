@@ -128,6 +128,9 @@ function finalEmbed(session: QuizSession, kind: EndKind, chosen?: number): Embed
           : '🛑 Bạn chọn dừng cuộc chơi an toàn.';
 
   economy.settleGame(session.userId, 0, prize, 'trieuphu');
+  // Big payouts cool the seat for longer; small runs and losses reopen soon.
+  economy.setQuizCooldown(session.userId, prize);
+  const readyUnix = Math.floor(economy.quizReadyAt(session.userId).getTime() / 1000);
 
   return new EmbedBuilder()
     .setColor(kind === 'win' ? COLORS.gold : kind === 'wrong' ? COLORS.lose : COLORS.push)
@@ -138,9 +141,10 @@ function finalEmbed(session: QuizSession, kind: EndKind, chosen?: number): Embed
         `Trả lời đúng: **${session.index}/${QUESTION_COUNT}** câu`,
         `Tiền thưởng: **${formatCoins(prize)}**`,
         `Số dư mới: ${formatCoins(economy.getBalance(session.userId))}`,
+        `Ghế nóng mở lại <t:${readyUnix}:R>.`,
       ].join('\n'),
     )
-    .setFooter({ text: `${session.username} · Ghế nóng mở lại sau 15 phút` });
+    .setFooter({ text: session.username });
 }
 
 function armTimer(session: QuizSession): void {
@@ -162,7 +166,7 @@ function armTimer(session: QuizSession): void {
 export const trieuphuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('trieuphu')
-    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 100.000 xu, chơi lại sau mỗi 15 phút'),
+    .setDescription('Ai Là Triệu Phú: 15 câu hỏi, tối đa 100.000 xu (thắng lớn thì nghỉ lâu hơn)'),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     await runTrieuPhu(interaction);
   },
