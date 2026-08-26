@@ -48,7 +48,7 @@ export const QUIZ_COOLDOWN_MS = 15 * 60 * 1000;
  * spam the seat and farm the top prize every 15 minutes. Losing or small runs
  * keep the base window.
  */
-export const QUIZ_WIN_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+export const QUIZ_WIN_COOLDOWN_MS = 60 * 60 * 1000;
 /**
  * A run that pays out at least this much counts as a "big win" for the
  * cooldown. Set at the 10-câu milestone (30k). Keying off the prize, not just
