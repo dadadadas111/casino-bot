@@ -6,12 +6,14 @@ import {
   MessageFlags,
   type BaseMessageOptions,
   type ButtonInteraction,
+  type Client,
   type Message,
 } from 'discord.js';
 import { economy, figurines } from '../context.js';
 import { gifs } from '../context.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import { userAvatar } from '../embeds/wedding.js';
 
 export const CEREMONY_COST = 5_000;
 export const GIFT_AMOUNT = 500;
@@ -29,8 +31,8 @@ interface Ceremony {
   /** A real player's id, or null when the partner is a figurine. */
   spouseId: string | null;
   spouseLabel: string;
-  /** The figurine's custom avatar URL, shown at the ceremony; null otherwise. */
-  figurineAvatar: string | null;
+  /** The partner's avatar (figurine photo or real user), shown at the ceremony. */
+  spouseAvatar: string | null;
   guests: Map<string, Guest>;
   giftTotal: number;
   message: Message | null;
@@ -80,7 +82,7 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
     );
   // The couple's faces: host on the byline, figurine avatar as the thumbnail.
   embed.setAuthor({ name: c.hostName, iconURL: c.hostAvatar });
-  if (c.figurineAvatar) embed.setThumbnail(c.figurineAvatar);
+  if (c.spouseAvatar) embed.setThumbnail(c.spouseAvatar);
   if (gif) embed.setImage(gif);
   return embed;
 }
@@ -106,6 +108,7 @@ export async function startCeremony(
   hostId: string,
   hostName: string,
   hostAvatar: string,
+  client: Client,
   send: (payload: BaseMessageOptions) => Promise<Message>,
 ): Promise<CeremonyOutcome> {
   const spouseId = economy.spouseOf(hostId);
@@ -115,13 +118,14 @@ export async function startCeremony(
   if (!economy.debit(hostId, CEREMONY_COST, 'wedding_cost')) return 'poor';
 
   const spouseLabel = spouseId ? `<@${spouseId}>` : `**${figurine!.emoji} ${figurine!.name}**`;
+  const spouseAvatar = figurine ? figurine.avatar : await userAvatar(client, spouseId!);
   const ceremony: Ceremony = {
     hostId,
     hostName,
     hostAvatar,
     spouseId,
     spouseLabel,
-    figurineAvatar: figurine?.avatar ?? null,
+    spouseAvatar,
     guests: new Map(),
     giftTotal: 0,
     message: null,

@@ -7,6 +7,7 @@ import {
   SlashCommandBuilder,
   type ButtonInteraction,
   type ChatInputCommandInteraction,
+  type Client,
   type Message,
 } from 'discord.js';
 import { economy, figurines, gifs, items } from '../context.js';
@@ -16,6 +17,7 @@ import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { announce } from '../interactions/announce.js';
 import { refuseIfDown } from '../interactions/downtime.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import { coupleFaces, userAvatar } from '../embeds/wedding.js';
 import { CEREMONY_COST, startCeremony } from './honle.command.js';
 import type { Command } from './types.js';
 
@@ -23,20 +25,19 @@ import type { Command } from './types.js';
 const proposals = new Map<string, { targetId: string; expiresAt: number }>();
 const PROPOSAL_TTL_MS = 5 * 60 * 1000;
 
-/** Who this player is attached to right now, if anyone. */
-function partnerOf(userId: string): { label: string; isFigurine: boolean } | null {
-  const spouse = economy.spouseOf(userId);
-  if (spouse) return { label: `<@${spouse}>`, isFigurine: false };
-  const fig = figurines.spouse(userId);
-  if (fig) return { label: `**${fig.emoji} ${fig.name}**`, isFigurine: true };
-  return null;
-}
-
-function marriagePanel(userId: string, displayName: string): {
-  embeds: EmbedBuilder[];
-  components: ActionRowBuilder<ButtonBuilder>[];
-} {
-  const partner = partnerOf(userId);
+async function marriagePanel(
+  userId: string,
+  displayName: string,
+  viewerAvatar: string,
+  client: Client,
+): Promise<{ embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder>[] }> {
+  const spouseId = economy.spouseOf(userId);
+  const fig = spouseId ? null : figurines.spouse(userId);
+  const partner = spouseId
+    ? { label: `<@${spouseId}>` }
+    : fig
+      ? { label: `**${fig.emoji} ${fig.name}**` }
+      : null;
   const rings = items.count(userId, 'nhan');
 
   const embed = new EmbedBuilder()
@@ -61,6 +62,9 @@ function marriagePanel(userId: string, displayName: string): {
     );
 
   if (!partner) return { embeds: [embed], components: [] };
+
+  const spouseAvatar = spouseId ? await userAvatar(client, spouseId) : (fig?.avatar ?? null);
+  coupleFaces(embed, displayName, viewerAvatar, spouseAvatar);
 
   return {
     embeds: [embed],
@@ -87,6 +91,7 @@ async function propose(
   targetId: string,
   targetName: string,
   targetIsBot: boolean,
+  targetAvatar: string,
 ): Promise<void> {
   const proposer = interaction.user;
   const deny = async (content: string): Promise<void> => {
@@ -121,16 +126,16 @@ async function propose(
   }
 
   proposals.set(proposer.id, { targetId, expiresAt: Date.now() + PROPOSAL_TTL_MS });
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.gold)
+    .setTitle('💍 Màn cầu hôn công khai!')
+    .setDescription(
+      `**${proposer.displayName}** quỳ gối trao nhẫn cho **${targetName}**:\n\n"Về chung một nhà với anh/em nhé?" 🥺\n\nKèo này hết hạn sau 5 phút.`,
+    );
+  coupleFaces(embed, `${proposer.displayName} 💍 ${targetName}`, proposer.displayAvatarURL(), targetAvatar);
   await interaction.reply({
     content: `<@${targetId}>`,
-    embeds: [
-      new EmbedBuilder()
-        .setColor(COLORS.gold)
-        .setTitle('💍 Màn cầu hôn công khai!')
-        .setDescription(
-          `**${proposer.displayName}** quỳ gối trao nhẫn cho **${targetName}**:\n\n"Về chung một nhà với anh/em nhé?" 🥺\n\nKèo này hết hạn sau 5 phút.`,
-        ),
-    ],
+    embeds: [embed],
     components: [
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -157,7 +162,7 @@ export const cuoiCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const target = interaction.options.getUser('nguoi');
     if (target && target.id !== interaction.user.id) {
-      await propose(interaction, target.id, target.displayName, target.bot);
+      await propose(interaction, target.id, target.displayName, target.bot, target.displayAvatarURL());
       return;
     }
     if (target) {
@@ -168,7 +173,12 @@ export const cuoiCommand: Command = {
       return;
     }
     await interaction.reply({
-      ...marriagePanel(interaction.user.id, interaction.user.displayName),
+      ...(await marriagePanel(
+        interaction.user.id,
+        interaction.user.displayName,
+        interaction.user.displayAvatarURL(),
+        interaction.client,
+      )),
       flags: MessageFlags.Ephemeral,
     });
   },
@@ -207,6 +217,7 @@ async function acceptProposal(
 
   await interaction.deferUpdate();
   const gif = await gifs.get('dance');
+  const proposer = await interaction.client.users.fetch(proposerId).catch(() => null);
   const embed = new EmbedBuilder()
     .setColor(COLORS.gold)
     .setTitle('💒 HÔN LỄ TRĂM NĂM 💒')
@@ -218,6 +229,12 @@ async function acceptProposal(
         'Muốn đãi cả kênh thì mở tiệc bằng `/cuoi` rồi bấm 💒 Tổ chức hôn lễ.',
       ].join('\n'),
     );
+  coupleFaces(
+    embed,
+    `${proposer?.displayName ?? 'Người cầu hôn'} ❤️ ${interaction.user.displayName}`,
+    proposer?.displayAvatarURL() ?? null,
+    interaction.user.displayAvatarURL(),
+  );
   if (gif) embed.setImage(gif);
   await interaction.editReply({
     content: `💒 <@${proposerId}> ❤️ <@${interaction.user.id}>`,
@@ -234,13 +251,14 @@ export const weddingComponents: ComponentHandler = {
 
     if (action === 'party') {
       if (await refuseIfDown(interaction)) return;
-      await interaction.update(marriagePanel(userId, interaction.user.displayName));
+      await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
       let outcome: Awaited<ReturnType<typeof startCeremony>> | 'failed';
       try {
         outcome = await startCeremony(
           userId,
           interaction.user.displayName,
           interaction.user.displayAvatarURL(),
+          interaction.client,
           async (payload) => {
           const message = await announce(interaction, payload);
           if (!message) throw new Error('channel unavailable');
@@ -267,7 +285,7 @@ export const weddingComponents: ComponentHandler = {
         return;
       }
       // Balance changed, so the panel's disabled states are stale.
-      await interaction.editReply(marriagePanel(userId, interaction.user.displayName));
+      await interaction.editReply(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
       return;
     }
 
@@ -275,7 +293,7 @@ export const weddingComponents: ComponentHandler = {
       const figurine = figurines.spouse(userId);
       if (figurine) {
         figurines.setMarried(userId, false);
-        await interaction.update(marriagePanel(userId, interaction.user.displayName));
+        await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
         await interaction.followUp({
           embeds: [
             new EmbedBuilder()
@@ -298,7 +316,7 @@ export const weddingComponents: ComponentHandler = {
         });
         return;
       }
-      await interaction.update(marriagePanel(userId, interaction.user.displayName));
+      await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
       await announce(interaction, {
         embeds: [
           new EmbedBuilder()
