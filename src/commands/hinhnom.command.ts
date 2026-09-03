@@ -17,6 +17,12 @@ import {
 } from 'discord.js';
 import { economy, figurines, items } from '../context.js';
 import { FIGURINE_EMOJIS, MAX_NAME_LENGTH, sanitizeName } from '../services/figurine.service.js';
+import {
+  AVATAR_MAX_BYTES,
+  deleteAvatar,
+  isSupportedImage,
+  storeAvatarFromUrl,
+} from '../services/avatar-store.service.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
@@ -94,7 +100,7 @@ function figurineEmbed(userId: string, displayName: string, mode: Mode): EmbedBu
       );
   }
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(COLORS.gold)
     .setTitle(`${fig.emoji} ${fig.name}`)
     .setDescription(
@@ -102,8 +108,13 @@ function figurineEmbed(userId: string, displayName: string, mode: Mode): EmbedBu
         `Người bạn tưởng tượng của **${displayName}**`,
         `Ra đời <t:${unix(fig.createdAt)}:R>`,
         fig.married ? '💍 Đã nên duyên vợ chồng' : '🕊️ Vẫn chỉ là bạn',
-      ].join('\n'),
+        fig.avatar ? '' : '-# Đặt ảnh đại diện: `/hinhnom anh:<kéo ảnh vào>`',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     );
+  if (fig.avatar) embed.setThumbnail(fig.avatar);
+  return embed;
 }
 
 function emojiSelect(userId: string, mode: Mode): ActionRowBuilder<StringSelectMenuBuilder> {
@@ -211,9 +222,47 @@ export const hinhnomCommand: Command = {
     .setDescription('Hình nộm: người bạn tưởng tượng của riêng bạn')
     .addUserOption((o) =>
       o.setName('nguoi').setDescription('Ngắm hình nộm của người khác').setRequired(false),
+    )
+    .addAttachmentOption((o) =>
+      o.setName('anh').setDescription('Đặt ảnh đại diện cho hình nộm của bạn (PNG/JPG/GIF/WebP)').setRequired(false),
     ),
   async execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const target = interaction.options.getUser('nguoi');
+    const anh = interaction.options.getAttachment('anh');
+    const userId = interaction.user.id;
+
+    // Setting your own figurine's avatar (ignored when peeking at someone else).
+    if (anh && (!target || target.id === userId)) {
+      const fig = figurines.get(userId);
+      if (!fig) {
+        await interaction.reply({
+          content: 'Bạn chưa có hình nộm để đặt ảnh. Tạo một cái bằng `/hinhnom` trước đã.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      if (!isSupportedImage(anh.contentType) || (anh.size ?? 0) > AVATAR_MAX_BYTES) {
+        await interaction.reply({
+          content: 'Ảnh phải là PNG, JPG, GIF hoặc WebP và dưới 3MB.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      try {
+        const url = await storeAvatarFromUrl(userId, anh.url, anh.contentType!);
+        figurines.setAvatar(userId, url);
+        await interaction.editReply({
+          content: `✅ Đã đặt ảnh cho **${fig.emoji} ${fig.name}**. Đám cưới sẽ đẹp hơn nhiều!`,
+          embeds: [figurineEmbed(userId, interaction.user.displayName, 'view')],
+        });
+      } catch (error) {
+        console.error('[hinhnom] set avatar failed:', error);
+        await interaction.editReply({ content: 'Lưu ảnh thất bại, thử lại sau nhé.' });
+      }
+      return;
+    }
+
     if (target && target.id !== interaction.user.id) {
       const fig = figurines.get(target.id);
       if (!fig) {
@@ -390,6 +439,7 @@ export const figurineComponents: ComponentHandler = {
 
     if (action === 'discard') {
       figurines.discard(userId);
+      deleteAvatar(userId);
       await interaction.update(figurinePanel(userId, displayName));
       await interaction.followUp({
         embeds: [

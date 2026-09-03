@@ -237,7 +237,11 @@ export const weddingComponents: ComponentHandler = {
       await interaction.update(marriagePanel(userId, interaction.user.displayName));
       let outcome: Awaited<ReturnType<typeof startCeremony>> | 'failed';
       try {
-        outcome = await startCeremony(userId, interaction.user.displayName, async (payload) => {
+        outcome = await startCeremony(
+          userId,
+          interaction.user.displayName,
+          interaction.user.displayAvatarURL(),
+          async (payload) => {
           const message = await announce(interaction, payload);
           if (!message) throw new Error('channel unavailable');
           return message;

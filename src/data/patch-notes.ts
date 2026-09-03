@@ -8,6 +8,16 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.12.0',
+    date: '03/09/2026',
+    title: 'Đặt ảnh cho hình nộm, đám cưới đẹp hơn',
+    changes: [
+      '📸 **Đặt ảnh đại diện cho hình nộm:** gõ `/hinhnom` rồi đính kèm ảnh vào ô `anh` (PNG/JPG/GIF/WebP, dưới 3MB)',
+      '💒 **Đám cưới giờ hiện cả hai gương mặt:** avatar của bạn trên tên, ảnh hình nộm ở góc, trông ra dáng tiệc cưới hẳn',
+      '-# Ảnh là của riêng bạn, chỉ hiện ở hình nộm và lễ cưới.',
+    ],
+  },
+  {
     version: '5.11.0',
     date: '03/09/2026',
     title: 'Mỗi server có item và đồ sưu tầm riêng',

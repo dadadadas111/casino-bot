@@ -25,9 +25,12 @@ interface Guest {
 interface Ceremony {
   hostId: string;
   hostName: string;
+  hostAvatar: string;
   /** A real player's id, or null when the partner is a figurine. */
   spouseId: string | null;
   spouseLabel: string;
+  /** The figurine's custom avatar URL, shown at the ceremony; null otherwise. */
+  figurineAvatar: string | null;
   guests: Map<string, Guest>;
   giftTotal: number;
   message: Message | null;
@@ -75,6 +78,9 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
       },
       { name: closed ? '📖 Sổ ghi lễ' : 'Danh sách khách', value: guestList },
     );
+  // The couple's faces: host on the byline, figurine avatar as the thumbnail.
+  embed.setAuthor({ name: c.hostName, iconURL: c.hostAvatar });
+  if (c.figurineAvatar) embed.setThumbnail(c.figurineAvatar);
   if (gif) embed.setImage(gif);
   return embed;
 }
@@ -99,6 +105,7 @@ export type CeremonyOutcome = 'ok' | 'single' | 'busy' | 'poor';
 export async function startCeremony(
   hostId: string,
   hostName: string,
+  hostAvatar: string,
   send: (payload: BaseMessageOptions) => Promise<Message>,
 ): Promise<CeremonyOutcome> {
   const spouseId = economy.spouseOf(hostId);
@@ -111,8 +118,10 @@ export async function startCeremony(
   const ceremony: Ceremony = {
     hostId,
     hostName,
+    hostAvatar,
     spouseId,
     spouseLabel,
+    figurineAvatar: figurine?.avatar ?? null,
     guests: new Map(),
     giftTotal: 0,
     message: null,

@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import fs from 'node:fs';
 import { EmbedBuilder, type Client } from 'discord.js';
 import { env } from './config/env.js';
+import { avatarFilePath, contentTypeFor } from './services/avatar-store.service.js';
 import { dashboard, lottery, quizPool, quizReview, topups } from './context.js';
 import { COLORS } from './embeds/format.js';
 import { formatVnd } from './embeds/topup.js';
@@ -277,6 +279,20 @@ export function startWebServer(client: Client): void {
             'X-Content-Type-Options': 'nosniff',
           });
           res.end(LOGO_PNG);
+          return;
+        }
+        if (url.pathname.startsWith('/avatar/')) {
+          const filePath = avatarFilePath(decodeURIComponent(url.pathname.slice('/avatar/'.length)));
+          if (filePath && fs.existsSync(filePath)) {
+            res.writeHead(200, {
+              'Content-Type': contentTypeFor(filePath),
+              'Cache-Control': 'public, max-age=86400',
+              'X-Content-Type-Options': 'nosniff',
+            });
+            res.end(fs.readFileSync(filePath));
+          } else {
+            send(res, 404, { error: 'not found' });
+          }
           return;
         }
         if (url.pathname === '/invite' && env.DISCORD_CLIENT_ID) {

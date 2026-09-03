@@ -281,6 +281,7 @@ function migrate(db: Db): void {
 
   addColumn('topup_requests', 'guild_id', 'TEXT');
   addColumn('topup_requests', 'channel_id', 'TEXT');
+  addColumn('figurines', 'avatar', 'TEXT'); // custom avatar URL for weddings
   addColumn('report_config', 'patch_enabled', 'INTEGER NOT NULL DEFAULT 1');
   addColumn('report_config', 'patch_channel_id', 'TEXT');
   addColumn('report_config', 'last_patch_version', 'TEXT');

@@ -9,6 +9,7 @@ export interface Figurine {
   emoji: string;
   married: boolean;
   createdAt: string;
+  avatar: string | null; // custom avatar image URL, null = use the emoji
 }
 
 /** Names are shown in public embeds, so keep them tame and mention-free. */
@@ -27,7 +28,14 @@ export class FigurineService {
 
   get(userId: string): Figurine | null {
     const row = this.db.prepare('SELECT * FROM figurines WHERE user_id = ?').get(userId) as
-      | { user_id: string; name: string; emoji: string; married: number; created_at: string }
+      | {
+          user_id: string;
+          name: string;
+          emoji: string;
+          married: number;
+          created_at: string;
+          avatar: string | null;
+        }
       | undefined;
     if (!row) return null;
     return {
@@ -36,7 +44,16 @@ export class FigurineService {
       emoji: row.emoji,
       married: row.married === 1,
       createdAt: row.created_at,
+      avatar: row.avatar ?? null,
     };
+  }
+
+  /** Set (or clear, with null) the figurine's custom avatar URL. */
+  setAvatar(userId: string, url: string | null): boolean {
+    const result = this.db
+      .prepare('UPDATE figurines SET avatar = ? WHERE user_id = ?')
+      .run(url, userId);
+    return result.changes > 0;
   }
 
   create(userId: string, name: string, emoji: string): boolean {

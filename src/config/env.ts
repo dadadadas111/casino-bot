@@ -33,6 +33,10 @@ const envSchema = z.object({
   // Nightly database backup posted to a private Discord channel.
   BACKUP_CHANNEL_ID: z.string().optional(),
   BACKUP_HOUR: z.coerce.number().default(3),
+  // Public origin the web server is reached at, used to build avatar URLs.
+  PUBLIC_BASE_URL: z.string().default('https://casino.dash.id.vn'),
+  // Where figurine avatars are stored on disk (a persistent volume in prod).
+  AVATAR_DIR: z.string().default('./data/avatars'),
 });
 
 const parsed = envSchema.safeParse(process.env);
