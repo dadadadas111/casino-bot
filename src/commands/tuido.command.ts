@@ -138,6 +138,11 @@ function tabRow(state: PanelState): ActionRowBuilder<ButtonBuilder> {
       .setEmoji('🏠')
       .setStyle(state.tab === 'taisan' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(state.tab === 'taisan'),
+    new ButtonBuilder()
+      .setCustomId(componentId('cua', 'tab', 'shop'))
+      .setLabel('Đồ server')
+      .setEmoji('🎁')
+      .setStyle(ButtonStyle.Secondary),
   );
 }
 

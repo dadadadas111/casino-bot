@@ -125,7 +125,7 @@ const PAGES: HelpPage[] = [
         '-# Mua nhiều cái một lúc: nút 🧺 Mua nhiều trong `/tuido`. `/shop` mở thẳng thẻ cửa hàng.',
         '',
         '**Đồ riêng của server**',
-        '`/cuahang` : cửa hàng item riêng do admin server tạo, có đồ sưu tầm và đồ hiệu ứng',
+        'Bấm nút 🎁 **Đồ server** trong `/shop` để mua item riêng của server: đồ sưu tầm và đồ hiệu ứng',
         '`/suutap` : khoe bộ sưu tập và xem bảng xếp hạng sưu tầm của server',
         '',
         '**Tài sản lớn** (thẻ 🏠 trong `/tuido`)',
@@ -158,8 +158,7 @@ const PAGES: HelpPage[] = [
         '`/patchnote` : bot vừa thêm trò gì mới',
         '',
         '**Cho admin server** (cần quyền Quản lý máy chủ)',
-        '`/caidat` : một cửa duy nhất cho bản tin, thông báo cập nhật, prefix và tên bot',
-        '`/quanly` : tạo và quản lý item riêng của server (giá, hiệu ứng, role, độ hiếm)',
+        '`/caidat` : bản tin, thông báo cập nhật, prefix, tên bot, và nút 🎁 tạo vật phẩm riêng của server (giá, hiệu ứng, role, độ hiếm)',
         '-# Chỉnh xu của người chơi là việc của chủ bot, admin server không có quyền này. Xu dùng chung cho mọi server nên không thể để mỗi nơi tự in tiền.',
         '',
         env.ENABLE_PREFIX_COMMANDS === 'true'

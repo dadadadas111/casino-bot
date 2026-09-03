@@ -91,6 +91,13 @@ function homeRows(): ActionRowBuilder<ButtonBuilder>[] {
         .setEmoji('🏷️')
         .setStyle(ButtonStyle.Secondary),
     ),
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(componentId('qly', 'home'))
+        .setLabel('Vật phẩm riêng của server')
+        .setEmoji('🎁')
+        .setStyle(ButtonStyle.Success),
+    ),
   ];
 }
 

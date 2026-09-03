@@ -57,9 +57,10 @@ describe('slash command shape', () => {
   });
 
   it('lands on the agreed command count', () => {
-    // 40 builders here, plus the /bj alias registered in index.ts: 41 in the
-    // home guild, 40 everywhere else once /chubot is filtered out.
-    expect(allNames).toHaveLength(40);
+    // 38 builders here, plus the /bj alias registered in index.ts: 39 in the
+    // home guild, 38 everywhere else once /chubot is filtered out.
+    // (/quanly and /cuahang are now reached via buttons, not slash commands.)
+    expect(allNames).toHaveLength(38);
   });
 
   it('drops the commands that were folded into panels', () => {

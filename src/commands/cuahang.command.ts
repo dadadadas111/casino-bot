@@ -3,13 +3,10 @@ import {
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
-  MessageFlags,
   StringSelectMenuBuilder,
   type AnySelectMenuInteraction,
   type ButtonInteraction,
-  type ChatInputCommandInteraction,
   type Guild,
-  SlashCommandBuilder,
 } from 'discord.js';
 import { buffs, economy, guildItems, quests } from '../context.js';
 import { type GuildItem } from '../services/guild-items.service.js';
@@ -17,7 +14,6 @@ import { type EffectKind } from '../services/effects.service.js';
 import { grantRole, removeRole } from '../services/roles.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
-import type { Command } from './types.js';
 
 const RARITY_EMOJI: Record<string, string> = {
   common: '⚪',
@@ -108,6 +104,11 @@ function tabRow(tab: Tab): ActionRowBuilder<ButtonBuilder> {
       .setEmoji('🧳')
       .setStyle(tab === 'bag' ? ButtonStyle.Primary : ButtonStyle.Secondary)
       .setDisabled(tab === 'bag'),
+    new ButtonBuilder()
+      .setCustomId(componentId('bag', 'tab', 'shop'))
+      .setLabel('Cửa hàng chung')
+      .setEmoji('🏪')
+      .setStyle(ButtonStyle.Secondary),
   );
 }
 
@@ -173,21 +174,8 @@ function render(guildId: string, userId: string, state: State) {
 
 // ---------- command ----------
 
-export const cuahangCommand: Command = {
-  data: new SlashCommandBuilder()
-    .setName('cuahang')
-    .setDescription('Cửa hàng item riêng của server: mua đồ sưu tầm và đồ có hiệu ứng'),
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.inGuild()) {
-      await interaction.reply({ content: 'Lệnh này chỉ dùng trong server.', flags: MessageFlags.Ephemeral });
-      return;
-    }
-    await interaction.reply({
-      ...render(interaction.guildId, interaction.user.id, { tab: 'shop', selected: null }),
-      flags: MessageFlags.Ephemeral,
-    });
-  },
-};
+// The server shop is reached from the /tuido panel (a button), not a slash
+// command, so only its component handlers are exported below.
 
 // ---------- interactions ----------
 

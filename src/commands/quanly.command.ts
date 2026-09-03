@@ -7,13 +7,11 @@ import {
   ModalBuilder,
   PermissionFlagsBits,
   RoleSelectMenuBuilder,
-  SlashCommandBuilder,
   StringSelectMenuBuilder,
   TextInputBuilder,
   TextInputStyle,
   type AnySelectMenuInteraction,
   type ButtonInteraction,
-  type ChatInputCommandInteraction,
   type Guild,
   type ModalSubmitInteraction,
 } from 'discord.js';
@@ -23,14 +21,21 @@ import { EFFECTS, SERVER_EFFECTS, effectLabel, isEffectKind } from '../services/
 import { roleBlockReason } from '../services/roles.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
-import type { Command } from './types.js';
-
 const RARITIES: Record<string, { label: string; emoji: string }> = {
   common: { label: 'Thường', emoji: '⚪' },
   rare: { label: 'Hiếm', emoji: '🔵' },
   epic: { label: 'Cực hiếm', emoji: '🟣' },
   legendary: { label: 'Huyền thoại', emoji: '🟡' },
 };
+
+// Discord modals cannot show an emoji picker, so the icon is chosen by clicking
+// from this palette in the manage view instead of pasting one into a text box.
+const EMOJI_PALETTE = [
+  '🎁', '🏆', '🥇', '👑', '💎', '⭐', '🌟', '🔥', '💰', '🪙', '🎖️', '🏅',
+  '🃏', '🎰', '🎲', '🍀', '💍', '🐉', '🦄', '🌈', '⚡', '❤️', '🎀', '🗿',
+];
+
+const DEFAULT_ITEM_EMOJI = '🎁';
 
 function rarityMeta(key: string): { label: string; emoji: string } {
   return RARITIES[key] ?? RARITIES.common;
@@ -87,7 +92,12 @@ function homeRows(guildId: string): ActionRowBuilder<ButtonBuilder | StringSelec
     .setEmoji('➕')
     .setStyle(ButtonStyle.Success)
     .setDisabled(items.length >= MAX_GUILD_ITEMS);
-  rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(add));
+  const back = new ButtonBuilder()
+    .setCustomId(componentId('cfg', 'view', 'home'))
+    .setLabel('Cài đặt')
+    .setEmoji('↩️')
+    .setStyle(ButtonStyle.Secondary);
+  rows.push(new ActionRowBuilder<ButtonBuilder>().addComponents(add, back));
   return rows;
 }
 
@@ -117,6 +127,10 @@ function manageEmbed(item: GuildItem, guild: Guild): EmbedBuilder {
 function manageRows(
   item: GuildItem,
 ): ActionRowBuilder<ButtonBuilder | StringSelectMenuBuilder | RoleSelectMenuBuilder>[] {
+  const emoji = new StringSelectMenuBuilder()
+    .setCustomId(componentId('qly', 'emoji', String(item.id)))
+    .setPlaceholder('Biểu tượng...')
+    .addOptions(EMOJI_PALETTE.map((e) => ({ label: e, value: e, default: item.emoji === e })));
   const effect = new StringSelectMenuBuilder()
     .setCustomId(componentId('qly', 'effect', String(item.id)))
     .setPlaceholder('Hiệu ứng...')
@@ -168,9 +182,10 @@ function manageRows(
       .setStyle(ButtonStyle.Secondary),
   );
   return [
+    new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(emoji),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(effect),
-    new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(role),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(rarity),
+    new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(role),
     buttons,
   ];
 }
@@ -188,12 +203,6 @@ function itemModal(id: number | null, item?: GuildItem): ModalBuilder {
     .setStyle(TextInputStyle.Short)
     .setMaxLength(60)
     .setRequired(true);
-  const emoji = new TextInputBuilder()
-    .setCustomId('emoji')
-    .setLabel('Emoji (dán 1 emoji)')
-    .setStyle(TextInputStyle.Short)
-    .setMaxLength(16)
-    .setRequired(true);
   const price = new TextInputBuilder()
     .setCustomId('price')
     .setLabel('Giá (xu)')
@@ -208,45 +217,18 @@ function itemModal(id: number | null, item?: GuildItem): ModalBuilder {
     .setRequired(false);
   if (item) {
     name.setValue(item.name);
-    emoji.setValue(item.emoji);
     price.setValue(String(item.price));
     if (item.description) desc.setValue(item.description);
   }
+  // Emoji is picked from a palette in the manage view, not typed here.
   return modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(name),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(emoji),
     new ActionRowBuilder<TextInputBuilder>().addComponents(price),
     new ActionRowBuilder<TextInputBuilder>().addComponents(desc),
   );
 }
 
-// ---------- command ----------
-
-export const quanlyCommand: Command = {
-  data: new SlashCommandBuilder()
-    .setName('quanly')
-    .setDescription('Admin: quản lý item riêng của server (thêm, giá, hiệu ứng, role)')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.inGuild()) {
-      await interaction.reply({ content: 'Lệnh này chỉ dùng trong server.', flags: MessageFlags.Ephemeral });
-      return;
-    }
-    if (!hasAdmin(interaction)) {
-      await interaction.reply({
-        content: 'Chỉ admin (quyền Quản lý máy chủ) mới mở được bảng này.',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-    await interaction.reply({
-      embeds: [homeEmbed(interaction.guildId)],
-      components: homeRows(interaction.guildId),
-      flags: MessageFlags.Ephemeral,
-    });
-  },
-};
-
+// Reached from the /caidat panel (a button), not a standalone slash command.
 // ---------- interaction routing ----------
 
 async function showHome(interaction: ButtonInteraction | AnySelectMenuInteraction | ModalSubmitInteraction, guildId: string): Promise<void> {
@@ -368,20 +350,24 @@ export const quanlyComponents: ComponentHandler = {
       if (rarity in RARITIES) guildItems.update(id, { rarity });
       return showManage(interaction, guildItems.get(id)!);
     }
+    if (action === 'emoji') {
+      const emoji = interaction.values[0];
+      if (EMOJI_PALETTE.includes(emoji)) guildItems.update(id, { emoji });
+      return showManage(interaction, guildItems.get(id)!);
+    }
   },
 
   async handleModal(interaction: ModalSubmitInteraction, args: string[]): Promise<void> {
     if (!hasAdmin(interaction) || !interaction.guildId) return;
     const [action, rawId] = args;
     const name = interaction.fields.getTextInputValue('name').trim();
-    const emoji = interaction.fields.getTextInputValue('emoji').trim();
     const priceRaw = interaction.fields.getTextInputValue('price').replace(/[^\d]/g, '');
     const desc = interaction.fields.getTextInputValue('desc').trim();
     const price = Number(priceRaw);
 
-    if (!name || !emoji || !Number.isFinite(price) || price < 1) {
+    if (!name || !Number.isFinite(price) || price < 1) {
       await interaction.reply({
-        content: 'Cần tên, emoji và giá hợp lệ (số nguyên ≥ 1). Thử lại nhé.',
+        content: 'Cần tên và giá hợp lệ (số nguyên ≥ 1). Thử lại nhé.',
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -392,7 +378,14 @@ export const quanlyComponents: ComponentHandler = {
         await interaction.reply({ content: `Đã đủ ${MAX_GUILD_ITEMS} item.`, flags: MessageFlags.Ephemeral });
         return;
       }
-      const id = guildItems.create(interaction.guildId, { name, emoji, price, description: desc });
+      // New items start with a default icon; the admin picks a real one from
+      // the emoji palette in the manage view that opens next.
+      const id = guildItems.create(interaction.guildId, {
+        name,
+        emoji: DEFAULT_ITEM_EMOJI,
+        price,
+        description: desc,
+      });
       return showManage(interaction, guildItems.get(id)!);
     }
     if (action === 'save') {
@@ -401,7 +394,7 @@ export const quanlyComponents: ComponentHandler = {
       if (!item || item.guildId !== interaction.guildId) return showHome(interaction, interaction.guildId);
       // Keep the floor if the item carries an effect.
       const floor = item.effect ? config.effectFloor(item.effect) : 0;
-      guildItems.update(id, { name, emoji, price: Math.max(price, floor), description: desc });
+      guildItems.update(id, { name, price: Math.max(price, floor), description: desc });
       return showManage(interaction, guildItems.get(id)!);
     }
   },

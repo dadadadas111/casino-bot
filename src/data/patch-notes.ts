@@ -12,8 +12,8 @@ export const PATCH_NOTES: PatchNote[] = [
     date: '03/09/2026',
     title: 'Mỗi server có item và đồ sưu tầm riêng',
     changes: [
-      '🎁 **Admin server tự tạo item riêng bằng `/quanly`.** Đồ sưu tầm hoặc đồ có hiệu ứng (xóa cooldown làm việc, thoát tù/viện, buff may mắn), tự đặt giá, độ hiếm, và **gắn role Discord tặng khi sở hữu**',
-      '🛒 **`/cuahang`: mua item riêng của server**, tự nhận role, dùng được đồ hiệu ứng',
+      '🎁 **Admin server tự tạo item riêng.** Mở `/caidat` rồi bấm nút 🎁 **Vật phẩm riêng của server**: đồ sưu tầm hoặc đồ có hiệu ứng (xóa cooldown làm việc, thoát tù/viện, buff may mắn), tự đặt giá, độ hiếm, và **gắn role Discord tặng khi sở hữu**',
+      '🛒 **Mua item riêng của server:** bấm nút 🎁 **Đồ server** trong `/shop`, tự nhận role, dùng được đồ hiệu ứng',
       '🏅 **`/suutap`: khoe bộ sưu tập và bảng xếp hạng sưu tầm** của server (điểm tính theo độ hiếm)',
       '-# Ví xu vẫn dùng chung mọi server. Item riêng chỉ mua và dùng trong chính server tạo ra nó, nên mỗi cộng đồng có bộ sưu tập của riêng mình.',
     ],
