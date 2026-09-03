@@ -25,6 +25,7 @@ import {
 } from '../services/avatar-store.service.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
+import { coupleFaces } from '../embeds/wedding.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { announce } from '../interactions/announce.js';
 import type { Command } from './types.js';
@@ -404,21 +405,24 @@ export const figurineComponents: ComponentHandler = {
       }
       figurines.setMarried(userId, true);
       await interaction.update(figurinePanel(userId, displayName));
-      await announce(interaction, {
-        embeds: [
-          new EmbedBuilder()
-            .setColor(COLORS.gold)
-            .setTitle('💒 HÔN LỄ ĐẶC BIỆT 💒')
-            .setDescription(
-              [
-                `**${displayName}** chính thức kết hôn với **${fig.emoji} ${fig.name}**!`,
-                '',
-                'Không cần ai đồng ý, không sợ bị từ chối, hạnh phúc tự tay xây lấy. 🥂',
-                'Muốn đãi cả kênh thì mở tiệc bằng `/cuoi`.',
-              ].join('\n'),
-            ),
-        ],
-      });
+      const weddingEmbed = new EmbedBuilder()
+        .setColor(COLORS.gold)
+        .setTitle('💒 HÔN LỄ ĐẶC BIỆT 💒')
+        .setDescription(
+          [
+            `**${displayName}** chính thức kết hôn với **${fig.emoji} ${fig.name}**!`,
+            '',
+            'Không cần ai đồng ý, không sợ bị từ chối, hạnh phúc tự tay xây lấy. 🥂',
+            'Muốn đãi cả kênh thì mở tiệc bằng `/cuoi`.',
+          ].join('\n'),
+        );
+      coupleFaces(
+        weddingEmbed,
+        `${displayName} 💍 ${fig.name}`,
+        interaction.user.displayAvatarURL(),
+        fig.avatar,
+      );
+      await announce(interaction, { embeds: [weddingEmbed] });
       return;
     }
 
