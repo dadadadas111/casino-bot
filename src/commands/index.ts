@@ -23,9 +23,12 @@ import { helpCommand } from './help.command.js';
 import { bantinCommand } from './bantin.command.js';
 import { patchnoteCommand } from './patchnote.command.js';
 import { caidatCommand } from './caidat.command.js';
+import { quanlyCommand } from './quanly.command.js';
 import { chubotCommand } from './chubot.command.js';
 import { tromCommand } from './trom.command.js';
 import { shopCommand, tuidoCommand } from './tuido.command.js';
+import { cuahangCommand } from './cuahang.command.js';
+import { suutapCommand } from './suutap.command.js';
 import { cuoiCommand } from './cuoi.command.js';
 import { hinhnomCommand } from './hinhnom.command.js';
 import { tuongtacCommands } from './tuongtac.command.js';
@@ -78,6 +81,8 @@ const all: Command[] = [
   // Life.
   tuidoCommand,
   shopCommand,
+  cuahangCommand,
+  suutapCommand,
   cuoiCommand,
   hinhnomCommand,
   tromCommand,
@@ -88,6 +93,7 @@ const all: Command[] = [
   bantinCommand,
   patchnoteCommand,
   caidatCommand,
+  quanlyCommand,
   chubotCommand,
   // Blackjack is button-driven, so the typed layer cannot stand in for it.
   // Every other short form lives on there instead (!tx, !bc, !cf, !sl, !dn,

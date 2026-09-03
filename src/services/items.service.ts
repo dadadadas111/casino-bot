@@ -1,4 +1,5 @@
 import type { Db } from '../db/database.js';
+import type { EffectKind } from './effects.service.js';
 
 export interface ShopItem {
   key: string;
@@ -7,6 +8,9 @@ export interface ShopItem {
   price: number; // xu
   desc: string;
   usable?: boolean; // consumed on demand from the /tuido panel
+  effect?: EffectKind | null; // coded gameplay effect, null for cosmetic
+  enabled?: boolean; // hidden from the shop when false (owner toggle)
+  sort?: number; // display order in the shop
 }
 
 /** Everything in the shop stays at or under 1.000 xu. */
@@ -79,6 +83,102 @@ export const SHOP_ITEMS: Record<string, ShopItem> = {
   },
 };
 
+/** Which coded effect each seed item carries. Cosmetic items are absent. */
+const ITEM_EFFECTS: Partial<Record<string, EffectKind>> = {
+  khien: 'block_theft',
+  mubaohiem: 'survive_roulette',
+  nhan: 'marriage_ring',
+  hopqua: 'mystery_box',
+  buamayman: 'luck_buff',
+  caphe: 'clear_work_cd',
+  chiakhoa: 'escape_lockup',
+};
+
+/** The code seed in shop order, with effect/enabled/sort filled in. */
+function seedList(): ShopItem[] {
+  return Object.values(SHOP_ITEMS).map((it, i) => ({
+    ...it,
+    effect: ITEM_EFFECTS[it.key] ?? null,
+    enabled: true,
+    sort: i,
+  }));
+}
+
+// The live catalog, loaded from the shop_items table at startup. Null until
+// loadShopCatalog runs, in which case reads fall back to the code seed (tests).
+let catalogCache: ShopItem[] | null = null;
+
+/** Seed any missing rows into shop_items (idempotent), then load the cache. */
+export function loadShopCatalog(db: Db): void {
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO shop_items (key, name, emoji, price, description, effect, usable, enabled, sort)
+     VALUES (@key, @name, @emoji, @price, @desc, @effect, @usable, 1, @sort)`,
+  );
+  const tx = db.transaction((items: ShopItem[]) => {
+    for (const it of items) {
+      insert.run({
+        key: it.key,
+        name: it.name,
+        emoji: it.emoji,
+        price: it.price,
+        desc: it.desc,
+        effect: it.effect ?? null,
+        usable: it.usable ? 1 : 0,
+        sort: it.sort ?? 0,
+      });
+    }
+  });
+  tx(seedList());
+  refreshShopCatalog(db);
+}
+
+/** Re-read the catalog into the cache after an owner edits it. */
+export function refreshShopCatalog(db: Db): void {
+  const rows = db
+    .prepare(
+      `SELECT key, name, emoji, price, description AS desc, effect, usable, enabled, sort
+       FROM shop_items ORDER BY sort, key`,
+    )
+    .all() as Array<{
+    key: string;
+    name: string;
+    emoji: string;
+    price: number;
+    desc: string;
+    effect: string | null;
+    usable: number;
+    enabled: number;
+    sort: number;
+  }>;
+  catalogCache = rows.map((r) => ({
+    key: r.key,
+    name: r.name,
+    emoji: r.emoji,
+    price: r.price,
+    desc: r.desc,
+    effect: (r.effect as EffectKind | null) ?? null,
+    usable: !!r.usable,
+    enabled: !!r.enabled,
+    sort: r.sort,
+  }));
+}
+
+/** All shop items shown to buyers (enabled only), cache-backed. */
+export function getShopItems(): ShopItem[] {
+  return (catalogCache ?? seedList()).filter((i) => i.enabled !== false);
+}
+
+/** Any catalog item by key, including disabled ones (for rendering owned qty). */
+export function getShopItem(key: string): ShopItem | undefined {
+  return (catalogCache ?? seedList()).find((i) => i.key === key);
+}
+
+/** Usable (use-on-demand) items currently enabled. */
+export function getUsableItems(): ShopItem[] {
+  return getShopItems().filter((i) => i.usable);
+}
+
+/** @deprecated use getUsableItems(); kept for callers not yet migrated. */
 export const USABLE_ITEMS = Object.values(SHOP_ITEMS).filter((i) => i.usable);
 
 function normalize(raw: string): string {
@@ -95,7 +195,7 @@ function normalize(raw: string): string {
  * `!mua bùa may mắn` all land on the same item. An ambiguous prefix resolves
  * to nothing rather than guessing, so nobody buys the wrong thing.
  */
-export function findShopItem(raw: string, pool: ShopItem[] = Object.values(SHOP_ITEMS)): ShopItem | null {
+export function findShopItem(raw: string, pool: ShopItem[] = getShopItems()): ShopItem | null {
   const needle = normalize(raw);
   if (!needle) return null;
   const exact = pool.find((i) => i.key === needle || normalize(i.name) === needle);

@@ -10,6 +10,7 @@ import {
 } from 'discord.js';
 import { env } from '../config/env.js';
 import { prefixes } from '../context.js';
+import { getShopItems } from '../services/items.service.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS } from '../embeds/format.js';
 import type { Command } from './types.js';
@@ -118,17 +119,14 @@ const PAGES: HelpPage[] = [
         '',
         '**`/tuido` : túi đồ và cửa hàng chung một bảng**',
         'Đổi qua lại hai thẻ 🎒 Túi đồ và 🏪 Cửa hàng, chọn món rồi bấm Mua, Dùng hoặc Tặng.',
-        '🛡️ Khiên (800) : chặn một lần bị trộm',
-        '🪖 Mũ bảo hiểm (1.000) : trúng đạn cò quay vẫn khỏi nhập viện',
-        '🍀 Bùa may mắn (1.000) : thắng ván nào cũng +10% tiền lời trong 1 giờ',
-        '💍 Nhẫn cầu hôn (1.000) : để đi hỏi vợ hỏi chồng',
-        '📦 Hộp quà (500) : mở ngay khi mua, hên xui',
-        '☕ Cà phê (300) : xóa sạch cooldown làm việc',
-        '🗝️ Chìa khóa (200) : thoát tù hoặc trốn viện, khỏi tốn tiền chuộc',
-        '🎎 Hình nộm (1.000) : bạn tưởng tượng, tự đặt tên và cưới được luôn',
-        '🏷️ Thẻ đổi tên (200) : đổi tên hoặc đổi hình cho hình nộm',
-        '-# Mua nhiều cái một lúc: nút 🧺 Mua nhiều trong `/tuido`, hoặc gõ `!mua mubaohiem 3`.',
-        '-# `/shop` vẫn dùng được, nó mở thẳng vào thẻ cửa hàng.',
+        ...getShopItems().map(
+          (i) => `${i.emoji} ${i.name} (${i.price.toLocaleString('vi-VN')}) : ${i.desc}`,
+        ),
+        '-# Mua nhiều cái một lúc: nút 🧺 Mua nhiều trong `/tuido`. `/shop` mở thẳng thẻ cửa hàng.',
+        '',
+        '**Đồ riêng của server**',
+        '`/cuahang` : cửa hàng item riêng do admin server tạo, có đồ sưu tầm và đồ hiệu ứng',
+        '`/suutap` : khoe bộ sưu tập và xem bảng xếp hạng sưu tầm của server',
         '',
         '**Tài sản lớn** (thẻ 🏠 trong `/tuido`)',
         '🏚️🏠🏡🏰 Nhà (20.000 tới 1.500.000) : điểm danh cộng thêm 10% tới 100%',
@@ -161,6 +159,7 @@ const PAGES: HelpPage[] = [
         '',
         '**Cho admin server** (cần quyền Quản lý máy chủ)',
         '`/caidat` : một cửa duy nhất cho bản tin, thông báo cập nhật, prefix và tên bot',
+        '`/quanly` : tạo và quản lý item riêng của server (giá, hiệu ứng, role, độ hiếm)',
         '-# Chỉnh xu của người chơi là việc của chủ bot, admin server không có quyền này. Xu dùng chung cho mọi server nên không thể để mỗi nơi tự in tiền.',
         '',
         env.ENABLE_PREFIX_COMMANDS === 'true'

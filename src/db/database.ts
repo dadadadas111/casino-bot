@@ -176,6 +176,57 @@ CREATE TABLE IF NOT EXISTS cash_ledger (
   meta TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Owner-tunable knobs. Typed by the code registry in config.service; value TEXT.
+CREATE TABLE IF NOT EXISTS config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Global common item catalog, seeded from code, owner-managed. Same on every
+-- server. effect names a kind from effects.service (NULL = cosmetic).
+CREATE TABLE IF NOT EXISTS shop_items (
+  key TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  price INTEGER NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  effect TEXT,
+  usable INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  sort INTEGER NOT NULL DEFAULT 0
+);
+
+-- Per-server custom items (collectibles + bounded effects), managed by that
+-- server's admins. Only offered in their guild; owning one can grant role_id.
+CREATE TABLE IF NOT EXISTS guild_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  guild_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  emoji TEXT NOT NULL DEFAULT '🎁',
+  price INTEGER NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  effect TEXT,
+  rarity TEXT NOT NULL DEFAULT 'common',
+  role_id TEXT,
+  usable INTEGER NOT NULL DEFAULT 0,
+  enabled INTEGER NOT NULL DEFAULT 1,
+  sort INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_guild_items ON guild_items(guild_id, enabled);
+
+-- Ownership of server items, scoped to the guild (global wallet still pays).
+CREATE TABLE IF NOT EXISTS guild_user_items (
+  guild_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  item_id INTEGER NOT NULL,
+  qty INTEGER NOT NULL DEFAULT 0,
+  acquired_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (guild_id, user_id, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_guild_user_items ON guild_user_items(guild_id, user_id);
 `;
 
 export function createDb(dbPath: string): Db {

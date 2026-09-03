@@ -7,7 +7,9 @@ import { LotteryService } from './services/lottery.service.js';
 import { ActivityService } from './services/activity.service.js';
 import { ReportService } from './services/report.service.js';
 import { CashService } from './services/cash.service.js';
-import { ItemsService } from './services/items.service.js';
+import { ItemsService, loadShopCatalog } from './services/items.service.js';
+import { ConfigService } from './services/config.service.js';
+import { GuildItemsService } from './services/guild-items.service.js';
 import { BuffService } from './services/buff.service.js';
 import { TopupService } from './services/topup.service.js';
 import { DashboardService } from './services/dashboard.service.js';
@@ -24,6 +26,9 @@ import { LoanService } from './services/loan.service.js';
 import { QuestService } from './services/quest.service.js';
 
 export const db = createDb(env.DB_PATH);
+// Seed the shop catalog into the DB (idempotent) and load it into cache.
+loadShopCatalog(db);
+export const config = new ConfigService(db);
 export const buffs = new BuffService(db);
 export const assets = new AssetsService(db);
 export const economy = new EconomyService(db, buffs, assets);
@@ -42,6 +47,7 @@ export const activity = new ActivityService(db);
 export const reports = new ReportService(db);
 export const cash = new CashService(db);
 export const items = new ItemsService(db);
+export const guildItems = new GuildItemsService(db);
 export const topups = new TopupService(db, cash);
 export const dashboard = new DashboardService(db);
 export const profiles = new ProfileService(db);

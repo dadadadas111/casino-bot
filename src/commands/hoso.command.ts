@@ -13,7 +13,7 @@ import { amountDue } from '../services/loan.service.js';
 import { rankFor, shiftsToNext } from '../services/job.service.js';
 import { BUFFS } from '../services/buff.service.js';
 import { GAME_LABELS } from '../embeds/history-table.js';
-import { SHOP_ITEMS } from '../services/items.service.js';
+import { getShopItem } from '../services/items.service.js';
 import { formatVnd } from '../embeds/topup.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
 import { componentId } from '../interactions/ids.js';
@@ -167,7 +167,7 @@ export const hosoCommand: Command = {
       embed.addFields({
         name: '🎒 Túi đồ',
         value: p.items
-          .map((i) => `${SHOP_ITEMS[i.item]?.emoji ?? '❔'} ${SHOP_ITEMS[i.item]?.name ?? i.item} x${i.qty}`)
+          .map((i) => `${getShopItem(i.item)?.emoji ?? '❔'} ${getShopItem(i.item)?.name ?? i.item} x${i.qty}`)
           .join(' · '),
       });
     }

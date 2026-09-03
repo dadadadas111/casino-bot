@@ -22,6 +22,8 @@ import { walletComponents } from '../commands/vi.command.js';
 import { bagComponents } from '../commands/tuido.command.js';
 import { figurineComponents } from '../commands/hinhnom.command.js';
 import { configComponents } from '../commands/caidat.command.js';
+import { quanlyComponents } from '../commands/quanly.command.js';
+import { cuahangComponents } from '../commands/cuahang.command.js';
 import { ownerComponents } from '../commands/chubot.command.js';
 import { lotteryComponents } from '../commands/xoso.command.js';
 
@@ -43,6 +45,8 @@ const handlers: Record<string, ComponentHandler> = {
   bag: bagComponents,
   fig: figurineComponents,
   cfg: configComponents,
+  qly: quanlyComponents,
+  cua: cuahangComponents,
   own: ownerComponents,
   xs: lotteryComponents,
   free: downtimeComponents,

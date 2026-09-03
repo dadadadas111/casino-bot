@@ -17,7 +17,7 @@ import {
   type ModalSubmitInteraction,
 } from 'discord.js';
 import { assets, buffs, economy, items, quests } from '../context.js';
-import { SHOP_ITEMS } from '../services/items.service.js';
+import { getShopItem, getShopItems } from '../services/items.service.js';
 import {
   ASSETS,
   ASSET_LIST,
@@ -88,7 +88,7 @@ function panelEmbed(userId: string, state: PanelState): EmbedBuilder {
       .setColor(COLORS.gold)
       .setTitle('🏪 Cửa hàng sòng bạc')
       .setDescription(
-        Object.values(SHOP_ITEMS)
+        getShopItems()
           .map((i) => `${i.emoji} **${i.name}** · ${formatCoins(i.price)}\n-# ${i.desc}`)
           .join('\n'),
       )
@@ -104,7 +104,7 @@ function panelEmbed(userId: string, state: PanelState): EmbedBuilder {
       inv.length > 0
         ? inv
             .map((row) => {
-              const item = SHOP_ITEMS[row.item];
+              const item = getShopItem(row.item);
               return `${item?.emoji ?? '❔'} **${item?.name ?? row.item}** x${row.qty}\n-# ${item?.desc ?? ''}`;
             })
             .join('\n')
@@ -154,14 +154,14 @@ function selectRow(
           desc: a.desc,
         }))
       : state.tab === 'shop'
-      ? Object.values(SHOP_ITEMS).map((i) => ({
+      ? getShopItems().map((i) => ({
           key: i.key,
           label: `${i.name} · ${i.price.toLocaleString('vi-VN')} xu`,
           emoji: i.emoji,
           desc: i.desc,
         }))
       : items.inventory(userId).map((row) => {
-          const item = SHOP_ITEMS[row.item];
+          const item = getShopItem(row.item);
           return {
             key: row.item,
             label: `${item?.name ?? row.item} x${row.qty}`,
@@ -222,7 +222,7 @@ function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBu
     );
   }
 
-  const item = SHOP_ITEMS[key];
+  const item = getShopItem(key);
   if (!item) return null;
 
   if (state.tab === 'shop') {
@@ -318,8 +318,8 @@ export type PurchaseResult =
  * typed `!mua` command.
  */
 export function purchase(userId: string, key: string, qty: number): PurchaseResult {
-  const item = SHOP_ITEMS[key];
-  if (!item) return { ok: false, reason: 'unknown' };
+  const item = getShopItem(key);
+  if (!item || item.enabled === false) return { ok: false, reason: 'unknown' };
   if (!Number.isInteger(qty) || qty < 1 || qty > MAX_BUY) return { ok: false, reason: 'bad_qty' };
 
   const cost = item.price * qty;
@@ -345,7 +345,7 @@ export function purchase(userId: string, key: string, qty: number): PurchaseResu
 }
 
 async function buy(interaction: ButtonInteraction, key: string, qty = 1): Promise<void> {
-  const item = SHOP_ITEMS[key];
+  const item = getShopItem(key);
   const userId = interaction.user.id;
   if (!item) return;
 
@@ -388,7 +388,7 @@ async function buy(interaction: ButtonInteraction, key: string, qty = 1): Promis
 }
 
 async function use(interaction: ButtonInteraction, key: string): Promise<void> {
-  const item = SHOP_ITEMS[key];
+  const item = getShopItem(key);
   const userId = interaction.user.id;
   if (!item) return;
 
@@ -529,7 +529,7 @@ export const bagComponents: ComponentHandler = {
     }
     if (action === 'buymany') {
       if (await refuseIfDown(interaction)) return;
-      const item = SHOP_ITEMS[state.selected];
+      const item = getShopItem(state.selected);
       if (!item) return;
       await interaction.showModal(
         new ModalBuilder()
@@ -559,7 +559,7 @@ export const bagComponents: ComponentHandler = {
       return;
     }
     if (action === 'gift') {
-      const item = SHOP_ITEMS[state.selected];
+      const item = getShopItem(state.selected);
       await interaction.update({
         embeds: [
           new EmbedBuilder()
@@ -590,7 +590,7 @@ export const bagComponents: ComponentHandler = {
     const key = args[1];
     const raw = interaction.fields.getTextInputValue('soluong').trim();
     const qty = Number(raw);
-    const item = SHOP_ITEMS[key];
+    const item = getShopItem(key);
     const userId = interaction.user.id;
     if (!item) return;
     if (!/^\d+$/.test(raw) || qty < 1 || qty > MAX_BUY) {
@@ -645,7 +645,7 @@ export const bagComponents: ComponentHandler = {
 
     if (args[0] === 'giftto' && interaction.isUserSelectMenu()) {
       const key = args[1];
-      const item = SHOP_ITEMS[key];
+      const item = getShopItem(key);
       const target = interaction.users.first();
       if (!item || !target) return;
 
