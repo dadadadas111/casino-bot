@@ -18,7 +18,7 @@ export interface ConfigKnob {
 
 // One floor-price knob per server-allowed effect, defaulted from the registry.
 const effectFloorKnobs: ConfigKnob[] = Object.values(EFFECTS)
-  .filter((e) => e.serverAllowed)
+  .filter((e) => e.serverAllowed && e.floor > 0)
   .map((e) => ({
     key: `floor.${e.kind}`,
     label: `Giá sàn item server: ${e.label}`,

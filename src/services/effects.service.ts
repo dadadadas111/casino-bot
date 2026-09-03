@@ -19,7 +19,8 @@ export type EffectKind =
   | 'luck_buff'
   | 'decoy'
   | 'marriage_ring'
-  | 'mystery_box';
+  | 'mystery_box'
+  | 'grant_role';
 
 export interface EffectDef {
   kind: EffectKind;
@@ -43,10 +44,18 @@ export const EFFECTS: Record<EffectKind, EffectDef> = {
   decoy: { kind: 'decoy', label: 'Hình nộm đánh lạc hướng', passive: true, serverAllowed: false, floor: 1000 },
   marriage_ring: { kind: 'marriage_ring', label: 'Nhẫn cầu hôn (để /cuoi)', passive: false, serverAllowed: false, floor: 1000 },
   mystery_box: { kind: 'mystery_box', label: 'Hộp quà bí ẩn (sinh xu)', passive: false, serverAllowed: false, floor: 500 },
+  // Owning grants a Discord role. Not consumed, no economy impact, so no floor.
+  grant_role: { kind: 'grant_role', label: 'Nhận role Discord', passive: false, serverAllowed: true, floor: 0 },
 };
 
-/** Effects a server admin is allowed to put on a custom item. */
-export const SERVER_EFFECTS: EffectDef[] = Object.values(EFFECTS).filter((e) => e.serverAllowed);
+/**
+ * Consumable gameplay effects a server admin can put on an item, each with a
+ * floor price. grant_role is server-allowed too but handled separately (it is
+ * not consumed and has no floor), so it is excluded here.
+ */
+export const SERVER_EFFECTS: EffectDef[] = Object.values(EFFECTS).filter(
+  (e) => e.serverAllowed && e.floor > 0,
+);
 
 export function isEffectKind(x: string | null | undefined): x is EffectKind {
   return !!x && Object.prototype.hasOwnProperty.call(EFFECTS, x);

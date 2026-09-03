@@ -37,6 +37,12 @@ const EMOJI_PALETTE = [
 
 const DEFAULT_ITEM_EMOJI = '🎁';
 
+/** Accept a unicode emoji or a custom-emoji tag like <:name:12345>. */
+function isValidEmoji(s: string): boolean {
+  if (/^<a?:\w{2,32}:\d{5,}>$/.test(s)) return true;
+  return /\p{Extended_Pictographic}/u.test(s) && [...s].length <= 12;
+}
+
 function rarityMeta(key: string): { label: string; emoji: string } {
   return RARITIES[key] ?? RARITIES.common;
 }
@@ -114,12 +120,18 @@ function manageEmbed(item: GuildItem, guild: Guild): EmbedBuilder {
       { name: 'Độ hiếm', value: `${r.emoji} ${r.label}`, inline: true },
       { name: 'Trạng thái', value: item.enabled ? 'Đang bán ✅' : 'Đang ẩn ❌', inline: true },
       { name: 'Hiệu ứng', value: effectLabel(item.effect), inline: true },
-      { name: 'Role tặng', value: item.roleId ? `<@&${item.roleId}>` : 'không', inline: true },
     );
-  // Warn if a role is set but the bot cannot actually assign it.
-  if (item.roleId) {
-    const warn = roleBlockReason(guild, item.roleId);
-    if (warn) embed.addFields({ name: '⚠️ Role chưa gán được', value: warn, inline: false });
+  if (item.effect === 'grant_role') {
+    embed.addFields({
+      name: 'Role tặng',
+      value: item.roleId ? `<@&${item.roleId}>` : 'chưa chọn — chọn role bên dưới hoặc bấm Tạo role mới',
+      inline: true,
+    });
+    // Warn if a role is set but the bot cannot actually assign it.
+    if (item.roleId) {
+      const warn = roleBlockReason(guild, item.roleId);
+      if (warn) embed.addFields({ name: '⚠️ Role chưa gán được', value: warn, inline: false });
+    }
   }
   return embed;
 }
@@ -135,7 +147,8 @@ function manageRows(
     .setCustomId(componentId('qly', 'effect', String(item.id)))
     .setPlaceholder('Hiệu ứng...')
     .addOptions(
-      { label: 'Không (chỉ sưu tầm)', value: 'none', emoji: '🎗️', default: !item.effect },
+      { label: 'Không', value: 'none', emoji: '🚫', default: !item.effect },
+      { label: 'Nhận role Discord', value: 'grant_role', emoji: '🎭', default: item.effect === 'grant_role' },
       ...SERVER_EFFECTS.map((e) => ({
         label: e.label.slice(0, 100),
         value: e.kind,
@@ -159,15 +172,22 @@ function manageRows(
         default: item.rarity === key,
       })),
     );
+  const grantsRole = item.effect === 'grant_role';
+  const createRole = new ButtonBuilder()
+    .setCustomId(componentId('qly', 'taorole', String(item.id)))
+    .setLabel('Tạo role mới')
+    .setEmoji('✨')
+    .setStyle(ButtonStyle.Secondary);
   const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(componentId('qly', 'toggle', String(item.id)))
       .setLabel(item.enabled ? 'Ẩn' : 'Bán')
       .setEmoji(item.enabled ? '🙈' : '🛒')
       .setStyle(ButtonStyle.Secondary),
+    ...(grantsRole ? [createRole] : []),
     new ButtonBuilder()
       .setCustomId(componentId('qly', 'edit', String(item.id)))
-      .setLabel('Sửa tên/giá')
+      .setLabel('Sửa')
       .setEmoji('✏️')
       .setStyle(ButtonStyle.Secondary),
     new ButtonBuilder()
@@ -185,7 +205,9 @@ function manageRows(
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(emoji),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(effect),
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(rarity),
-    new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(role),
+    ...(grantsRole
+      ? [new ActionRowBuilder<RoleSelectMenuBuilder>().addComponents(role)]
+      : []),
     buttons,
   ];
 }
@@ -215,14 +237,23 @@ function itemModal(id: number | null, item?: GuildItem): ModalBuilder {
     .setStyle(TextInputStyle.Paragraph)
     .setMaxLength(200)
     .setRequired(false);
+  // Custom emoji is optional: leave it blank to pick from the palette instead,
+  // or paste any emoji here (unicode, or a :custom: from this server).
+  const emoji = new TextInputBuilder()
+    .setCustomId('emoji')
+    .setLabel('Emoji riêng (bỏ trống để chọn từ bảng)')
+    .setStyle(TextInputStyle.Short)
+    .setMaxLength(40)
+    .setRequired(false);
   if (item) {
     name.setValue(item.name);
     price.setValue(String(item.price));
     if (item.description) desc.setValue(item.description);
+    emoji.setValue(item.emoji);
   }
-  // Emoji is picked from a palette in the manage view, not typed here.
   return modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(name),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(emoji),
     new ActionRowBuilder<TextInputBuilder>().addComponents(price),
     new ActionRowBuilder<TextInputBuilder>().addComponents(desc),
   );
@@ -310,6 +341,32 @@ export const quanlyComponents: ComponentHandler = {
     if (action === 'manage') {
       return showManage(interaction, item);
     }
+    if (action === 'taorole') {
+      const guild = interaction.guild;
+      if (!guild || item.effect !== 'grant_role') return showManage(interaction, item);
+      if (!guild.members.me?.permissions.has(PermissionFlagsBits.ManageRoles)) {
+        await interaction.reply({
+          content: '⚠️ Bot thiếu quyền **Manage Roles** nên chưa tạo được role. Cấp quyền rồi thử lại.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.deferUpdate();
+      try {
+        const role = await guild.roles.create({
+          name: item.name.slice(0, 90) || 'Vật phẩm sưu tầm',
+          color: 0xf1c40f,
+          mentionable: false,
+          reason: `Role cho vật phẩm sưu tầm "${item.name}"`,
+        });
+        guildItems.update(id, { roleId: role.id });
+      } catch (error) {
+        console.error('[quanly] create role failed:', error);
+      }
+      const fresh = guildItems.get(id)!;
+      await interaction.editReply({ embeds: [manageEmbed(fresh, guild)], components: manageRows(fresh) });
+      return;
+    }
   },
 
   async handleSelect(interaction: AnySelectMenuInteraction, args: string[]): Promise<void> {
@@ -330,11 +387,14 @@ export const quanlyComponents: ComponentHandler = {
     if (action === 'effect') {
       const value = interaction.values[0];
       if (value === 'none') {
-        guildItems.update(id, { effect: null, usable: false });
-      } else if (isEffectKind(value) && EFFECTS[value].serverAllowed) {
-        // Enforce the floor price so a server cannot undercut the economy.
+        guildItems.update(id, { effect: null, usable: false, roleId: null });
+      } else if (value === 'grant_role') {
+        // Role-granting item: not consumed, keeps its chosen role.
+        guildItems.update(id, { effect: 'grant_role', usable: false });
+      } else if (isEffectKind(value) && EFFECTS[value].serverAllowed && EFFECTS[value].floor > 0) {
+        // A consumable effect: enforce the floor and drop any role it had.
         const floor = config.effectFloor(value);
-        const patch: Record<string, unknown> = { effect: value, usable: true };
+        const patch: Record<string, unknown> = { effect: value, usable: true, roleId: null };
         if (item.price < floor) patch.price = floor;
         guildItems.update(id, patch);
       }
@@ -363,6 +423,8 @@ export const quanlyComponents: ComponentHandler = {
     const name = interaction.fields.getTextInputValue('name').trim();
     const priceRaw = interaction.fields.getTextInputValue('price').replace(/[^\d]/g, '');
     const desc = interaction.fields.getTextInputValue('desc').trim();
+    const emojiRaw = interaction.fields.getTextInputValue('emoji').trim();
+    const customEmoji = emojiRaw && isValidEmoji(emojiRaw) ? emojiRaw : null;
     const price = Number(priceRaw);
 
     if (!name || !Number.isFinite(price) || price < 1) {
@@ -378,11 +440,11 @@ export const quanlyComponents: ComponentHandler = {
         await interaction.reply({ content: `Đã đủ ${MAX_GUILD_ITEMS} item.`, flags: MessageFlags.Ephemeral });
         return;
       }
-      // New items start with a default icon; the admin picks a real one from
-      // the emoji palette in the manage view that opens next.
+      // Use the pasted emoji if given, else a default the admin can change
+      // from the palette in the manage view that opens next.
       const id = guildItems.create(interaction.guildId, {
         name,
-        emoji: DEFAULT_ITEM_EMOJI,
+        emoji: customEmoji ?? DEFAULT_ITEM_EMOJI,
         price,
         description: desc,
       });
@@ -394,7 +456,9 @@ export const quanlyComponents: ComponentHandler = {
       if (!item || item.guildId !== interaction.guildId) return showHome(interaction, interaction.guildId);
       // Keep the floor if the item carries an effect.
       const floor = item.effect ? config.effectFloor(item.effect) : 0;
-      guildItems.update(id, { name, price: Math.max(price, floor), description: desc });
+      const patch: Record<string, unknown> = { name, price: Math.max(price, floor), description: desc };
+      if (customEmoji) patch.emoji = customEmoji;
+      guildItems.update(id, patch);
       return showManage(interaction, guildItems.get(id)!);
     }
   },
