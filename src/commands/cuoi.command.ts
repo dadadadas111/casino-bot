@@ -82,8 +82,7 @@ async function marriagePanel(
           .setCustomId(componentId('wed', 'party'))
           .setLabel('Tổ chức hôn lễ')
           .setEmoji('💒')
-          .setStyle(ButtonStyle.Success)
-          .setDisabled(economy.getBalance(userId) < CEREMONY_COST),
+          .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
           .setCustomId(componentId('wed', 'divorce'))
           .setLabel('Ly hôn')
@@ -298,7 +297,7 @@ export const weddingComponents: ComponentHandler = {
               : outcome === 'busy'
                 ? 'Tiệc cưới của bạn đang diễn ra mà!'
                 : outcome === 'poor'
-                  ? `Không đủ ${formatCoins(CEREMONY_COST)} để đặt tiệc. Cưới xin tốn kém lắm!`
+                  ? `Cần ${formatCoins(CEREMONY_COST)} trong **ví** để đặt tiệc. Tiền trong két thì rút ra trước (nút Rút trong \`/vi\`).`
                   : 'Bot không gửi được tin vào kênh này, đã hoàn lại tiền đặt tiệc.',
           flags: MessageFlags.Ephemeral,
         });
