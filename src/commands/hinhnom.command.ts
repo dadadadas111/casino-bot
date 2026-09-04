@@ -69,7 +69,7 @@ function figurineEmbed(userId: string, displayName: string, mode: Mode): EmbedBu
           `Tên: **${draft?.name ?? 'chưa đặt'}**`,
           '',
           'Chọn hình bên dưới, bấm **Đặt tên**, rồi **Tạo**.',
-          `Tốn 1 ${SHOP_ITEMS.hinhnom.emoji} Hình nộm trong túi (đang có ${items.count(userId, 'hinhnom')}).`,
+          `Trong túi: **${items.count(userId, 'hinhnom')}** ${SHOP_ITEMS.hinhnom.emoji} Hình nộm.`,
         ].join('\n'),
       );
   }
@@ -83,7 +83,7 @@ function figurineEmbed(userId: string, displayName: string, mode: Mode): EmbedBu
           `Hiện tại: **${fig.emoji} ${fig.name}**`,
           `Sẽ thành: **${draft?.emoji ?? fig.emoji} ${draft?.name ?? fig.name}**`,
           '',
-          `Tốn 1 ${SHOP_ITEMS.theten.emoji} Thẻ đổi tên (đang có ${items.count(userId, 'theten')}), đổi cả tên lẫn hình cũng chỉ mất một thẻ.`,
+          `Trong túi: **${items.count(userId, 'theten')}** ${SHOP_ITEMS.theten.emoji} Thẻ đổi tên. Một thẻ đổi được cả tên lẫn hình.`,
         ].join('\n'),
       );
   }
@@ -161,7 +161,11 @@ export function figurinePanel(
           .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
           .setCustomId(componentId('fig', mode === 'create' ? 'make' : 'save'))
-          .setLabel(mode === 'create' ? 'Tạo' : 'Xác nhận đổi')
+          .setLabel(
+            mode === 'create'
+              ? `Tạo · 1 ${SHOP_ITEMS.hinhnom.emoji}`
+              : `Xác nhận đổi · 1 ${SHOP_ITEMS.theten.emoji}`,
+          )
           .setEmoji('✅')
           .setStyle(ButtonStyle.Success)
           .setDisabled(mode === 'create' ? !draft.name : !draft.name && !draft.emoji),
@@ -191,7 +195,7 @@ export function figurinePanel(
 
   const partyButton = new ButtonBuilder()
     .setCustomId(componentId('fig', 'party'))
-    .setLabel('Tổ chức hôn lễ')
+    .setLabel(`Tổ chức hôn lễ · ${formatCoins(CEREMONY_COST)}`)
     .setEmoji('💒')
     .setStyle(ButtonStyle.Success);
   rows.push(

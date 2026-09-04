@@ -102,6 +102,8 @@ function walletEmbed(
 
 function walletRows(userId: string): ActionRowBuilder<ButtonBuilder>[] {
   const hasCash = cash.get(userId) > 0;
+  const openLoan = loans.open(userId);
+  const owed = openLoan ? amountDue(openLoan.principal, openLoan.dueAt, new Date()) : 0;
   return [
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -133,10 +135,10 @@ function walletRows(userId: string): ActionRowBuilder<ButtonBuilder>[] {
         .setLabel('Lịch sử')
         .setEmoji('📜')
         .setStyle(ButtonStyle.Secondary),
-      loans.open(userId)
+      openLoan
         ? new ButtonBuilder()
             .setCustomId(componentId('vi', 'tranno'))
-            .setLabel('Trả nợ')
+            .setLabel(`Trả nợ · ${formatCoins(owed)}`)
             .setEmoji('🧾')
             .setStyle(ButtonStyle.Danger)
         : new ButtonBuilder()

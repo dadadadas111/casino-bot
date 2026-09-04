@@ -50,7 +50,7 @@ function panel(view: QuestView): {
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(componentId('quest', 'claim'))
-        .setLabel(`Nhận ${mission.reward.toLocaleString('vi-VN')} xu`)
+        .setLabel(`Nhận · ${formatCoins(mission.reward)}`)
         .setEmoji('🎁')
         .setStyle(ButtonStyle.Success),
     );

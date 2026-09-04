@@ -39,7 +39,7 @@ export function releaseRow(kind: DowntimeKind, fee: number): ActionRowBuilder<Bu
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(componentId('free', kind))
-      .setLabel(`${COPY[kind].button} ${fee.toLocaleString('vi-VN')} xu`)
+      .setLabel(`${COPY[kind].button} · ${formatCoins(fee)}`)
       .setEmoji('🔓')
       .setStyle(ButtonStyle.Primary),
   );

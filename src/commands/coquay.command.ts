@@ -67,7 +67,7 @@ function lobbyButtons(t: Table): ActionRowBuilder<ButtonBuilder>[] {
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(componentId('cq', t.channelId, 'join'))
-        .setLabel(`Tham gia (${t.bet.toLocaleString('vi-VN')} xu)`)
+        .setLabel(`Tham gia · ${formatCoins(t.bet)}`)
         .setEmoji('🔫')
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
@@ -171,7 +171,7 @@ async function runGame(channelId: string): Promise<void> {
               `🎉 Người sống sót nhận thêm **${formatCoins(share)}** mỗi người: ${survivors.map((s) => s.name).join(', ')}`,
               '',
               release
-                ? `-# Nằm viện thì cấm chơi bời. Trả viện phí ${formatCoins(economy.releaseFee(victim.id, 'hospital'))} trong \`/hoso\` để ra sớm.`
+                ? '-# Nằm viện thì cấm chơi bời. Bấm Trả viện phí trong tin nhắn hoặc `/hoso` để ra sớm.'
                 : '-# Mua mũ mới trong `/shop` trước khi cầm súng lần nữa nhé.',
             ].join('\n'),
           ),

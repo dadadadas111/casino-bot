@@ -76,7 +76,7 @@ export const xosoCommand: Command = {
         new ActionRowBuilder<ButtonBuilder>().addComponents(
           new ButtonBuilder()
             .setCustomId(componentId('xs', 'buy'))
-            .setLabel(`Mua vé ${TICKET_PRICE} xu`)
+            .setLabel(`Mua vé · ${formatCoins(TICKET_PRICE)}`)
             .setEmoji('🎫')
             .setStyle(ButtonStyle.Success),
         ),

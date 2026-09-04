@@ -152,7 +152,7 @@ export async function startCeremony(
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(componentId('hl', hostId, 'gift'))
-          .setLabel(`Mừng cưới ${GIFT_AMOUNT.toLocaleString('vi-VN')} xu`)
+          .setLabel(`Mừng cưới · ${formatCoins(GIFT_AMOUNT)}`)
           .setEmoji('🎁')
           .setStyle(ButtonStyle.Success),
         new ButtonBuilder()

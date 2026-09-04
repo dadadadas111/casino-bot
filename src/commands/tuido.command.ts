@@ -211,8 +211,8 @@ function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBu
         ? 'Đang sở hữu rồi'
         : 'Không hạ đời được'
       : check.tradeIn
-        ? `Lên đời ${asset.name} (${check.cost.toLocaleString('vi-VN')} xu)`
-        : `Tậu ${asset.name} (${asset.price.toLocaleString('vi-VN')} xu)`;
+        ? `Lên đời ${asset.name} · ${formatCoins(check.cost)}`
+        : `Tậu ${asset.name} · ${formatCoins(asset.price)}`;
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(componentId('bag', 'tau', state.tab, key))
@@ -235,7 +235,7 @@ function actionRow(userId: string, state: PanelState): ActionRowBuilder<ButtonBu
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(componentId('bag', 'buy', state.tab, key))
-        .setLabel(`Mua 1 (${item.price.toLocaleString('vi-VN')} xu)`)
+        .setLabel(`Mua · ${formatCoins(item.price)}`)
         .setEmoji('🛒')
         .setStyle(ButtonStyle.Success)
         .setDisabled(broke),

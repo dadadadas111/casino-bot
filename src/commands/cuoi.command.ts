@@ -53,13 +53,12 @@ async function marriagePanel(
         ? [
             `**${displayName}** đang là vợ/chồng của ${partner.label}.`,
             '',
-            `💒 Mở tiệc cưới mời cả kênh: ${formatCoins(CEREMONY_COST)}, khách mừng tiền lại cho bạn.`,
-            `💔 Ly hôn: phí ${formatCoins(DIVORCE_FEE)}, nghĩ kỹ đi.`,
+            'Mở tiệc mời cả kênh, khách tới mừng tiền lại cho bạn.',
           ].join('\n')
         : [
             `**${displayName}** chưa có ai.`,
             '',
-            `Muốn cầu hôn người thật thì gõ \`/cuoi nguoi:@ai đó\`, nhớ mua ${SHOP_ITEMS.nhan.emoji} Nhẫn cầu hôn (${formatCoins(SHOP_ITEMS.nhan.price)}) trong \`/tuido\` trước.`,
+            `Muốn cầu hôn người thật thì gõ \`/cuoi nguoi:@ai đó\`, nhớ mua ${SHOP_ITEMS.nhan.emoji} Nhẫn cầu hôn trong \`/tuido\` trước.`,
             `Nhẫn trong túi: **${rings}**`,
             '',
             'Ngại bị từ chối thì cưới hình nộm cũng được: `/hinhnom`.',
@@ -80,12 +79,12 @@ async function marriagePanel(
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(componentId('wed', 'party'))
-          .setLabel('Tổ chức hôn lễ')
+          .setLabel(`Tổ chức hôn lễ · ${formatCoins(CEREMONY_COST)}`)
           .setEmoji('💒')
           .setStyle(ButtonStyle.Success),
         new ButtonBuilder()
           .setCustomId(componentId('wed', 'divorce'))
-          .setLabel('Ly hôn')
+          .setLabel(`Ly hôn · ${formatCoins(DIVORCE_FEE)}`)
           .setEmoji('💔')
           .setStyle(ButtonStyle.Danger),
       ),
