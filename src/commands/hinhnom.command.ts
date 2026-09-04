@@ -25,9 +25,10 @@ import {
 } from '../services/avatar-store.service.js';
 import { SHOP_ITEMS } from '../services/items.service.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import { coupleFaces } from '../embeds/wedding.js';
+import { CARD_NAME, coupleCard, coupleFaces } from '../embeds/wedding.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { announce } from '../interactions/announce.js';
+import { CEREMONY_COST, startCeremony } from './honle.command.js';
 import type { Command } from './types.js';
 
 const unix = (iso: string): number => Math.floor(Date.parse(iso.replace(' ', 'T') + 'Z') / 1000);
@@ -188,6 +189,12 @@ export function figurinePanel(
     return { embeds: [figurineEmbed(userId, displayName, 'view')], components: rows };
   }
 
+  const partyButton = new ButtonBuilder()
+    .setCustomId(componentId('fig', 'party'))
+    .setLabel('Tổ chức hôn lễ')
+    .setEmoji('💒')
+    .setStyle(ButtonStyle.Success)
+    .setDisabled(economy.getBalance(userId) < CEREMONY_COST);
   rows.push(
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
@@ -207,6 +214,7 @@ export function figurinePanel(
             .setLabel('Cưới')
             .setEmoji('💍')
             .setStyle(ButtonStyle.Success),
+      ...(fig.married ? [partyButton] : []),
       new ButtonBuilder()
         .setCustomId(componentId('fig', 'discard'))
         .setLabel('Vứt đi')
@@ -416,28 +424,75 @@ export const figurineComponents: ComponentHandler = {
             'Muốn đãi cả kênh thì mở tiệc bằng `/cuoi`.',
           ].join('\n'),
         );
-      coupleFaces(
-        weddingEmbed,
-        `${displayName} 💍 ${fig.name}`,
-        interaction.user.displayAvatarURL(),
-        fig.avatar,
-      );
-      await announce(interaction, { embeds: [weddingEmbed] });
+      const weddingCard = await coupleCard(interaction.user.displayAvatarURL(), fig.avatar);
+      if (weddingCard) {
+        weddingEmbed.setImage(`attachment://${CARD_NAME}`);
+      } else {
+        coupleFaces(weddingEmbed, `${displayName} 💍 ${fig.name}`, interaction.user.displayAvatarURL(), fig.avatar);
+      }
+      await announce(interaction, {
+        embeds: [weddingEmbed],
+        files: weddingCard ? [weddingCard] : [],
+      });
+      return;
+    }
+
+    if (action === 'party') {
+      if (!figurines.spouse(userId)) {
+        await interaction.reply({
+          content: 'Cưới hình nộm rồi mới tổ chức hôn lễ được chứ!',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.update(figurinePanel(userId, displayName));
+      let outcome: Awaited<ReturnType<typeof startCeremony>> | 'failed';
+      try {
+        outcome = await startCeremony(
+          userId,
+          displayName,
+          interaction.user.displayAvatarURL(),
+          interaction.client,
+          async (payload) => {
+            const message = await announce(interaction, payload);
+            if (!message) throw new Error('channel unavailable');
+            return message;
+          },
+        );
+      } catch (error) {
+        console.error('[hinhnom] Ceremony failed to open:', error);
+        economy.credit(userId, CEREMONY_COST, 'refund', 'honle');
+        outcome = 'failed';
+      }
+      if (outcome !== 'ok') {
+        await interaction.followUp({
+          content:
+            outcome === 'single'
+              ? 'Chưa cưới ai mà đòi làm đám cưới?'
+              : outcome === 'busy'
+                ? 'Tiệc cưới của bạn đang diễn ra mà!'
+                : outcome === 'poor'
+                  ? `Không đủ ${formatCoins(CEREMONY_COST)} để đặt tiệc. Cưới xin tốn kém lắm!`
+                  : 'Bot không gửi được tin vào kênh này, đã hoàn lại tiền đặt tiệc.',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+      await interaction.editReply(figurinePanel(userId, displayName));
       return;
     }
 
     if (action === 'divorce') {
       figurines.setMarried(userId, false);
       await interaction.update(figurinePanel(userId, displayName));
-      await interaction.followUp({
-        embeds: [
-          new EmbedBuilder()
-            .setColor(COLORS.push)
-            .setDescription(
-              `💔 **${displayName}** đã ly hôn với **${fig.emoji} ${fig.name}**. Hình nộm vẫn nằm trong tủ, chỉ là hết duyên thôi.`,
-            ),
-        ],
-      });
+      const divEmbed = new EmbedBuilder()
+        .setColor(COLORS.push)
+        .setDescription(
+          `💔 **${displayName}** đã ly hôn với **${fig.emoji} ${fig.name}**. Hình nộm vẫn nằm trong tủ, chỉ là hết duyên thôi.`,
+        );
+      const divCard = await coupleCard(interaction.user.displayAvatarURL(), fig.avatar, true);
+      if (divCard) divEmbed.setImage(`attachment://${CARD_NAME}`);
+      await interaction.followUp({ embeds: [divEmbed], files: divCard ? [divCard] : [] });
       return;
     }
 

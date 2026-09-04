@@ -8,6 +8,17 @@ export interface PatchNote {
 /** Newest first. Bumping the top entry makes the bot announce it on boot. */
 export const PATCH_NOTES: PatchNote[] = [
   {
+    version: '5.13.0',
+    date: '04/09/2026',
+    title: 'Ảnh cặp đôi cho đám cưới, và cưới hình nộm cũng đãi tiệc',
+    changes: [
+      '💒 **Mọi màn cưới giờ có ảnh ghép cặp đôi:** avatar hai người (hoặc bạn và hình nộm) đứng cạnh nhau, trái tim ở giữa. Ảnh tự cắt về vuông cho gọn',
+      '💔 **Ly hôn thì trái tim vỡ** trên ảnh, cho ra dáng chia tay',
+      '🎎 **Cưới hình nộm giờ tổ chức hôn lễ được:** vào `/hinhnom` bấm 💒 Tổ chức hôn lễ để mời cả kênh tới mừng, y như cưới người thật',
+      '-# Nhớ đặt ảnh cho hình nộm (`/hinhnom` đính kèm ảnh) thì ảnh cặp đôi mới đủ hai gương mặt.',
+    ],
+  },
+  {
     version: '5.12.0',
     date: '03/09/2026',
     title: 'Đặt ảnh cho hình nộm, đám cưới đẹp hơn',

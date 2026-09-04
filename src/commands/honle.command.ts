@@ -13,7 +13,7 @@ import { economy, figurines } from '../context.js';
 import { gifs } from '../context.js';
 import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import { userAvatar } from '../embeds/wedding.js';
+import { CARD_NAME, coupleCard, userAvatar } from '../embeds/wedding.js';
 
 export const CEREMONY_COST = 5_000;
 export const GIFT_AMOUNT = 500;
@@ -33,6 +33,8 @@ interface Ceremony {
   spouseLabel: string;
   /** The partner's avatar (figurine photo or real user), shown at the ceremony. */
   spouseAvatar: string | null;
+  /** Whether a composed couple card was attached to the ceremony message. */
+  hasCard: boolean;
   guests: Map<string, Guest>;
   giftTotal: number;
   message: Message | null;
@@ -82,8 +84,13 @@ function ceremonyEmbed(c: Ceremony, gif: string | null, closed = false): EmbedBu
     );
   // The couple's faces: host on the byline, figurine avatar as the thumbnail.
   embed.setAuthor({ name: c.hostName, iconURL: c.hostAvatar });
-  if (c.spouseAvatar) embed.setThumbnail(c.spouseAvatar);
-  if (gif) embed.setImage(gif);
+  if (c.hasCard) {
+    // The couple card is attached to the message; it stays across guest edits.
+    embed.setImage(`attachment://${CARD_NAME}`);
+  } else {
+    if (c.spouseAvatar) embed.setThumbnail(c.spouseAvatar);
+    if (gif) embed.setImage(gif);
+  }
   return embed;
 }
 
@@ -119,6 +126,7 @@ export async function startCeremony(
 
   const spouseLabel = spouseId ? `<@${spouseId}>` : `**${figurine!.emoji} ${figurine!.name}**`;
   const spouseAvatar = figurine ? figurine.avatar : await userAvatar(client, spouseId!);
+  const card = await coupleCard(hostAvatar, spouseAvatar);
   const ceremony: Ceremony = {
     hostId,
     hostName,
@@ -126,6 +134,7 @@ export async function startCeremony(
     spouseId,
     spouseLabel,
     spouseAvatar,
+    hasCard: !!card,
     guests: new Map(),
     giftTotal: 0,
     message: null,
@@ -138,6 +147,7 @@ export async function startCeremony(
     // No @here: a 5.000 xu command must not be able to ping the whole server.
     content: `🎉 Tiệc cưới của <@${hostId}> và ${spouseLabel}!`,
     embeds: [ceremonyEmbed(ceremony, gif)],
+    files: card ? [card] : [],
     components: [
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()

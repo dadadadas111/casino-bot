@@ -1,5 +1,6 @@
 import {
   ActionRowBuilder,
+  AttachmentBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder,
@@ -17,7 +18,7 @@ import { componentId, type ComponentHandler } from '../interactions/ids.js';
 import { announce } from '../interactions/announce.js';
 import { refuseIfDown } from '../interactions/downtime.js';
 import { COLORS, formatCoins } from '../embeds/format.js';
-import { coupleFaces, userAvatar } from '../embeds/wedding.js';
+import { CARD_NAME, coupleCard, coupleFaces, userAvatar } from '../embeds/wedding.js';
 import { CEREMONY_COST, startCeremony } from './honle.command.js';
 import type { Command } from './types.js';
 
@@ -30,7 +31,11 @@ async function marriagePanel(
   displayName: string,
   viewerAvatar: string,
   client: Client,
-): Promise<{ embeds: EmbedBuilder[]; components: ActionRowBuilder<ButtonBuilder>[] }> {
+): Promise<{
+  embeds: EmbedBuilder[];
+  files: AttachmentBuilder[];
+  components: ActionRowBuilder<ButtonBuilder>[];
+}> {
   const spouseId = economy.spouseOf(userId);
   const fig = spouseId ? null : figurines.spouse(userId);
   const partner = spouseId
@@ -61,13 +66,16 @@ async function marriagePanel(
           ].join('\n'),
     );
 
-  if (!partner) return { embeds: [embed], components: [] };
+  if (!partner) return { embeds: [embed], files: [], components: [] };
 
   const spouseAvatar = spouseId ? await userAvatar(client, spouseId) : (fig?.avatar ?? null);
-  coupleFaces(embed, displayName, viewerAvatar, spouseAvatar);
+  const card = await coupleCard(viewerAvatar, spouseAvatar);
+  if (card) embed.setImage(`attachment://${CARD_NAME}`);
+  else coupleFaces(embed, displayName, viewerAvatar, spouseAvatar);
 
   return {
     embeds: [embed],
+    files: card ? [card] : [],
     components: [
       new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
@@ -229,16 +237,25 @@ async function acceptProposal(
         'Muốn đãi cả kênh thì mở tiệc bằng `/cuoi` rồi bấm 💒 Tổ chức hôn lễ.',
       ].join('\n'),
     );
-  coupleFaces(
-    embed,
-    `${proposer?.displayName ?? 'Người cầu hôn'} ❤️ ${interaction.user.displayName}`,
+  const card = await coupleCard(
     proposer?.displayAvatarURL() ?? null,
     interaction.user.displayAvatarURL(),
   );
-  if (gif) embed.setImage(gif);
+  if (card) {
+    embed.setImage(`attachment://${CARD_NAME}`);
+  } else {
+    coupleFaces(
+      embed,
+      `${proposer?.displayName ?? 'Người cầu hôn'} ❤️ ${interaction.user.displayName}`,
+      proposer?.displayAvatarURL() ?? null,
+      interaction.user.displayAvatarURL(),
+    );
+    if (gif) embed.setImage(gif);
+  }
   await interaction.editReply({
     content: `💒 <@${proposerId}> ❤️ <@${interaction.user.id}>`,
     embeds: [embed],
+    files: card ? [card] : [],
     components: [],
     allowedMentions: { users: [proposerId, interaction.user.id] },
   });
@@ -251,7 +268,10 @@ export const weddingComponents: ComponentHandler = {
 
     if (action === 'party') {
       if (await refuseIfDown(interaction)) return;
-      await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
+      await interaction.update({
+        ...(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client)),
+        attachments: [],
+      });
       let outcome: Awaited<ReturnType<typeof startCeremony>> | 'failed';
       try {
         outcome = await startCeremony(
@@ -285,7 +305,10 @@ export const weddingComponents: ComponentHandler = {
         return;
       }
       // Balance changed, so the panel's disabled states are stale.
-      await interaction.editReply(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
+      await interaction.editReply({
+        ...(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client)),
+        attachments: [],
+      });
       return;
     }
 
@@ -293,16 +316,18 @@ export const weddingComponents: ComponentHandler = {
       const figurine = figurines.spouse(userId);
       if (figurine) {
         figurines.setMarried(userId, false);
-        await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
-        await interaction.followUp({
-          embeds: [
-            new EmbedBuilder()
-              .setColor(COLORS.push)
-              .setDescription(
-                `💔 **${interaction.user.displayName}** đã ly hôn với **${figurine.emoji} ${figurine.name}**. Hình nộm vẫn nằm trong tủ, chỉ là hết duyên thôi.`,
-              ),
-          ],
-        });
+        await interaction.update({
+        ...(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client)),
+        attachments: [],
+      });
+        const figEmbed = new EmbedBuilder()
+          .setColor(COLORS.push)
+          .setDescription(
+            `💔 **${interaction.user.displayName}** đã ly hôn với **${figurine.emoji} ${figurine.name}**. Hình nộm vẫn nằm trong tủ, chỉ là hết duyên thôi.`,
+          );
+        const figCard = await coupleCard(interaction.user.displayAvatarURL(), figurine.avatar, true);
+        if (figCard) figEmbed.setImage(`attachment://${CARD_NAME}`);
+        await interaction.followUp({ embeds: [figEmbed], files: figCard ? [figCard] : [] });
         return;
       }
       const result = economy.divorce(userId);
@@ -316,15 +341,21 @@ export const weddingComponents: ComponentHandler = {
         });
         return;
       }
-      await interaction.update(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client));
+      await interaction.update({
+        ...(await marriagePanel(userId, interaction.user.displayName, interaction.user.displayAvatarURL(), interaction.client)),
+        attachments: [],
+      });
+      const exAvatar = result.ex ? await userAvatar(interaction.client, result.ex) : null;
+      const exEmbed = new EmbedBuilder()
+        .setColor(COLORS.push)
+        .setDescription(
+          `💔 **${interaction.user.displayName}** và <@${result.ex}> đã chính thức ly hôn. Phí thủ tục ${formatCoins(DIVORCE_FEE)} đã thanh toán.`,
+        );
+      const exCard = await coupleCard(interaction.user.displayAvatarURL(), exAvatar, true);
+      if (exCard) exEmbed.setImage(`attachment://${CARD_NAME}`);
       await announce(interaction, {
-        embeds: [
-          new EmbedBuilder()
-            .setColor(COLORS.push)
-            .setDescription(
-              `💔 **${interaction.user.displayName}** và <@${result.ex}> đã chính thức ly hôn. Phí thủ tục ${formatCoins(DIVORCE_FEE)} đã thanh toán.`,
-            ),
-        ],
+        embeds: [exEmbed],
+        files: exCard ? [exCard] : [],
         allowedMentions: { parse: [] },
       });
       return;
